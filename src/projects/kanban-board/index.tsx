@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('kanban-board')!
 
@@ -29,6 +29,10 @@ const PRIORITY_LABEL: Record<Priority, string> = {
   high: '高',
 }
 
+const MAX_ITEMS = 200
+const MAX_TITLE = 80
+const MAX_DETAIL = 500
+
 export default function Page() {
   const [cards, setCards] = useLocalStorage<Card[]>('lab:kanban-board', [
     {
@@ -54,6 +58,11 @@ export default function Page() {
   const [editDetail, setEditDetail] = useState('')
   const [editPriority, setEditPriority] = useState<Priority>('medium')
 
+  const titleOk = isNonEmpty(text)
+  const editTitleOk = isNonEmpty(editTitle)
+  const atLimit = cards.length >= MAX_ITEMS
+  const canAdd = titleOk && !atLimit
+
   const counts = useMemo(() => {
     const map: Record<Col, number> = { todo: 0, doing: 0, done: 0 }
     for (const c of cards) map[c.col]++
@@ -61,7 +70,7 @@ export default function Page() {
   }, [cards])
 
   function add() {
-    if (!text.trim()) return
+    if (!canAdd) return
     setCards([
       {
         id: uid('card'),
@@ -92,7 +101,7 @@ export default function Page() {
   }
 
   function saveEdit() {
-    if (!editing || !editTitle.trim()) return
+    if (!editing || !editTitleOk) return
     setCards(
       cards.map((c) =>
         c.id === editing
@@ -111,28 +120,39 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
-        <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1 }}
-            placeholder="新增卡片…"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && add()}
-          />
-          <select
-            className="field"
-            style={{ width: 100 }}
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as Priority)}
-          >
-            <option value="high">高優先</option>
-            <option value="medium">中優先</option>
-            <option value="low">低優先</option>
-          </select>
-          <button className="btn accent" onClick={add}>
-            新增
-          </button>
+        <div className="stack" style={{ gap: 0 }}>
+          <div className="row">
+            <input
+              className={`field${text.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              style={{ flex: 1 }}
+              placeholder="新增卡片…"
+              value={text}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setText(limitText(e.target.value, MAX_TITLE))}
+              onKeyDown={(e) => e.key === 'Enter' && add()}
+            />
+            <select
+              className="field"
+              style={{ width: 100 }}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as Priority)}
+            >
+              <option value="high">高優先</option>
+              <option value="medium">中優先</option>
+              <option value="low">低優先</option>
+            </select>
+            <button className="btn accent" onClick={add} disabled={!canAdd}>
+              新增
+            </button>
+          </div>
+          <div className="field-meta">
+            <span className={atLimit || (!titleOk && text.length > 0) ? 'warn' : undefined}>
+              {atLimit ? `已達上限 ${MAX_ITEMS} 張` : !titleOk && text.length > 0 ? '請輸入標題' : '\u00a0'}
+            </span>
+            <span>
+              {charCount(text)} / {MAX_TITLE}
+            </span>
+          </div>
         </div>
 
         <div className="row">
@@ -174,18 +194,38 @@ export default function Page() {
                     >
                       {editing === c.id ? (
                         <div className="stack" style={{ gap: 8 }}>
-                          <input
-                            className="field"
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                          />
-                          <textarea
-                            className="field"
-                            rows={2}
-                            placeholder="詳情（選填）"
-                            value={editDetail}
-                            onChange={(e) => setEditDetail(e.target.value)}
-                          />
+                          <div className="stack" style={{ gap: 0 }}>
+                            <input
+                              className={`field${!editTitleOk ? ' is-invalid' : ''}`}
+                              value={editTitle}
+                              maxLength={MAX_TITLE}
+                              onChange={(e) => setEditTitle(limitText(e.target.value, MAX_TITLE))}
+                            />
+                            <div className="field-meta">
+                              <span className={!editTitleOk ? 'warn' : undefined}>
+                                {!editTitleOk ? '標題不可空白' : '\u00a0'}
+                              </span>
+                              <span>
+                                {charCount(editTitle)} / {MAX_TITLE}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="stack" style={{ gap: 0 }}>
+                            <textarea
+                              className="field"
+                              rows={2}
+                              placeholder="詳情（選填）"
+                              value={editDetail}
+                              maxLength={MAX_DETAIL}
+                              onChange={(e) => setEditDetail(limitText(e.target.value, MAX_DETAIL))}
+                            />
+                            <div className="field-meta">
+                              <span />
+                              <span>
+                                {charCount(editDetail)} / {MAX_DETAIL}
+                              </span>
+                            </div>
+                          </div>
                           <select
                             className="field"
                             value={editPriority}
@@ -196,7 +236,7 @@ export default function Page() {
                             <option value="low">低</option>
                           </select>
                           <div className="row">
-                            <button className="btn sm accent" onClick={saveEdit}>
+                            <button className="btn sm accent" onClick={saveEdit} disabled={!editTitleOk}>
                               儲存
                             </button>
                             <button className="btn sm ghost" onClick={() => setEditing(null)}>

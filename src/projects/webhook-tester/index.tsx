@@ -2,9 +2,15 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
 const meta = getProject('webhook-tester')!
+
+const BODY_MAX = 50000
+const HEADERS_MAX = 4000
+const SECRET_MAX = 200
+const URL_MAX = 2048
+const FILTER_MAX = 120
 
 type Event = {
   id: string
@@ -97,6 +103,16 @@ export default function Page() {
   }, [events, filter])
 
   function validateJson() {
+    if (charCount(body) > BODY_MAX) {
+      setJsonErr(`Payload 超過 ${BODY_MAX.toLocaleString()} 字上限`)
+      setJsonOk(false)
+      return false
+    }
+    if (!isNonEmpty(body)) {
+      setJsonErr('Payload 不可空白')
+      setJsonOk(false)
+      return false
+    }
     try {
       JSON.parse(body)
       setJsonErr('')
@@ -110,6 +126,11 @@ export default function Page() {
   }
 
   function pretty() {
+    if (charCount(body) > BODY_MAX) {
+      setJsonErr(`Payload 超過 ${BODY_MAX.toLocaleString()} 字上限`)
+      setJsonOk(false)
+      return
+    }
     try {
       setBody(JSON.stringify(JSON.parse(body), null, 2))
       setJsonErr('')
@@ -165,9 +186,18 @@ export default function Page() {
   }
 
   function send() {
+    if (charCount(body) > BODY_MAX) {
+      setJsonErr(`Payload 超過 ${BODY_MAX.toLocaleString()} 字上限`)
+      setJsonOk(false)
+      return
+    }
     if (!validateJson()) return
-    pushEvent(headers, body, statusCode)
+    pushEvent(limitText(headers, HEADERS_MAX), limitText(body, BODY_MAX), statusCode)
   }
+
+  const endpointOk = isValidHttpUrl(normalizeHttpUrl(endpoint))
+  const bodyTooBig = charCount(body) > BODY_MAX
+  const canSend = isNonEmpty(body) && !bodyTooBig
 
   function replay() {
     if (!current) return
@@ -201,12 +231,34 @@ export default function Page() {
         <div className="panel stack">
           <label className="stack">
             <span className="label">Endpoint（用於 curl）</span>
-            <input className="field mono" value={endpoint} onChange={(e) => setEndpoint(e.target.value)} />
+            <input
+              className={cn('field mono', !endpointOk && 'is-invalid')}
+              maxLength={URL_MAX}
+              value={endpoint}
+              onChange={(e) => setEndpoint(limitText(e.target.value, URL_MAX))}
+              onBlur={() => {
+                const n = normalizeHttpUrl(endpoint)
+                if (isValidHttpUrl(n)) setEndpoint(n)
+              }}
+            />
+            <div className="field-meta">
+              <span className={!endpointOk ? 'warn' : undefined}>{endpointOk ? 'URL 有效' : '請輸入 http(s) URL'}</span>
+              <span>{charCount(endpoint)}/{URL_MAX}</span>
+            </div>
           </label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <label className="stack" style={{ flex: 1, minWidth: 160 }}>
               <span className="label">Webhook Secret</span>
-              <input className="field mono" value={secret} onChange={(e) => setSecret(e.target.value)} />
+              <input
+                className="field mono"
+                maxLength={SECRET_MAX}
+                value={secret}
+                onChange={(e) => setSecret(limitText(e.target.value, SECRET_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">簽章用密鑰</span>
+                <span>{charCount(secret)}/{SECRET_MAX}</span>
+              </div>
             </label>
             <label className="stack">
               <span className="label">回應狀態碼</span>
@@ -221,49 +273,62 @@ export default function Page() {
           </div>
           <label className="stack">
             <span className="label">模擬 Headers</span>
-            <textarea className="field" rows={4} value={headers} onChange={(e) => setHeaders(e.target.value)} />
+            <textarea
+              className="field"
+              rows={4}
+              maxLength={HEADERS_MAX}
+              value={headers}
+              onChange={(e) => setHeaders(limitText(e.target.value, HEADERS_MAX))}
+            />
+            <div className="field-meta">
+              <span className="field-hint">每行一個 Header</span>
+              <span>{charCount(headers)}/{HEADERS_MAX}</span>
+            </div>
           </label>
           <label className="stack">
             <span className="label">Payload (JSON)</span>
             <textarea
-              className="field mono"
+              className={cn('field mono', (jsonErr || bodyTooBig || !isNonEmpty(body)) && 'is-invalid')}
               rows={10}
+              maxLength={BODY_MAX}
               value={body}
               onChange={(e) => {
-                setBody(e.target.value)
+                setBody(limitText(e.target.value, BODY_MAX))
                 setJsonOk(false)
                 setJsonErr('')
               }}
             />
+            <div className="field-meta">
+              <span className={bodyTooBig || !isNonEmpty(body) ? 'warn' : undefined}>
+                {bodyTooBig ? '超過大小上限' : isNonEmpty(body) ? '可驗證／送出' : '請輸入 JSON'}
+              </span>
+              <span>{charCount(body)}/{BODY_MAX}</span>
+            </div>
           </label>
           <div className="list-item muted mono" style={{ fontSize: 12 }}>
             預期簽章（HMAC-demo）：{expectedSig}
           </div>
-          {jsonErr && (
-            <p className="tag" style={{ background: 'var(--rose)', color: '#fff', margin: 0 }}>
-              JSON 錯誤：{jsonErr}
+          {(jsonErr || bodyTooBig) && (
+            <p className="field-error">
+              {bodyTooBig ? `Payload 超過 ${BODY_MAX.toLocaleString()} 字上限` : `JSON 錯誤：${jsonErr}`}
             </p>
           )}
-          {jsonOk && !jsonErr && (
-            <p className="tag" style={{ background: 'var(--teal-soft)', margin: 0 }}>
-              JSON 有效
-            </p>
-          )}
+          {jsonOk && !jsonErr && !bodyTooBig && <p className="field-hint">JSON 有效</p>}
           {verifyMsg && <p className="muted" style={{ margin: 0, fontSize: 13 }}>{verifyMsg}</p>}
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn ghost sm" onClick={validateJson}>
+            <button type="button" className="btn ghost sm" onClick={validateJson} disabled={!isNonEmpty(body)}>
               驗證 JSON
             </button>
-            <button type="button" className="btn ghost sm" onClick={pretty}>
+            <button type="button" className="btn ghost sm" onClick={pretty} disabled={!isNonEmpty(body) || bodyTooBig}>
               Pretty Print
             </button>
-            <button type="button" className="btn ghost sm" onClick={signPayload}>
+            <button type="button" className="btn ghost sm" onClick={signPayload} disabled={!isNonEmpty(body)}>
               產生簽章
             </button>
             <button type="button" className="btn ghost sm" onClick={verifySignature}>
               驗證簽章
             </button>
-            <button type="button" className="btn accent" onClick={send}>
+            <button type="button" className="btn accent" onClick={send} disabled={!canSend}>
               送出 → {statusCode}
             </button>
             <button type="button" className="btn ghost" onClick={() => setEvents([])}>
@@ -275,9 +340,10 @@ export default function Page() {
           <div className="row">
             <input
               className="field"
+              maxLength={FILTER_MAX}
               placeholder="篩選 event / 狀態碼…"
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={(e) => setFilter(limitText(e.target.value, FILTER_MAX))}
               style={{ flex: 1 }}
             />
             <span className="muted">{filtered.length}</span>

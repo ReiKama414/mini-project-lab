@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('todo-list')!
+
+const TEXT_MAX = 80
+const SEARCH_MAX = 80
 
 type Priority = 'low' | 'medium' | 'high'
 type Todo = {
@@ -31,6 +34,10 @@ export default function Page() {
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [error, setError] = useState('')
+
+  const canAdd = isNonEmpty(text)
+  const canSaveEdit = isNonEmpty(editText)
 
   const visible = useMemo(() => {
     const rank = { high: 0, medium: 1, low: 2 }
@@ -49,11 +56,15 @@ export default function Page() {
 
   function add() {
     const v = text.trim()
-    if (!v) return
+    if (!v) {
+      setError('請輸入待辦內容')
+      return
+    }
+    setError('')
     setTodos([
       {
         id: uid('todo'),
-        text: v,
+        text: limitText(v, TEXT_MAX),
         done: false,
         priority,
         due: due || undefined,
@@ -67,43 +78,57 @@ export default function Page() {
 
   function saveEdit(id: string) {
     const v = editText.trim()
-    if (!v) return
-    setTodos(todos.map((t) => (t.id === id ? { ...t, text: v } : t)))
+    if (!v) {
+      setError('待辦內容不可空白')
+      return
+    }
+    setError('')
+    setTodos(todos.map((t) => (t.id === id ? { ...t, text: limitText(v, TEXT_MAX) } : t)))
     setEditing(null)
   }
 
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
-        <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1 }}
-            placeholder="新增待辦…"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && add()}
-          />
-          <select
-            className="field"
-            style={{ width: 90 }}
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as Priority)}
-          >
-            <option value="high">高優先</option>
-            <option value="medium">中優先</option>
-            <option value="low">低優先</option>
-          </select>
-          <input
-            className="field"
-            type="date"
-            style={{ width: 150 }}
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-          />
-          <button className="btn accent" onClick={add}>
-            新增
-          </button>
+        <div className="stack" style={{ gap: 4 }}>
+          <div className="row">
+            <input
+              className={`field${error && !canAdd ? ' is-invalid' : ''}`}
+              style={{ flex: 1 }}
+              placeholder="新增待辦…"
+              value={text}
+              maxLength={TEXT_MAX}
+              onChange={(e) => {
+                setText(limitText(e.target.value, TEXT_MAX))
+                setError('')
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && canAdd && add()}
+            />
+            <select
+              className="field"
+              style={{ width: 90 }}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as Priority)}
+            >
+              <option value="high">高優先</option>
+              <option value="medium">中優先</option>
+              <option value="low">低優先</option>
+            </select>
+            <input
+              className="field"
+              type="date"
+              style={{ width: 150 }}
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+            />
+            <button className="btn accent" onClick={add} disabled={!canAdd}>
+              新增
+            </button>
+          </div>
+          <div className="field-meta">
+            <span>{charCount(text)} / {TEXT_MAX}</span>
+          </div>
+          {error && <p className="field-error">{error}</p>}
         </div>
 
         <div className="row">
@@ -116,13 +141,18 @@ export default function Page() {
               {f === 'all' ? '全部' : f === 'active' ? '未完成' : '已完成'}
             </button>
           ))}
-          <input
-            className="field"
-            style={{ flex: 1, maxWidth: 220 }}
-            placeholder="搜尋…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <div className="stack" style={{ flex: 1, maxWidth: 220, gap: 2 }}>
+            <input
+              className="field"
+              placeholder="搜尋…"
+              value={q}
+              maxLength={SEARCH_MAX}
+              onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
+            />
+            <div className="field-meta">
+              <span>{charCount(q)} / {SEARCH_MAX}</span>
+            </div>
+          </div>
           <span className="muted" style={{ marginLeft: 'auto' }}>
             剩餘 {left} · 完成 {doneCount}
           </span>
@@ -161,18 +191,25 @@ export default function Page() {
                   {PRIORITY_LABEL[t.priority]}
                 </span>
                 {editing === t.id ? (
-                  <input
-                    className="field"
-                    style={{ flex: 1 }}
-                    autoFocus
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveEdit(t.id)
-                      if (e.key === 'Escape') setEditing(null)
-                    }}
-                    onBlur={() => saveEdit(t.id)}
-                  />
+                  <div className="stack" style={{ flex: 1, gap: 2 }}>
+                    <input
+                      className={`field${!canSaveEdit ? ' is-invalid' : ''}`}
+                      autoFocus
+                      value={editText}
+                      maxLength={TEXT_MAX}
+                      onChange={(e) => setEditText(limitText(e.target.value, TEXT_MAX))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && canSaveEdit) saveEdit(t.id)
+                        if (e.key === 'Escape') setEditing(null)
+                      }}
+                      onBlur={() => {
+                        if (canSaveEdit) saveEdit(t.id)
+                      }}
+                    />
+                    <div className="field-meta">
+                      <span>{charCount(editText)} / {TEXT_MAX}</span>
+                    </div>
+                  </div>
                 ) : (
                   <button
                     type="button"

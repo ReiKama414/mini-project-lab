@@ -2,8 +2,15 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { charCount, clamp, isNonEmpty, limitText, parseNumber } from '../../lib/utils'
 
 const meta = getProject('countdown')!
+
+const LABEL_MAX = 80
+const MINS_MIN = 0
+const MINS_MAX = 999
+const SECS_MIN = 0
+const SECS_MAX = 59
 
 const PRESETS = [
   { label: '1 分', m: 1, s: 0 },
@@ -71,21 +78,34 @@ export default function Page() {
   const ss = left % 60
 
   function start() {
-    const t = Math.max(0, mins) * 60 + Math.max(0, Math.min(59, secs))
-    if (!t) return
+    const m = clamp(Number.isFinite(mins) ? mins : 0, MINS_MIN, MINS_MAX)
+    const s = clamp(Number.isFinite(secs) ? secs : 0, SECS_MIN, SECS_MAX)
+    const t = m * 60 + s
+    if (!t || !isNonEmpty(label)) return
     setTotal(t)
     setLeft(t)
     setDone(false)
     setRunning(true)
-    setHistory([{ id: Date.now(), label, seconds: t, at: Date.now() }, ...history].slice(0, 12))
+    setHistory([{ id: Date.now(), label: limitText(label.trim(), LABEL_MAX), seconds: t, at: Date.now() }, ...history].slice(0, 12))
   }
+
+  const canStart = !running && (clamp(mins, MINS_MIN, MINS_MAX) * 60 + clamp(secs, SECS_MIN, SECS_MAX)) > 0 && isNonEmpty(label)
 
   return (
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
           <label className="label">標題</label>
-          <input className="field" value={label} onChange={(e) => setLabel(e.target.value)} />
+          <input
+            className={`field${!isNonEmpty(label) ? ' is-invalid' : ''}`}
+            value={label}
+            maxLength={LABEL_MAX}
+            onChange={(e) => setLabel(limitText(e.target.value, LABEL_MAX))}
+          />
+          <div className="field-meta">
+            <span>{charCount(label)} / {LABEL_MAX}</span>
+          </div>
+          {!isNonEmpty(label) && <p className="field-error">請輸入標題</p>}
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {PRESETS.map((p) => (
               <button
@@ -107,11 +127,15 @@ export default function Page() {
               <input
                 className="field"
                 type="number"
-                min={0}
-                max={999}
+                min={MINS_MIN}
+                max={MINS_MAX}
                 value={mins}
                 disabled={running}
-                onChange={(e) => setMins(Number(e.target.value))}
+                onChange={(e) => {
+                  const n = parseNumber(e.target.value)
+                  if (!Number.isFinite(n)) return
+                  setMins(clamp(n, MINS_MIN, MINS_MAX))
+                }}
               />
             </label>
             <label className="stack">
@@ -119,11 +143,15 @@ export default function Page() {
               <input
                 className="field"
                 type="number"
-                min={0}
-                max={59}
+                min={SECS_MIN}
+                max={SECS_MAX}
                 value={secs}
                 disabled={running}
-                onChange={(e) => setSecs(Number(e.target.value))}
+                onChange={(e) => {
+                  const n = parseNumber(e.target.value)
+                  if (!Number.isFinite(n)) return
+                  setSecs(clamp(n, SECS_MIN, SECS_MAX))
+                }}
               />
             </label>
           </div>
@@ -140,7 +168,7 @@ export default function Page() {
           )}
           <div className="row">
             {!running ? (
-              <button className="btn accent" onClick={start}>
+              <button className="btn accent" onClick={start} disabled={!canStart}>
                 開始倒數
               </button>
             ) : (

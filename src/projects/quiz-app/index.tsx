@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { clamp, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('quiz-app')!
 
@@ -151,19 +151,26 @@ export default function Page() {
             <input type="checkbox" checked={useTimer} onChange={(e) => setUseTimer(e.target.checked)} />
             <span>啟用計時</span>
             {useTimer && (
-              <input
-                className="field"
-                type="number"
-                min={15}
-                max={300}
-                style={{ width: 100 }}
-                value={limitSec}
-                onChange={(e) => setLimitSec(Math.max(15, Number(e.target.value)))}
-              />
+              <div className="stack" style={{ gap: 0 }}>
+                <input
+                  className={`field${limitSec < 15 || limitSec > 300 ? ' is-invalid' : ''}`}
+                  type="number"
+                  min={15}
+                  max={300}
+                  style={{ width: 100 }}
+                  value={limitSec}
+                  onChange={(e) => {
+                    const n = parseNumber(e.target.value)
+                    if (n == null) return
+                    setLimitSec(clamp(Math.round(n), 15, 300))
+                  }}
+                />
+                <p className="field-hint">15–300 秒</p>
+              </div>
             )}
             {useTimer && <span className="muted">秒</span>}
           </label>
-          <button className="btn accent" onClick={start} disabled={!pool.length}>
+          <button className="btn accent" onClick={start} disabled={!pool.length || (useTimer && (limitSec < 15 || limitSec > 300))}>
             開始測驗（最多 10 題）
           </button>
 

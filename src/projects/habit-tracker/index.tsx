@@ -2,11 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('habit-tracker')!
 
 type Habit = { id: string; name: string; checks: string[]; createdAt: number }
+
+const MAX_ITEMS = 50
+const MAX_NAME = 40
 
 function toKey(d: Date) {
   return d.toISOString().slice(0, 10)
@@ -31,7 +34,6 @@ function calcStreak(checks: string[]) {
   const set = new Set(checks)
   let streak = 0
   const d = new Date()
-  // 若今天尚未打卡，從昨天開始算「進行中 streak」
   if (!set.has(toKey(d))) {
     d.setDate(d.getDate() - 1)
   }
@@ -56,8 +58,12 @@ export default function Page() {
   const days = useMemo(() => last7(), [])
   const today = todayKey()
 
+  const nameOk = isNonEmpty(name)
+  const atLimit = habits.length >= MAX_ITEMS
+  const canAdd = nameOk && !atLimit
+
   function add() {
-    if (!name.trim()) return
+    if (!canAdd) return
     setHabits([
       ...habits,
       { id: uid('habit'), name: name.trim(), checks: [], createdAt: Date.now() },
@@ -110,18 +116,33 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1 }}
-            placeholder="新習慣名稱…"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && add()}
-          />
-          <button className="btn accent" onClick={add}>
-            新增
-          </button>
+        <div className="stack" style={{ gap: 0 }}>
+          <div className="row">
+            <input
+              className={`field${name.length > 0 && !nameOk ? ' is-invalid' : ''}`}
+              style={{ flex: 1 }}
+              placeholder="新習慣名稱…"
+              value={name}
+              maxLength={MAX_NAME}
+              onChange={(e) => setName(limitText(e.target.value, MAX_NAME))}
+              onKeyDown={(e) => e.key === 'Enter' && add()}
+            />
+            <button className="btn accent" onClick={add} disabled={!canAdd}>
+              新增
+            </button>
+          </div>
+          <div className="field-meta">
+            <span className={!nameOk && name.length > 0 ? 'warn' : undefined}>
+              {atLimit
+                ? `已達上限 ${MAX_ITEMS} 個習慣`
+                : !nameOk && name.length > 0
+                  ? '請輸入習慣名稱'
+                  : '\u00a0'}
+            </span>
+            <span>
+              {charCount(name)} / {MAX_NAME}
+            </span>
+          </div>
         </div>
 
         <div className="row muted" style={{ fontSize: 12, paddingLeft: 8 }}>
@@ -159,7 +180,7 @@ export default function Page() {
                     <button
                       key={d}
                       className={`btn sm ${h.checks.includes(d) ? 'teal' : 'ghost'}`}
-                      style={{ width: 40, justifyContent: 'center' }}
+                      style={{ width: 40, placeContent: 'center' }}
                       onClick={() => toggle(h.id, d)}
                       title={d}
                     >

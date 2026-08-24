@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText, copyText } from '../../lib/utils'
+import { uid, downloadText, copyText, charCount, isNonEmpty, limitText } from '../../lib/utils'
 
 const meta = getProject('form-builder')!
 
@@ -59,6 +59,11 @@ const TYPE_LABEL: Record<FieldType, string> = {
   checkbox: '勾選',
 }
 
+const MAX_FIELDS = 40
+const MAX_TITLE = 80
+const MAX_LABEL = 80
+const MAX_OPTIONS = 200
+
 export default function Page() {
   const [fields, setFields] = useLocalStorage<Field[]>('lab:form-builder', [
     { id: '1', label: '姓名', type: 'text', required: true },
@@ -80,6 +85,7 @@ export default function Page() {
   const [okMsg, setOkMsg] = useState('')
 
   function add(type: FieldType) {
+    if (fields.length >= MAX_FIELDS) return
     setFields((fs) => [
       ...fs,
       {
@@ -224,7 +230,10 @@ export default function Page() {
             <label className="label">表單標題</label>
             <span className="mono muted">{title.length} 字</span>
           </div>
-          <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input className={`field${!isNonEmpty(title) ? ' is-invalid' : ''}`} value={title} maxLength={MAX_TITLE} onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))} />
+            <div className="field-meta"><span className={!isNonEmpty(title) ? 'warn' : undefined}>{!isNonEmpty(title) ? '標題不可空白' : ' '}</span><span>{charCount(title)} / {MAX_TITLE}</span></div>
+          </div>
           <div className="row">
             <label className="label">說明</label>
             <span className="mono muted">{desc.length} 字</span>

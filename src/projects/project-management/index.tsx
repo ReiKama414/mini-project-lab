@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { downloadText, uid, charCount, isNonEmpty, limitText } from '../../lib/utils'
 
 const meta = getProject('project-management')!
 
@@ -18,6 +18,18 @@ const cols: { key: Status; label: string }[] = [
 ]
 
 const PRIO: Priority[] = ['低', '中', '高']
+
+const MAX_TASKS = 200
+const MAX_PROJECTS = 50
+const MAX_TITLE = 80
+const MAX_PROJECT_NAME = 40
+const MAX_SEARCH = 80
+
+function isValidDate(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const d = new Date(iso + 'T12:00:00')
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso
+}
 
 const TASK_PRESETS = [
   { title: '撰寫需求文件', priority: '中' as Priority, status: 'todo' as Status },
@@ -47,6 +59,12 @@ export default function Page() {
   const [q, setQ] = useState('')
   const [newProject, setNewProject] = useState('')
   const today = new Date().toISOString().slice(0, 10)
+  const titleOk = isNonEmpty(title)
+  const dueOk = isValidDate(due)
+  const tasksAtLimit = tasks.length >= MAX_TASKS
+  const canAddTask = titleOk && dueOk && !tasksAtLimit
+  const projectOk = isNonEmpty(newProject)
+  const canAddProject = projectOk && projects.length < MAX_PROJECTS
 
   const visible = useMemo(() => {
     const qq = q.trim().toLowerCase()
@@ -94,6 +112,7 @@ export default function Page() {
   }
 
   function addPreset(p: (typeof TASK_PRESETS)[number]) {
+    if (tasks.length >= MAX_TASKS || !dueOk) return
     setTasks((xs) => [
       ...xs,
       {
@@ -137,7 +156,10 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <input className="field" style={{ flex: 1, minWidth: 140 }} placeholder="任務標題" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <div className="stack" style={{ flex: 1, minWidth: 140, gap: 0 }}>
+            <input className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`} style={{ width: '100%' }} placeholder="任務標題" value={title} maxLength={MAX_TITLE} onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))} />
+            <div className="field-meta"><span className={!titleOk && title.length > 0 ? 'warn' : undefined}>{!titleOk && title.length > 0 ? '請輸入標題' : ' '}</span><span>{charCount(title)} / {MAX_TITLE}</span></div>
+          </div>
           <select className="field" style={{ width: 90 }} value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
             {PRIO.map((p) => (
               <option key={p} value={p}>
@@ -145,12 +167,13 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <input className="field" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+          <input className={`field${!dueOk ? ' is-invalid' : ''}`} type="date" value={due} onChange={(e) => setDue(e.target.value)} />
           <button
             type="button"
             className="btn accent"
+            disabled={!canAddTask}
             onClick={() => {
-              if (!title.trim()) return
+              if (!canAddTask) return
               setTasks((xs) => [
                 ...xs,
                 { id: uid('t'), title: title.trim(), projectId, status: 'todo', priority, due },
@@ -161,6 +184,8 @@ export default function Page() {
             新增任務
           </button>
         </div>
+        {tasksAtLimit && <p className="field-error">已達上限 {MAX_TASKS} 個任務</p>}
+        {!dueOk && <p className="field-error">請選擇有效期限</p>}
 
         <div>
           <div className="label">快速預設任務</div>
@@ -174,12 +199,16 @@ export default function Page() {
         </div>
 
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <input className="field" placeholder="新專案名稱" value={newProject} onChange={(e) => setNewProject(e.target.value)} />
+          <div className="stack" style={{ gap: 0, flex: 1 }}>
+            <input className="field" placeholder="新專案名稱" value={newProject} maxLength={MAX_PROJECT_NAME} onChange={(e) => setNewProject(limitText(e.target.value, MAX_PROJECT_NAME))} />
+            <div className="field-meta"><span className={projects.length >= MAX_PROJECTS ? 'warn' : undefined}>{projects.length >= MAX_PROJECTS ? `專案上限 ${MAX_PROJECTS}` : ' '}</span><span>{charCount(newProject)} / {MAX_PROJECT_NAME}</span></div>
+          </div>
           <button
             type="button"
             className="btn ghost"
+            disabled={!canAddProject}
             onClick={() => {
-              if (!newProject.trim()) return
+              if (!canAddProject) return
               const p = { id: uid('p'), name: newProject.trim() }
               setProjects((xs) => [...xs, p])
               setProjectId(p.id)
@@ -188,7 +217,10 @@ export default function Page() {
           >
             新增專案
           </button>
-          <input className="field" style={{ flex: 1, minWidth: 120 }} placeholder="搜尋任務…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="stack" style={{ flex: 1, minWidth: 120, gap: 0 }}>
+            <input className="field" style={{ width: '100%' }} placeholder="搜尋任務…" value={q} maxLength={MAX_SEARCH} onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))} />
+            <div className="field-meta"><span /><span>{charCount(q)} / {MAX_SEARCH}</span></div>
+          </div>
         </div>
 
         <div className="row" style={{ flexWrap: 'wrap' }}>

@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
 const meta = getProject('uptime-monitor')!
+
+const URL_MAX = 2048
 
 type Check = { at: number; ok: boolean; latency: number; note: string }
 type Site = {
@@ -63,6 +65,10 @@ export default function Page() {
   const [url, setUrl] = useState('https://')
   const [checking, setChecking] = useState(false)
   const [auto, setAuto] = useLocalStorage('lab:uptime-monitor:auto', true)
+  const [urlErr, setUrlErr] = useState('')
+  const normalized = normalizeHttpUrl(url)
+  const urlOk = isValidHttpUrl(normalized)
+  const canAdd = urlOk && isNonEmpty(url)
 
   const checkOne = useCallback(async (id: string, targetUrl: string) => {
     setSites((xs) =>
@@ -122,30 +128,50 @@ export default function Page() {
         <input type="checkbox" checked={auto} onChange={() => setAuto(!auto)} />
         自動輪詢（60 秒）
       </label>
-      <div className="panel row" style={{ marginBottom: 12 }}>
-        <input
-          className="field"
-          style={{ flex: 1 }}
-          placeholder="https://"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button
-          type="button"
-          className="btn accent"
-          onClick={() => {
-            if (!/^https?:\/\//i.test(url.trim())) return
-            const id = uid('s')
-            setSites((xs) => [
-              ...xs,
-              { id, url: url.trim(), status: 'unknown', latency: 0, history: [] },
-            ])
-            setUrl('https://')
-            void checkOne(id, url.trim())
-          }}
-        >
-          加入並檢查
-        </button>
+      <div className="panel stack" style={{ marginBottom: 12 }}>
+        <div className="row">
+          <input
+            className={cn('field', !canAdd && 'is-invalid')}
+            style={{ flex: 1 }}
+            maxLength={URL_MAX}
+            placeholder="https://"
+            value={url}
+            onChange={(e) => {
+              setUrl(limitText(e.target.value, URL_MAX))
+              setUrlErr('')
+            }}
+            onBlur={() => {
+              if (isNonEmpty(url) && urlOk) setUrl(normalized)
+            }}
+          />
+          <button
+            type="button"
+            className="btn accent"
+            disabled={!canAdd}
+            onClick={() => {
+              if (!urlOk) {
+                setUrlErr('請輸入有效的 http(s) URL')
+                return
+              }
+              const target = normalized
+              const id = uid('s')
+              setSites((xs) => [
+                ...xs,
+                { id, url: target, status: 'unknown', latency: 0, history: [] },
+              ])
+              setUrl('https://')
+              setUrlErr('')
+              void checkOne(id, target)
+            }}
+          >
+            加入並檢查
+          </button>
+        </div>
+        <div className="field-meta">
+          <span className={!canAdd ? 'warn' : undefined}>{canAdd ? '可加入' : '需為 http 或 https URL'}</span>
+          <span>{charCount(url)}/{URL_MAX}</span>
+        </div>
+        {urlErr && <p className="field-error">{urlErr}</p>}
       </div>
       <ul className="list panel">
         {sites.map((s) => {

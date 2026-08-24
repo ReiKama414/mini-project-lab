@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-rewriter')!
+
+const INPUT_MAX = 10000
 
 type Mode = 'shorten' | 'expand' | 'formal' | 'casual' | 'bullet' | 'en'
 
@@ -104,14 +106,17 @@ export default function Page() {
   }, [input, out])
 
   function run() {
-    const result = rewrite(input, mode)
+    if (!isNonEmpty(input)) return
+    const result = rewrite(limitText(input, INPUT_MAX), mode)
     setOut(result)
     if (result) {
       setHistory((h) =>
-        [{ at: Date.now(), mode, input, output: result }, ...h].slice(0, 12),
+        [{ at: Date.now(), mode, input: limitText(input, INPUT_MAX), output: result }, ...h].slice(0, 12),
       )
     }
   }
+
+  const canRun = isNonEmpty(input)
 
   return (
     <ProjectShell
@@ -147,12 +152,12 @@ export default function Page() {
             即時改寫
           </label>
           {!auto && (
-            <button type="button" className="btn accent" onClick={run}>
+            <button type="button" className="btn accent" onClick={run} disabled={!canRun}>
               改寫
             </button>
           )}
           {auto && (
-            <button type="button" className="btn ghost sm" onClick={run}>
+            <button type="button" className="btn ghost sm" onClick={run} disabled={!canRun}>
               存入歷史
             </button>
           )}
@@ -163,9 +168,20 @@ export default function Page() {
         <div className="panel stack">
           <div className="row">
             <span className="label">改寫前</span>
-            <span className="muted mono">{input.length} 字</span>
+            <span className="muted mono">{charCount(input)}/{INPUT_MAX}</span>
           </div>
-          <textarea className="field" rows={12} value={input} onChange={(e) => setInput(e.target.value)} />
+          <textarea
+            className={cn('field', !canRun && 'is-invalid')}
+            rows={12}
+            maxLength={INPUT_MAX}
+            value={input}
+            onChange={(e) => setInput(limitText(e.target.value, INPUT_MAX))}
+          />
+          <div className="field-meta">
+            <span className={!canRun ? 'warn' : undefined}>{canRun ? '可改寫' : '請輸入原文'}</span>
+            <span className="field-hint">上限 {INPUT_MAX.toLocaleString()} 字</span>
+          </div>
+          {!canRun && <p className="field-error">原文不可空白</p>}
         </div>
         <div className="panel stack">
           <div className="row">

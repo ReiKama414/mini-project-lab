@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 
@@ -19,12 +19,22 @@ type Entry = {
 
 const INCOME_CATS = ['薪資', '獎金', '投資', '兼職', '其他收入']
 const EXPENSE_CATS = ['餐飲', '交通', '居住', '購物', '娛樂', '醫療', '其他支出']
+const MAX_ITEMS = 500
+const MAX_TITLE = 80
+const MAX_SEARCH = 80
+const MAX_AMOUNT = 1_000_000_000
+
+function isValidDate(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const d = new Date(iso + 'T12:00:00')
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso
+}
 
 export default function Page() {
   const [entries, setEntries] = useLocalStorage<Entry[]>('lab:accounting-app', [])
   const [type, setType] = useState<'income' | 'expense'>('expense')
   const [title, setTitle] = useState('')
-  const [amount, setAmount] = useState(0)
+  const [amountStr, setAmountStr] = useState('')
   const [category, setCategory] = useState(EXPENSE_CATS[0]!)
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
@@ -32,6 +42,12 @@ export default function Page() {
   const [search, setSearch] = useState('')
 
   const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS
+  const amount = parseNumber(amountStr)
+  const titleOk = isNonEmpty(title)
+  const amountOk = amount != null && amount >= 0
+  const dateOk = isValidDate(date)
+  const atLimit = entries.length >= MAX_ITEMS
+  const canAdd = titleOk && amountOk && dateOk && !atLimit
 
   const monthEntries = useMemo(() => {
     const start = startOfMonth(parseISO(`${filterMonth}-01`))
@@ -77,13 +93,20 @@ export default function Page() {
   }
 
   function add() {
-    if (!title.trim() || amount <= 0) return
+    if (!canAdd || amount == null) return
     setEntries([
-      { id: uid('acc'), type, title: title.trim(), amount, category, date },
+      {
+        id: uid('acc'),
+        type,
+        title: title.trim(),
+        amount: clamp(amount, 0, MAX_AMOUNT),
+        category,
+        date,
+      },
       ...entries,
     ])
     setTitle('')
-    setAmount(0)
+    setAmountStr('')
   }
 
   function exportCsv() {
@@ -199,25 +222,64 @@ export default function Page() {
           </button>
         </div>
         <div className="grid-2">
-          <input className="field" placeholder="說明" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <input
-            className="field"
-            type="number"
-            min={0}
-            placeholder="金額"
-            value={amount || ''}
-            onChange={(e) => setAmount(Number(e.target.value))}
-          />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              placeholder="說明"
+              value={title}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))}
+            />
+            <div className="field-meta">
+              <span className={!titleOk && title.length > 0 ? 'warn' : undefined}>
+                {!titleOk && title.length > 0 ? '請輸入說明' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(title)} / {MAX_TITLE}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${amountStr !== '' && !amountOk ? ' is-invalid' : ''}`}
+              type="number"
+              min={0}
+              max={MAX_AMOUNT}
+              step="0.01"
+              placeholder="金額"
+              value={amountStr}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (n == null) setAmountStr(e.target.value)
+                else setAmountStr(String(clamp(n, 0, MAX_AMOUNT)))
+              }}
+            />
+            <div className="field-meta">
+              <span className={amountStr !== '' && !amountOk ? 'warn' : undefined}>
+                {amountStr !== '' && !amountOk ? '金額須為 ≥ 0 的數字' : '\u00a0'}
+              </span>
+              <span className="field-hint">0 – {MAX_AMOUNT.toLocaleString()}</span>
+            </div>
+          </div>
           <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
             {cats.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
-          <input className="field" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${!dateOk ? ' is-invalid' : ''}`}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            {!dateOk && <p className="field-error">請選擇有效日期</p>}
+          </div>
         </div>
-        <button className="btn accent" onClick={add}>
+        <button className="btn accent" onClick={add} disabled={!canAdd}>
           記一筆
         </button>
+        {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
       </div>
 
       <div className="panel stack">
@@ -234,13 +296,22 @@ export default function Page() {
               {f === 'all' ? '全部' : f === 'income' ? '收入' : '支出'}
             </button>
           ))}
-          <input
-            className="field"
-            style={{ flex: 1, minWidth: 120 }}
-            placeholder="搜尋說明…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="stack" style={{ flex: 1, minWidth: 120, gap: 0 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋說明…"
+              value={search}
+              maxLength={MAX_SEARCH}
+              onChange={(e) => setSearch(limitText(e.target.value, MAX_SEARCH))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(search)} / {MAX_SEARCH}
+              </span>
+            </div>
+          </div>
         </div>
         <ul className="list">
           {monthEntries

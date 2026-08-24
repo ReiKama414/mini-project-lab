@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, uid } from '../../lib/utils'
+import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('reading-tracker')!
 
@@ -26,12 +26,24 @@ const STATUS_LABEL: Record<Status, string> = {
   done: '已讀完',
 }
 
+const MAX_ITEMS = 200
+const MAX_TITLE = 120
+const MAX_AUTHOR = 80
+const MAX_NOTES = 2000
+const MAX_PAGES = 100000
+
 export default function Page() {
   const [books, setBooks] = useLocalStorage<Book[]>('lab:reading-tracker', [])
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
-  const [pages, setPages] = useState(300)
+  const [pagesStr, setPagesStr] = useState('300')
   const [filter, setFilter] = useState<'all' | Status>('all')
+
+  const pages = parseNumber(pagesStr)
+  const titleOk = isNonEmpty(title)
+  const pagesOk = pages != null && pages >= 1
+  const atLimit = books.length >= MAX_ITEMS
+  const canAdd = titleOk && pagesOk && !atLimit
 
   const visible = useMemo(
     () => (filter === 'all' ? books : books.filter((b) => b.status === filter)),
@@ -46,13 +58,13 @@ export default function Page() {
   }, [books])
 
   function add() {
-    if (!title.trim()) return
+    if (!canAdd || pages == null) return
     setBooks([
       {
         id: uid('read'),
         title: title.trim(),
         author: author.trim(),
-        pages: Math.max(1, pages),
+        pages: clamp(Math.round(pages), 1, MAX_PAGES),
         current: 0,
         status: 'reading',
         notes: '',
@@ -69,6 +81,7 @@ export default function Page() {
       books.map((b) => {
         if (b.id !== id) return b
         const next = { ...b, ...patch }
+        if (patch.notes != null) next.notes = limitText(patch.notes, MAX_NOTES)
         if (patch.current != null) {
           next.current = clamp(patch.current, 0, next.pages)
           if (next.current >= next.pages) {
@@ -116,20 +129,59 @@ export default function Page() {
           </div>
         </div>
         <div className="grid-2">
-          <input className="field" placeholder="書名" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <input className="field" placeholder="作者（選填）" value={author} onChange={(e) => setAuthor(e.target.value)} />
-          <input
-            className="field"
-            type="number"
-            min={1}
-            value={pages}
-            onChange={(e) => setPages(Number(e.target.value))}
-            placeholder="總頁數"
-          />
-          <button className="btn accent" onClick={add}>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              placeholder="書名"
+              value={title}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))}
+            />
+            <div className="field-meta">
+              <span className={!titleOk && title.length > 0 ? 'warn' : undefined}>
+                {!titleOk && title.length > 0 ? '請輸入書名' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(title)} / {MAX_TITLE}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className="field"
+              placeholder="作者（選填）"
+              value={author}
+              maxLength={MAX_AUTHOR}
+              onChange={(e) => setAuthor(limitText(e.target.value, MAX_AUTHOR))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(author)} / {MAX_AUTHOR}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${!pagesOk ? ' is-invalid' : ''}`}
+              type="number"
+              min={1}
+              max={MAX_PAGES}
+              value={pagesStr}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (n == null) setPagesStr(e.target.value)
+                else setPagesStr(String(clamp(Math.round(n), 1, MAX_PAGES)))
+              }}
+              placeholder="總頁數"
+            />
+            {!pagesOk && <p className="field-error">頁數須為 1–{MAX_PAGES.toLocaleString()}</p>}
+          </div>
+          <button className="btn accent" onClick={add} disabled={!canAdd} style={{ alignSelf: 'end' }}>
             加入書單
           </button>
         </div>
+        {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 本，請先刪除再新增</p>}
       </div>
 
       <div className="panel stack">
@@ -181,14 +233,23 @@ export default function Page() {
                     style={{ flex: 1 }}
                   />
                 </div>
-                <textarea
-                  className="field"
-                  rows={2}
-                  style={{ fontFamily: 'inherit', minHeight: 64 }}
-                  placeholder="閱讀筆記…"
-                  value={b.notes}
-                  onChange={(e) => update(b.id, { notes: e.target.value })}
-                />
+                <div className="stack" style={{ gap: 0 }}>
+                  <textarea
+                    className="field"
+                    rows={2}
+                    style={{ fontFamily: 'inherit', minHeight: 64 }}
+                    placeholder="閱讀筆記…"
+                    value={b.notes}
+                    maxLength={MAX_NOTES}
+                    onChange={(e) => update(b.id, { notes: limitText(e.target.value, MAX_NOTES) })}
+                  />
+                  <div className="field-meta">
+                    <span />
+                    <span>
+                      {charCount(b.notes)} / {MAX_NOTES}
+                    </span>
+                  </div>
+                </div>
               </li>
             )
           })}

@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('flashcard-app')!
 
@@ -19,6 +19,11 @@ type Deck = {
   name: string
   cards: Card[]
 }
+
+const MAX_DECKS = 50
+const MAX_CARDS = 200
+const MAX_NAME = 40
+const MAX_SIDE = 500
 
 const DEFAULT_DECKS: Deck[] = [
   {
@@ -117,25 +122,34 @@ export default function Page() {
   }
 
   function addDeck() {
-    if (!newDeckName.trim()) return
-    const d: Deck = { id: uid('deck'), name: newDeckName.trim(), cards: [] }
+    if (!isNonEmpty(newDeckName) || decks.length >= MAX_DECKS) return
+    const d: Deck = { id: uid('deck'), name: limitText(newDeckName.trim(), MAX_NAME), cards: [] }
     setDecks([...decks, d])
     setNewDeckName('')
     selectDeck(d.id)
   }
 
   function saveCard() {
-    if (!deck || !front.trim() || !back.trim()) return
+    if (!deck || !isNonEmpty(front) || !isNonEmpty(back)) return
+    if (!editingId && deck.cards.length >= MAX_CARDS) return
     if (editingId) {
       updateDeck(
         deck.id,
         deck.cards.map((c) =>
-          c.id === editingId ? { ...c, front: front.trim(), back: back.trim() } : c,
+          c.id === editingId
+            ? { ...c, front: limitText(front.trim(), MAX_SIDE), back: limitText(back.trim(), MAX_SIDE) }
+            : c,
         ),
       )
       setEditingId(null)
     } else {
-      const c: Card = { id: uid('fc'), front: front.trim(), back: back.trim(), know: 0, again: 0 }
+      const c: Card = {
+        id: uid('fc'),
+        front: limitText(front.trim(), MAX_SIDE),
+        back: limitText(back.trim(), MAX_SIDE),
+        know: 0,
+        again: 0,
+      }
       const next = [...deck.cards, c]
       updateDeck(deck.id, next)
       setOrder([...studyIds, c.id])
@@ -143,6 +157,13 @@ export default function Page() {
     setFront('')
     setBack('')
   }
+
+  const deckNameOk = isNonEmpty(newDeckName)
+  const frontOk = isNonEmpty(front)
+  const backOk = isNonEmpty(back)
+  const cardsAtLimit = !editingId && (deck?.cards.length ?? 0) >= MAX_CARDS
+  const canSaveCard = frontOk && backOk && !cardsAtLimit
+  const canAddDeck = deckNameOk && decks.length < MAX_DECKS
 
   function startEdit(c: Card) {
     setEditingId(c.id)
@@ -202,14 +223,25 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <input
-            className="field"
-            style={{ flex: 1, minWidth: 100 }}
-            placeholder="新牌組名稱…"
-            value={newDeckName}
-            onChange={(e) => setNewDeckName(e.target.value)}
-          />
-          <button className="btn sm teal" onClick={addDeck}>
+          <div className="stack" style={{ flex: 1, minWidth: 100, gap: 0 }}>
+            <input
+              className={`field${newDeckName.length > 0 && !deckNameOk ? ' is-invalid' : ''}`}
+              style={{ width: '100%' }}
+              placeholder="新牌組名稱…"
+              value={newDeckName}
+              maxLength={MAX_NAME}
+              onChange={(e) => setNewDeckName(limitText(e.target.value, MAX_NAME))}
+            />
+            <div className="field-meta">
+              <span className={decks.length >= MAX_DECKS ? 'warn' : undefined}>
+                {decks.length >= MAX_DECKS ? `牌組上限 ${MAX_DECKS}` : '\u00a0'}
+              </span>
+              <span>
+                {charCount(newDeckName)} / {MAX_NAME}
+              </span>
+            </div>
+          </div>
+          <button className="btn sm teal" onClick={addDeck} disabled={!canAddDeck}>
             新增牌組
           </button>
           <button
@@ -287,13 +319,46 @@ export default function Page() {
       ) : (
         <div className="panel stack">
           <div className="grid-2">
-            <input className="field" placeholder="正面" value={front} onChange={(e) => setFront(e.target.value)} />
-            <input className="field" placeholder="背面" value={back} onChange={(e) => setBack(e.target.value)} />
+            <div className="stack" style={{ gap: 0 }}>
+              <input
+                className={`field${front.length > 0 && !frontOk ? ' is-invalid' : ''}`}
+                placeholder="正面"
+                value={front}
+                maxLength={MAX_SIDE}
+                onChange={(e) => setFront(limitText(e.target.value, MAX_SIDE))}
+              />
+              <div className="field-meta">
+                <span className={!frontOk && front.length > 0 ? 'warn' : undefined}>
+                  {!frontOk && front.length > 0 ? '請輸入正面' : '\u00a0'}
+                </span>
+                <span>
+                  {charCount(front)} / {MAX_SIDE}
+                </span>
+              </div>
+            </div>
+            <div className="stack" style={{ gap: 0 }}>
+              <input
+                className={`field${back.length > 0 && !backOk ? ' is-invalid' : ''}`}
+                placeholder="背面"
+                value={back}
+                maxLength={MAX_SIDE}
+                onChange={(e) => setBack(limitText(e.target.value, MAX_SIDE))}
+              />
+              <div className="field-meta">
+                <span className={!backOk && back.length > 0 ? 'warn' : undefined}>
+                  {!backOk && back.length > 0 ? '請輸入背面' : '\u00a0'}
+                </span>
+                <span>
+                  {charCount(back)} / {MAX_SIDE}
+                </span>
+              </div>
+            </div>
           </div>
           <div className="row">
-            <button className="btn accent" onClick={saveCard}>
+            <button className="btn accent" onClick={saveCard} disabled={!canSaveCard}>
               {editingId ? '儲存修改' : '新增卡片'}
             </button>
+            {cardsAtLimit && <p className="field-error">此牌組已達 {MAX_CARDS} 張上限</p>}
             {editingId && (
               <button
                 className="btn ghost"

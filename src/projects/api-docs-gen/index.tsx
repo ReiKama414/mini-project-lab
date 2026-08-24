@@ -2,9 +2,18 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid, limitText, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn, charCount } from '../../lib/utils'
 
 const meta = getProject('api-docs-gen')!
+
+const TITLE_MAX = 120
+const VER_MAX = 40
+const URL_MAX = 2048
+const PATH_MAX = 200
+const SUMMARY_MAX = 200
+const DESC_MAX = 2000
+const BODY_MAX = 20000
+const JSON_MAX = 50000
 
 type Ep = {
   id: string
@@ -189,10 +198,47 @@ export default function Page() {
         </div>
       }
     >
-      <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="API 標題" style={{ flex: 1 }} />
-        <input className="field" value={version} onChange={(e) => setVersion(e.target.value)} style={{ width: 100 }} />
-        <input className="field mono" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
+      <div className="panel stack" style={{ marginBottom: 12 }}>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <input
+            className={cn('field', !isNonEmpty(title) && 'is-invalid')}
+            maxLength={TITLE_MAX}
+            value={title}
+            onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))}
+            placeholder="API 標題"
+            style={{ flex: 1 }}
+          />
+          <input
+            className="field"
+            maxLength={VER_MAX}
+            value={version}
+            onChange={(e) => setVersion(limitText(e.target.value, VER_MAX))}
+            style={{ width: 100 }}
+          />
+          <input
+            className={cn('field mono', !isValidHttpUrl(normalizeHttpUrl(baseUrl)) && 'is-invalid')}
+            maxLength={URL_MAX}
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(limitText(e.target.value, URL_MAX))}
+            onBlur={() => {
+              const n = normalizeHttpUrl(baseUrl)
+              if (isValidHttpUrl(n)) setBaseUrl(n)
+            }}
+            style={{ flex: 1, minWidth: 180 }}
+          />
+        </div>
+        <div className="field-meta">
+          <span className={!isNonEmpty(title) || !isValidHttpUrl(normalizeHttpUrl(baseUrl)) ? 'warn' : undefined}>
+            {!isNonEmpty(title)
+              ? '請填 API 標題'
+              : !isValidHttpUrl(normalizeHttpUrl(baseUrl))
+                ? 'Base URL 需為 http(s)'
+                : '基本資料 OK'}
+          </span>
+          <span>
+            {charCount(title)}/{TITLE_MAX} · {charCount(baseUrl)}/{URL_MAX}
+          </span>
+        </div>
       </div>
 
       <div className="grid-2">
@@ -235,7 +281,7 @@ export default function Page() {
                     <option key={m}>{m}</option>
                   ))}
                 </select>
-                <input className="field mono" style={{ flex: 1 }} value={current.path} onChange={(e) => update(current.id, { path: e.target.value })} />
+                <input className="field mono" style={{ flex: 1 }} value={current.path} onChange={(e) => update(current.id, { path: limitText(e.target.value, PATH_MAX) })} />
                 <input
                   className="field"
                   type="number"
@@ -245,10 +291,10 @@ export default function Page() {
                   onChange={(e) => update(current.id, { status: Number(e.target.value) || 200 })}
                 />
               </div>
-              <input className="field" value={current.summary} onChange={(e) => update(current.id, { summary: e.target.value })} placeholder="summary" />
-              <textarea className="field" rows={2} value={current.desc} onChange={(e) => update(current.id, { desc: e.target.value })} />
-              <textarea className="field mono" rows={3} placeholder="request body" value={current.body || ''} onChange={(e) => update(current.id, { body: e.target.value })} />
-              <textarea className="field mono" rows={3} placeholder="response" value={current.response || ''} onChange={(e) => update(current.id, { response: e.target.value })} />
+              <input className="field" value={current.summary} onChange={(e) => update(current.id, { summary: limitText(e.target.value, SUMMARY_MAX) })} placeholder="summary" />
+              <textarea className="field" rows={2} value={current.desc} onChange={(e) => update(current.id, { desc: limitText(e.target.value, DESC_MAX) })} />
+              <textarea className="field mono" rows={3} placeholder="request body" value={current.body || ''} onChange={(e) => update(current.id, { body: limitText(e.target.value, BODY_MAX) })} />
+              <textarea className="field mono" rows={3} placeholder="response" value={current.response || ''} onChange={(e) => update(current.id, { response: limitText(e.target.value, BODY_MAX) })} />
               <button type="button" className="btn sm danger" onClick={() => setEps((xs) => xs.filter((x) => x.id !== current.id))}>
                 刪除
               </button>
@@ -268,7 +314,7 @@ export default function Page() {
                   className="field mono"
                   rows={4}
                   value={tryBody}
-                  onChange={(e) => setTryBody(e.target.value)}
+                  onChange={(e) => setTryBody(limitText(e.target.value, BODY_MAX))}
                   placeholder="request body"
                 />
               )}

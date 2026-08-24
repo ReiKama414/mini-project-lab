@@ -1,9 +1,19 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, copyText, uid } from '../../lib/utils'
+import { downloadText, copyText, uid, limitText, charCount, isNonEmpty, isValidEmail, cn } from '../../lib/utils'
 
 const meta = getProject('resume-builder')!
+
+const NAME_MAX = 80
+const TITLE_MAX = 120
+const EMAIL_MAX = 254
+const PHONE_MAX = 40
+const LOC_MAX = 80
+const SUMMARY_MAX = 2000
+const SKILLS_MAX = 500
+const FIELD_MAX = 120
+const DETAIL_MAX = 2000
 
 type Exp = { id: string; role: string; company: string; period: string; detail: string }
 type Edu = { id: string; school: string; degree: string; year: string }
@@ -230,38 +240,101 @@ export default function Page() {
             <>
               <div className="row">
                 <label className="label">姓名</label>
-                <span className="mono muted">{name.length}</span>
+                <span className="mono muted">{charCount(name)}/{NAME_MAX}</span>
               </div>
-              <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="姓名" />
+              <input
+                className={cn('field', !isNonEmpty(name) && 'is-invalid')}
+                maxLength={NAME_MAX}
+                value={name}
+                onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+                placeholder="姓名"
+              />
               <div className="row">
                 <label className="label">職稱</label>
-                <span className="mono muted">{title.length}</span>
+                <span className="mono muted">{charCount(title)}/{TITLE_MAX}</span>
               </div>
-              <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="職稱" />
-              <input className="field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-              <input className="field" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="電話" />
-              <input className="field" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="地區" />
+              <input
+                className="field"
+                maxLength={TITLE_MAX}
+                value={title}
+                onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))}
+                placeholder="職稱"
+              />
+              <label className="label">Email</label>
+              <input
+                className={cn('field', isNonEmpty(email) && !isValidEmail(email) && 'is-invalid')}
+                maxLength={EMAIL_MAX}
+                value={email}
+                onChange={(e) => setEmail(limitText(e.target.value, EMAIL_MAX))}
+                placeholder="Email"
+              />
+              <div className="field-meta">
+                <span className={isNonEmpty(email) && !isValidEmail(email) ? 'warn' : undefined}>
+                  {isNonEmpty(email) && !isValidEmail(email) ? 'Email 格式不正確' : '聯絡用'}
+                </span>
+                <span>{charCount(email)}/{EMAIL_MAX}</span>
+              </div>
+              {isNonEmpty(email) && !isValidEmail(email) && <p className="field-error">請輸入有效 Email</p>}
+              <input
+                className="field"
+                maxLength={PHONE_MAX}
+                value={phone}
+                onChange={(e) => setPhone(limitText(e.target.value, PHONE_MAX))}
+                placeholder="電話"
+              />
+              <div className="field-meta">
+                <span className="field-hint">電話</span>
+                <span>{charCount(phone)}/{PHONE_MAX}</span>
+              </div>
+              <input
+                className="field"
+                maxLength={LOC_MAX}
+                value={location}
+                onChange={(e) => setLocation(limitText(e.target.value, LOC_MAX))}
+                placeholder="地區"
+              />
+              <div className="field-meta">
+                <span className="field-hint">地區</span>
+                <span>{charCount(location)}/{LOC_MAX}</span>
+              </div>
             </>
           )}
           {section === 'summary' && (
             <>
               <div className="row">
                 <label className="label">簡介</label>
-                <span className="mono muted">{summary.length} 字</span>
+                <span className="mono muted">{charCount(summary)}/{SUMMARY_MAX}</span>
               </div>
-              <textarea className="field" rows={6} value={summary} onChange={(e) => setSummary(e.target.value)} />
-              {!summary.trim() && <p className="muted">用 1–3 句話定位你的角色與強項。</p>}
+              <textarea
+                className={cn('field', !isNonEmpty(summary) && 'is-invalid')}
+                rows={6}
+                maxLength={SUMMARY_MAX}
+                value={summary}
+                onChange={(e) => setSummary(limitText(e.target.value, SUMMARY_MAX))}
+              />
+              {!isNonEmpty(summary) ? (
+                <p className="field-error">建議填寫簡介（1–3 句話定位角色與強項）</p>
+              ) : (
+                <p className="field-hint">用 1–3 句話定位你的角色與強項。</p>
+              )}
             </>
           )}
           {section === 'skills' && (
             <>
               <div className="row">
                 <label className="label">技能（逗號分隔）</label>
-                <span className="mono muted">{skillList.length} 項</span>
+                <span className="mono muted">{skillList.length} 項 · {charCount(skills)}/{SKILLS_MAX}</span>
               </div>
-              <textarea className="field" rows={4} value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="React, TypeScript…" />
+              <textarea
+                className="field"
+                rows={4}
+                maxLength={SKILLS_MAX}
+                value={skills}
+                onChange={(e) => setSkills(limitText(e.target.value, SKILLS_MAX))}
+                placeholder="React, TypeScript…"
+              />
               {skillList.length === 0 ? (
-                <p className="muted">尚未加入技能標籤。</p>
+                <p className="field-hint">尚未加入技能標籤。</p>
               ) : (
                 <div className="row" style={{ flexWrap: 'wrap' }}>
                   {skillList.map((s) => (
@@ -292,14 +365,46 @@ export default function Page() {
                 exps.map((e) => (
                   <div key={e.id} className="stack" style={{ gap: 4 }}>
                     <div className="row">
-                      <input className="field" value={e.role} onChange={(ev) => setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, role: ev.target.value } : x)))} />
-                      <input className="field" value={e.company} onChange={(ev) => setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, company: ev.target.value } : x)))} />
+                      <input
+                        className="field"
+                        maxLength={FIELD_MAX}
+                        value={e.role}
+                        onChange={(ev) =>
+                          setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, role: limitText(ev.target.value, FIELD_MAX) } : x)))
+                        }
+                      />
+                      <input
+                        className="field"
+                        maxLength={FIELD_MAX}
+                        value={e.company}
+                        onChange={(ev) =>
+                          setExps((xs) =>
+                            xs.map((x) => (x.id === e.id ? { ...x, company: limitText(ev.target.value, FIELD_MAX) } : x)),
+                          )
+                        }
+                      />
                     </div>
-                    <input className="field" value={e.period} onChange={(ev) => setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, period: ev.target.value } : x)))} />
-                    <div className="row">
-                      <span className="mono muted">{e.detail.length} 字</span>
+                    <input
+                      className="field"
+                      maxLength={FIELD_MAX}
+                      value={e.period}
+                      onChange={(ev) =>
+                        setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, period: limitText(ev.target.value, FIELD_MAX) } : x)))
+                      }
+                    />
+                    <div className="field-meta">
+                      <span className="field-hint">成果描述</span>
+                      <span>{charCount(e.detail)}/{DETAIL_MAX}</span>
                     </div>
-                    <textarea className="field" rows={2} value={e.detail} onChange={(ev) => setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, detail: ev.target.value } : x)))} />
+                    <textarea
+                      className="field"
+                      rows={2}
+                      maxLength={DETAIL_MAX}
+                      value={e.detail}
+                      onChange={(ev) =>
+                        setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, detail: limitText(ev.target.value, DETAIL_MAX) } : x)))
+                      }
+                    />
                     <button type="button" className="btn sm danger" onClick={() => setExps((xs) => xs.filter((x) => x.id !== e.id))}>
                       刪除
                     </button>
@@ -326,9 +431,9 @@ export default function Page() {
               ) : (
                 edus.map((e) => (
                   <div key={e.id} className="row">
-                    <input className="field" value={e.school} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, school: ev.target.value } : x)))} />
-                    <input className="field" value={e.degree} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, degree: ev.target.value } : x)))} />
-                    <input className="field" style={{ width: 80 }} value={e.year} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, year: ev.target.value } : x)))} />
+                    <input className="field" value={e.school} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, school: limitText(ev.target.value, FIELD_MAX) } : x)))} />
+                    <input className="field" value={e.degree} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, degree: limitText(ev.target.value, FIELD_MAX) } : x)))} />
+                    <input className="field" style={{ width: 80 }} value={e.year} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, year: limitText(ev.target.value, 20) } : x)))} />
                     <button type="button" className="btn sm danger" onClick={() => setEdus((xs) => xs.filter((x) => x.id !== e.id))}>
                       ×
                     </button>

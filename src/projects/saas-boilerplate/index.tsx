@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { uid, limitText, isNonEmpty, isValidEmail } from '../../lib/utils'
 
 const meta = getProject('saas-boilerplate')!
+
+const NAME_MAX = 80
+const EMAIL_MAX = 254
+const ORG_MAX = 120
 
 type Customer = { id: string; name: string; email: string; plan: string; mrr: number }
 type Member = { id: string; name: string; email: string; role: 'owner' | 'admin' | 'member' }
@@ -175,8 +179,8 @@ export default function Page() {
             <>
               <h3 style={{ margin: 0 }}>客戶</h3>
               <div className="row" style={{ flexWrap: 'wrap' }}>
-                <input className="field" placeholder="名稱" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
-                <input className="field" placeholder="Email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} />
+                <input className="field" placeholder="名稱" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: limitText(e.target.value, NAME_MAX) }))} />
+                <input className="field" placeholder="Email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: limitText(e.target.value, EMAIL_MAX) }))} />
                 <select className="field" value={draft.plan} onChange={(e) => setDraft((d) => ({ ...d, plan: e.target.value }))} style={{ width: 110 }}>
                   {PLANS.map((p) => (
                     <option key={p}>{p}</option>
@@ -189,7 +193,7 @@ export default function Page() {
                   value={draft.mrr}
                   onChange={(e) => setDraft((d) => ({ ...d, mrr: Number(e.target.value) }))}
                 />
-                <button type="button" className="btn accent sm" onClick={addCustomer}>
+                <button type="button" className="btn accent sm" onClick={addCustomer} disabled={!isNonEmpty(draft.name) || !isValidEmail(draft.email)}>
                   新增
                 </button>
               </div>
@@ -252,13 +256,13 @@ export default function Page() {
                   className="field"
                   placeholder="姓名"
                   value={memberDraft.name}
-                  onChange={(e) => setMemberDraft((d) => ({ ...d, name: e.target.value }))}
+                  onChange={(e) => setMemberDraft((d) => ({ ...d, name: limitText(e.target.value, NAME_MAX) }))}
                 />
                 <input
                   className="field"
                   placeholder="Email"
                   value={memberDraft.email}
-                  onChange={(e) => setMemberDraft((d) => ({ ...d, email: e.target.value }))}
+                  onChange={(e) => setMemberDraft((d) => ({ ...d, email: limitText(e.target.value, EMAIL_MAX) }))}
                 />
                 <select
                   className="field"
@@ -374,7 +378,7 @@ export default function Page() {
               {settingsTab === 'general' && (
                 <>
                   <label className="label">組織名稱</label>
-                  <input className="field" value={org} onChange={(e) => setOrg(e.target.value)} />
+                  <input className="field" value={org} onChange={(e) => setOrg(limitText(e.target.value, ORG_MAX))} />
                   <label className="label">支援 Email</label>
                   <input
                     className="field"

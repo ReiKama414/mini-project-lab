@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('event-countdown')!
 
@@ -23,6 +23,15 @@ const COLORS: { id: ColorTag; label: string; bg: string }[] = [
   { id: 'rose', label: '粉', bg: 'var(--rose-soft)' },
   { id: 'sky', label: '藍', bg: 'var(--sky-soft)' },
 ]
+
+const MAX_ITEMS = 100
+const MAX_TITLE = 80
+
+function isValidDateTime(v: string) {
+  if (!v) return false
+  const t = new Date(v).getTime()
+  return Number.isFinite(t)
+}
 
 function diffParts(target: number, now: number) {
   const past = target <= now
@@ -48,6 +57,11 @@ export default function Page() {
     return () => clearInterval(id)
   }, [])
 
+  const titleOk = isNonEmpty(title)
+  const atOk = isValidDateTime(at)
+  const atLimit = events.length >= MAX_ITEMS
+  const canAdd = titleOk && atOk && !atLimit
+
   const active = useMemo(() => {
     const list = events.filter((e) => !e.archived)
     const withT = list.map((e) => ({ ...e, t: new Date(e.at).getTime() }))
@@ -68,7 +82,7 @@ export default function Page() {
   )
 
   function add() {
-    if (!title.trim() || !at) return
+    if (!canAdd) return
     setEvents([{ id: uid('ev'), title: title.trim(), at, color }, ...events])
     setTitle('')
   }
@@ -92,8 +106,33 @@ export default function Page() {
     >
       <div className="panel stack">
         <div className="grid-2">
-          <input className="field" placeholder="活動名稱" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <input className="field" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              placeholder="活動名稱"
+              value={title}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))}
+            />
+            <div className="field-meta">
+              <span className={!titleOk && title.length > 0 ? 'warn' : undefined}>
+                {!titleOk && title.length > 0 ? '請輸入活動名稱' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(title)} / {MAX_TITLE}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${at && !atOk ? ' is-invalid' : ''}`}
+              type="datetime-local"
+              value={at}
+              onChange={(e) => setAt(e.target.value)}
+            />
+            {at && !atOk && <p className="field-error">請選擇有效日期時間</p>}
+            {!at && <p className="field-hint">請選擇活動時間</p>}
+          </div>
         </div>
         <div className="row">
           <span className="muted">顏色標籤</span>
@@ -108,9 +147,10 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <button className="btn accent" onClick={add}>
+        <button className="btn accent" onClick={add} disabled={!canAdd}>
           加入倒數
         </button>
+        {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 個活動</p>}
       </div>
 
       <div className="panel stack">

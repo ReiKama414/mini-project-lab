@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, formatBytes } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText, formatBytes } from '../../lib/utils'
 
 const meta = getProject('base64')!
+
+const TEXT_MAX = 200_000
 
 function utf8ToBase64(str: string) {
   const bytes = new TextEncoder().encode(str)
@@ -39,9 +41,13 @@ export default function Page() {
   const [copied, setCopied] = useState<'plain' | 'b64' | 'data' | null>(null)
 
   function encode() {
+    if (!isNonEmpty(plain)) {
+      setError('請輸入要編碼的文字')
+      return
+    }
     try {
       const b64 = utf8ToBase64(plain)
-      setEncoded(b64)
+      setEncoded(limitText(b64, TEXT_MAX))
       setDataUrl(`data:text/plain;charset=utf-8;base64,${b64}`)
       setError('')
       setFileInfo('')
@@ -51,8 +57,12 @@ export default function Page() {
   }
 
   function decode() {
+    if (!isNonEmpty(encoded)) {
+      setError('請輸入 Base64')
+      return
+    }
     try {
-      setPlain(base64ToUtf8(encoded))
+      setPlain(limitText(base64ToUtf8(encoded), TEXT_MAX))
       setError('')
     } catch {
       setError('解碼失敗，請確認 Base64 格式')
@@ -79,13 +89,22 @@ export default function Page() {
       <div className="panel stack">
         <label className="stack">
           <span className="label">純文字（UTF-8）</span>
-          <textarea className="field" rows={5} value={plain} onChange={(e) => setPlain(e.target.value)} />
+          <textarea
+            className={`field${error && !isNonEmpty(plain) ? ' is-invalid' : ''}`}
+            rows={5}
+            value={plain}
+            maxLength={TEXT_MAX}
+            onChange={(e) => setPlain(limitText(e.target.value, TEXT_MAX))}
+          />
+          <div className="field-meta">
+            <span>{charCount(plain).toLocaleString()} / {TEXT_MAX.toLocaleString()}</span>
+          </div>
         </label>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="btn accent" onClick={encode}>
+          <button type="button" className="btn accent" onClick={encode} disabled={!isNonEmpty(plain)}>
             編碼 →
           </button>
-          <button type="button" className="btn teal" onClick={decode}>
+          <button type="button" className="btn teal" onClick={decode} disabled={!isNonEmpty(encoded)}>
             ← 解碼
           </button>
           <button
@@ -133,20 +152,20 @@ export default function Page() {
         <label className="stack">
           <span className="label">Base64</span>
           <textarea
-            className="field mono"
+            className={`field mono${error && !isNonEmpty(encoded) ? ' is-invalid' : ''}`}
             rows={6}
             value={encoded}
+            maxLength={TEXT_MAX}
             onChange={(e) => {
-              setEncoded(e.target.value)
+              setEncoded(limitText(e.target.value, TEXT_MAX))
               setDataUrl('')
             }}
           />
+          <div className="field-meta">
+            <span>{charCount(encoded).toLocaleString()} / {TEXT_MAX.toLocaleString()}</span>
+          </div>
         </label>
-        {error && (
-          <p className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
-            {error}
-          </p>
-        )}
+        {error && <p className="field-error">{error}</p>}
         <p className="muted" style={{ fontSize: 12 }}>
           使用 TextEncoder／TextDecoder 處理 UTF-8；大檔案以分塊轉成 Base64，避免呼叫堆疊溢出。
         </p>

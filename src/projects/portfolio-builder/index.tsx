@@ -1,9 +1,19 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText, copyText } from '../../lib/utils'
+import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, isValidEmail, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
 const meta = getProject('portfolio-builder')!
+
+const NAME_MAX = 80
+const TITLE_MAX = 120
+const BIO_MAX = 200
+const ABOUT_MAX = 2000
+const EMAIL_MAX = 254
+const PROJ_TITLE_MAX = 120
+const PROJ_DESC_MAX = 500
+const PROJ_TAGS_MAX = 120
+const URL_MAX = 2048
 
 type Project = { id: string; title: string; desc: string; link: string; tags: string }
 type Section = 'hero' | 'about' | 'projects' | 'contact'
@@ -101,11 +111,39 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
           {section === 'hero' && (
             <>
               <label className="label">姓名</label>
-              <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
+              <input
+                className={cn('field', !isNonEmpty(name) && 'is-invalid')}
+                maxLength={NAME_MAX}
+                value={name}
+                onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+              />
+              <div className="field-meta">
+                <span className={!isNonEmpty(name) ? 'warn' : undefined}>{isNonEmpty(name) ? 'OK' : '請填姓名'}</span>
+                <span>{charCount(name)}/{NAME_MAX}</span>
+              </div>
               <label className="label">職稱</label>
-              <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <input
+                className="field"
+                maxLength={TITLE_MAX}
+                value={title}
+                onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">顯示於預覽副標</span>
+                <span>{charCount(title)}/{TITLE_MAX}</span>
+              </div>
               <label className="label">一句話</label>
-              <textarea className="field" rows={2} value={bio} onChange={(e) => setBio(e.target.value)} />
+              <textarea
+                className="field"
+                rows={2}
+                maxLength={BIO_MAX}
+                value={bio}
+                onChange={(e) => setBio(limitText(e.target.value, BIO_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">Hero 短句</span>
+                <span>{charCount(bio)}/{BIO_MAX}</span>
+              </div>
               <label className="label">主題色</label>
               <input className="field" type="color" value={accent} onChange={(e) => setAccent(e.target.value)} />
             </>
@@ -113,7 +151,17 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
           {section === 'about' && (
             <>
               <label className="label">關於我</label>
-              <textarea className="field" rows={8} value={about} onChange={(e) => setAbout(e.target.value)} />
+              <textarea
+                className="field"
+                rows={8}
+                maxLength={ABOUT_MAX}
+                value={about}
+                onChange={(e) => setAbout(limitText(e.target.value, ABOUT_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">較長自我介紹</span>
+                <span>{charCount(about)}/{ABOUT_MAX}</span>
+              </div>
             </>
           )}
           {section === 'projects' && (
@@ -125,25 +173,90 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
               >
                 新增作品
               </button>
-              {projects.map((p) => (
-                <div key={p.id} className="stack" style={{ gap: 4 }}>
-                  <input className="field" value={p.title} onChange={(e) => setProjects((ps) => ps.map((x) => (x.id === p.id ? { ...x, title: e.target.value } : x)))} />
-                  <input className="field" value={p.desc} onChange={(e) => setProjects((ps) => ps.map((x) => (x.id === p.id ? { ...x, desc: e.target.value } : x)))} />
-                  <input className="field" value={p.tags} placeholder="標籤" onChange={(e) => setProjects((ps) => ps.map((x) => (x.id === p.id ? { ...x, tags: e.target.value } : x)))} />
-                  <div className="row">
-                    <input className="field" style={{ flex: 1 }} value={p.link} onChange={(e) => setProjects((ps) => ps.map((x) => (x.id === p.id ? { ...x, link: e.target.value } : x)))} />
-                    <button type="button" className="btn sm danger" onClick={() => setProjects((ps) => ps.filter((x) => x.id !== p.id))}>
-                      刪
-                    </button>
+              {projects.map((p) => {
+                const linkOk = !isNonEmpty(p.link) || p.link === '#' || isValidHttpUrl(normalizeHttpUrl(p.link))
+                return (
+                  <div key={p.id} className="stack" style={{ gap: 4 }}>
+                    <input
+                      className="field"
+                      maxLength={PROJ_TITLE_MAX}
+                      value={p.title}
+                      onChange={(e) =>
+                        setProjects((ps) =>
+                          ps.map((x) => (x.id === p.id ? { ...x, title: limitText(e.target.value, PROJ_TITLE_MAX) } : x)),
+                        )
+                      }
+                    />
+                    <input
+                      className="field"
+                      maxLength={PROJ_DESC_MAX}
+                      value={p.desc}
+                      onChange={(e) =>
+                        setProjects((ps) =>
+                          ps.map((x) => (x.id === p.id ? { ...x, desc: limitText(e.target.value, PROJ_DESC_MAX) } : x)),
+                        )
+                      }
+                    />
+                    <input
+                      className="field"
+                      maxLength={PROJ_TAGS_MAX}
+                      value={p.tags}
+                      placeholder="標籤"
+                      onChange={(e) =>
+                        setProjects((ps) =>
+                          ps.map((x) => (x.id === p.id ? { ...x, tags: limitText(e.target.value, PROJ_TAGS_MAX) } : x)),
+                        )
+                      }
+                    />
+                    <div className="row">
+                      <input
+                        className={cn('field', !linkOk && 'is-invalid')}
+                        style={{ flex: 1 }}
+                        maxLength={URL_MAX}
+                        value={p.link}
+                        onChange={(e) =>
+                          setProjects((ps) =>
+                            ps.map((x) => (x.id === p.id ? { ...x, link: limitText(e.target.value, URL_MAX) } : x)),
+                          )
+                        }
+                        onBlur={() => {
+                          if (p.link && p.link !== '#') {
+                            const n = normalizeHttpUrl(p.link)
+                            if (isValidHttpUrl(n)) {
+                              setProjects((ps) => ps.map((x) => (x.id === p.id ? { ...x, link: n } : x)))
+                            }
+                          }
+                        }}
+                      />
+                      <button type="button" className="btn sm danger" onClick={() => setProjects((ps) => ps.filter((x) => x.id !== p.id))}>
+                        刪
+                      </button>
+                    </div>
+                    <div className="field-meta">
+                      <span className={!linkOk ? 'warn' : undefined}>{linkOk ? '連結 OK 或留空／#' : '請使用 http(s) URL'}</span>
+                      <span>{charCount(p.link)}/{URL_MAX}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </>
           )}
           {section === 'contact' && (
             <>
               <label className="label">Email</label>
-              <input className="field" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input
+                className={cn('field', isNonEmpty(email) && !isValidEmail(email) && 'is-invalid')}
+                maxLength={EMAIL_MAX}
+                value={email}
+                onChange={(e) => setEmail(limitText(e.target.value, EMAIL_MAX))}
+              />
+              <div className="field-meta">
+                <span className={isNonEmpty(email) && !isValidEmail(email) ? 'warn' : undefined}>
+                  {isNonEmpty(email) && !isValidEmail(email) ? '格式不正確' : '聯絡信箱'}
+                </span>
+                <span>{charCount(email)}/{EMAIL_MAX}</span>
+              </div>
+              {isNonEmpty(email) && !isValidEmail(email) && <p className="field-error">請輸入有效 Email</p>}
             </>
           )}
         </div>

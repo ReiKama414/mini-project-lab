@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-resume-review')!
+
+const RESUME_MAX = 20000
 
 type Dim = { key: string; label: string; score: number; note: string }
 type Issue = { id: string; section: string; severity: '高' | '中' | '低'; text: string; rewrite: string }
@@ -230,21 +232,32 @@ export default function Page() {
             ))}
           </div>
           <label className="label">履歷文字</label>
-          <textarea className="field" rows={16} value={resume} onChange={(e) => setResume(e.target.value)} />
+          <textarea
+            className={cn('field', !isNonEmpty(resume) && 'is-invalid')}
+            rows={16}
+            maxLength={RESUME_MAX}
+            value={resume}
+            onChange={(e) => setResume(limitText(e.target.value, RESUME_MAX))}
+          />
+          <div className="field-meta">
+            <span className={!isNonEmpty(resume) ? 'warn' : undefined}>
+              {isNonEmpty(resume) ? '可健檢' : '請貼上履歷內容'}
+            </span>
+            <span>{charCount(resume)}/{RESUME_MAX}</span>
+          </div>
+          {!isNonEmpty(resume) && <p className="field-error">履歷不可空白</p>}
           <div className="row">
-            <button type="button" className="btn accent" onClick={run} disabled={!resume.trim()}>
+            <button type="button" className="btn accent" onClick={run} disabled={!isNonEmpty(resume)}>
               健檢
             </button>
             <button type="button" className="btn ghost" onClick={() => setResume('')}>
               清空輸入
             </button>
           </div>
-          {!resume.trim() && (
-            <div className="list-item">
-              <p className="muted" style={{ margin: 0 }}>
-                貼上履歷或選範例，啟發式規則會評分聯絡、量化、動詞、結構與區塊完整度（無需真實 LLM）。
-              </p>
-            </div>
+          {!isNonEmpty(resume) && (
+            <p className="field-hint">
+              貼上履歷或選範例，啟發式規則會評分聯絡、量化、動詞、結構與區塊完整度（無需真實 LLM）。
+            </p>
           )}
         </div>
       )}

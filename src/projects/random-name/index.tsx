@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, pick, randomInt } from '../../lib/utils'
+import { clamp, copyText, parseNumber, pick, randomInt } from '../../lib/utils'
 
 const meta = getProject('random-name')!
+
+const COUNT_MIN = 1
+const COUNT_MAX = 100
 
 type Gender = 'any' | 'f' | 'm'
 type Lang = 'en' | 'zh' | 'both'
@@ -137,7 +140,7 @@ export default function Page() {
   const favSet = useMemo(() => new Set(favorites), [favorites])
 
   function generate() {
-    const n = Math.min(100, Math.max(1, Number.isFinite(count) ? count : 1))
+    const n = clamp(Number.isFinite(count) ? count : COUNT_MIN, COUNT_MIN, COUNT_MAX)
     setNames(Array.from({ length: n }, () => makeName(category, lang, gender)))
     setCopied(false)
   }
@@ -175,14 +178,18 @@ export default function Page() {
           </div>
           <div className="grid-3">
             <label className="stack">
-              <span className="label">數量（1–100）</span>
+              <span className="label">數量（{COUNT_MIN}–{COUNT_MAX}）</span>
               <input
                 className="field"
                 type="number"
-                min={1}
-                max={100}
+                min={COUNT_MIN}
+                max={COUNT_MAX}
                 value={count}
-                onChange={(e) => setCount(Number(e.target.value))}
+                onChange={(e) => {
+                  const n = parseNumber(e.target.value)
+                  if (!Number.isFinite(n)) return
+                  setCount(clamp(n, COUNT_MIN, COUNT_MAX))
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') generate()
                 }}

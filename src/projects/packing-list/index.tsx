@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('packing-list')!
 
@@ -56,6 +56,8 @@ const TEMPLATES: Record<string, { category: string; name: string }[]> = {
 }
 
 const CATS = ['證件', '衣物', '盥洗', '電子', '其他']
+const MAX_ITEMS = 200
+const MAX_NAME = 80
 
 export default function Page() {
   const [items, setItems] = useLocalStorage<PackItem[]>('lab:packing-list', [])
@@ -64,21 +66,29 @@ export default function Page() {
   const [customCat, setCustomCat] = useState(CATS[0]!)
   const [merge, setMerge] = useState(true)
 
+  const nameOk = isNonEmpty(custom)
+  const atLimit = items.length >= MAX_ITEMS
+  const canAdd = nameOk && !atLimit
+
   function applyTemplate(key: string) {
     const list = TEMPLATES[key] || []
     const mapped = list.map((x) => ({ id: uid('pk'), name: x.name, packed: false, category: x.category }))
     if (merge && items.length) {
       const existing = new Set(items.map((i) => i.name))
       const extras = mapped.filter((m) => !existing.has(m.name))
-      setItems([...items, ...extras])
+      const next = [...items, ...extras].slice(0, MAX_ITEMS)
+      setItems(next)
+      if (items.length + extras.length > MAX_ITEMS) {
+        /* soft truncate */
+      }
     } else {
-      setItems(mapped)
+      setItems(mapped.slice(0, MAX_ITEMS))
     }
     setTripType(key)
   }
 
   function add() {
-    if (!custom.trim()) return
+    if (!canAdd) return
     setItems([...items, { id: uid('pk'), name: custom.trim(), packed: false, category: customCat }])
     setCustom('')
   }
@@ -110,23 +120,38 @@ export default function Page() {
           <input type="checkbox" checked={merge} onChange={(e) => setMerge(e.target.checked)} />
           <span className="muted">套用預設時合併既有項目（不重複）</span>
         </label>
-        <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1, minWidth: 120 }}
-            placeholder="自訂項目…"
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && add()}
-          />
-          <select className="field" style={{ maxWidth: 120 }} value={customCat} onChange={(e) => setCustomCat(e.target.value)}>
-            {CATS.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-          <button className="btn accent" onClick={add}>
-            新增
-          </button>
+        <div className="stack" style={{ gap: 0 }}>
+          <div className="row">
+            <input
+              className={`field${custom.length > 0 && !nameOk ? ' is-invalid' : ''}`}
+              style={{ flex: 1, minWidth: 120 }}
+              placeholder="自訂項目…"
+              value={custom}
+              maxLength={MAX_NAME}
+              onChange={(e) => setCustom(limitText(e.target.value, MAX_NAME))}
+              onKeyDown={(e) => e.key === 'Enter' && add()}
+            />
+            <select className="field" style={{ maxWidth: 120 }} value={customCat} onChange={(e) => setCustomCat(e.target.value)}>
+              {CATS.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+            <button className="btn accent" onClick={add} disabled={!canAdd}>
+              新增
+            </button>
+          </div>
+          <div className="field-meta">
+            <span className={atLimit || (!nameOk && custom.length > 0) ? 'warn' : undefined}>
+              {atLimit
+                ? `已達上限 ${MAX_ITEMS} 項`
+                : !nameOk && custom.length > 0
+                  ? '請輸入項目名稱'
+                  : '\u00a0'}
+            </span>
+            <span>
+              {charCount(custom)} / {MAX_NAME}
+            </span>
+          </div>
         </div>
         {items.length > 0 && (
           <>

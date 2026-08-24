@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, randomInt, uid } from '../../lib/utils'
+import { copyText, downloadText, randomInt, uid, limitText, charCount, isValidEmail, cn } from '../../lib/utils'
 
 const meta = getProject('passwordless-login')!
+
+const EMAIL_MAX = 254
+const OTP_MAX = 6
 
 type Session = { email: string; at: number; method: 'otp' | 'magic' } | null
 type Step = 'email' | 'sent' | 'session'
@@ -62,7 +65,7 @@ export default function Page() {
   }
 
   function send() {
-    if (!/.+@.+\..+/.test(email.trim())) {
+    if (!isValidEmail(email)) {
       setErr('請輸入有效 Email')
       return
     }
@@ -70,23 +73,31 @@ export default function Page() {
     setErr('')
     setCooldown(45)
     setStep('sent')
+    const addr = limitText(email.trim(), EMAIL_MAX)
     if (mode === 'otp') {
       const c = String(randomInt(100000, 999999))
       setExpected(c)
       setMagicToken('')
       setMsg(`已寄出 OTP（示範顯示：${c}）`)
-      pushLog({ email: email.trim(), method: 'otp', action: 'send', detail: `OTP ${c}` })
+      pushLog({ email: addr, method: 'otp', action: 'send', detail: `OTP ${c}` })
     } else {
       const token = uid('magic')
       setMagicToken(token)
       setExpected('')
       setMsg(`已寄出魔法連結（示範 token：${token}）`)
-      pushLog({ email: email.trim(), method: 'magic', action: 'send', detail: token })
+      pushLog({ email: addr, method: 'magic', action: 'send', detail: token })
     }
     setCode('')
   }
 
+  const emailOk = isValidEmail(email)
+  const otpOk = charCount(code.trim()) === OTP_MAX
+
   function verifyOtp() {
+    if (!otpOk) {
+      setErr('請輸入 6 位數驗證碼')
+      return
+    }
     if (code.trim() === expected) {
       setSession({ email: email.trim(), at: Date.now(), method: 'otp' })
       setStep('session')
@@ -271,15 +282,21 @@ export default function Page() {
 
           <label className="label">Email</label>
           <input
-            className="field"
+            className={cn('field', !emailOk && 'is-invalid')}
+            maxLength={EMAIL_MAX}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(limitText(e.target.value, EMAIL_MAX))}
             placeholder="you@example.com"
             disabled={step === 'sent'}
           />
+          <div className="field-meta">
+            <span className={!emailOk ? 'warn' : undefined}>{emailOk ? 'Email 有效' : '請輸入有效 Email'}</span>
+            <span>{charCount(email)}/{EMAIL_MAX}</span>
+          </div>
+          {err && step === 'email' && <p className="field-error">{err}</p>}
 
           {step === 'email' && (
-            <button type="button" className="btn accent" onClick={send} disabled={cooldown > 0}>
+            <button type="button" className="btn accent" onClick={send} disabled={cooldown > 0 || !emailOk}>
               {cooldown > 0 ? `請等待 ${cooldown}s` : mode === 'otp' ? '寄送登入碼' : '寄送魔法連結'}
             </button>
           )}
@@ -288,17 +305,22 @@ export default function Page() {
             <>
               <p className="muted">{msg}</p>
               <input
-                className="field mono"
+                className={cn('field mono', !otpOk && code.length > 0 && 'is-invalid')}
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => setCode(limitText(e.target.value.replace(/\D/g, ''), OTP_MAX))}
                 placeholder="6 位數驗證碼"
-                maxLength={6}
+                maxLength={OTP_MAX}
               />
+              <div className="field-meta">
+                <span className={!otpOk ? 'warn' : undefined}>{otpOk ? '可驗證' : '請輸入 6 位數字'}</span>
+                <span>{charCount(code)}/{OTP_MAX}</span>
+              </div>
+              {err && <p className="field-error">{err}</p>}
               <div className="row" style={{ flexWrap: 'wrap' }}>
-                <button type="button" className="btn accent" onClick={verifyOtp}>
+                <button type="button" className="btn accent" onClick={verifyOtp} disabled={!otpOk}>
                   驗證登入
                 </button>
-                <button type="button" className="btn ghost" onClick={send} disabled={cooldown > 0}>
+                <button type="button" className="btn ghost" onClick={send} disabled={cooldown > 0 || !emailOk}>
                   {cooldown > 0 ? `重送 ${cooldown}s` : '重送'}
                 </button>
                 <button type="button" className="btn ghost" onClick={() => setStep('email')}>

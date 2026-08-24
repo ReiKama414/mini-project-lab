@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('screenshot-html')!
+
+const TITLE_MAX = 120
+const SECTION_MAX = 2000
 
 type PresetId = 'landing' | 'dashboard' | 'docs'
 type Section = { id: string; kind: string; text: string }
@@ -154,7 +157,7 @@ export default function Page() {
           {auto ? '即時產生' : '手動產生'}
         </button>
         {!auto && (
-          <button type="button" className="btn sm accent" onClick={() => setManualHtml(toHtml(title, sections))}>
+          <button type="button" className="btn sm accent" onClick={() => setManualHtml(toHtml(title, sections))} disabled={!isNonEmpty(title)}>
             產生 HTML
           </button>
         )}
@@ -162,7 +165,17 @@ export default function Page() {
 
       <div className="grid-2">
         <div className="panel stack">
-          <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="頁面標題" />
+          <input
+            className={cn('field', !isNonEmpty(title) && 'is-invalid')}
+            maxLength={TITLE_MAX}
+            value={title}
+            onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))}
+            placeholder="頁面標題"
+          />
+          <div className="field-meta">
+            <span className={!isNonEmpty(title) ? 'warn' : undefined}>{isNonEmpty(title) ? '標題 OK' : '請填頁面標題'}</span>
+            <span>{charCount(title)}/{TITLE_MAX}</span>
+          </div>
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <div className="label" style={{ margin: 0 }}>
               區塊（可編輯）
@@ -198,9 +211,16 @@ export default function Page() {
               <textarea
                 className="field"
                 rows={2}
+                maxLength={SECTION_MAX}
                 value={s.text}
-                onChange={(e) => setSections((xs) => xs.map((x) => (x.id === s.id ? { ...x, text: e.target.value } : x)))}
+                onChange={(e) =>
+                  setSections((xs) => xs.map((x) => (x.id === s.id ? { ...x, text: limitText(e.target.value, SECTION_MAX) } : x)))
+                }
               />
+              <div className="field-meta">
+                <span className="field-hint">區塊文字</span>
+                <span>{charCount(s.text)}/{SECTION_MAX}</span>
+              </div>
             </div>
           ))}
           <iframe title="preview" className="panel" style={{ minHeight: 280, width: '100%', border: 0, background: '#fff' }} srcDoc={out} />

@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText, copyText } from '../../lib/utils'
+import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-flashcard-gen')!
+
+const NOTES_MAX = 12000
+const DECK_NAME_MAX = 80
 
 type Card = { id: string; front: string; back: string }
 type Deck = { id: string; name: string; cards: Card[]; updatedAt: number; favorite?: boolean }
@@ -80,11 +83,13 @@ export default function Page() {
   const cards = previewOnly ?? active?.cards ?? []
   const current = cards[idx]
   const knownCount = cards.filter((c) => known[c.id]).length
-  const noteChars = notes.length
+  const noteChars = charCount(notes)
   const favDecks = decks.filter((d) => d.favorite)
+  const canGenerate = isNonEmpty(notes)
 
   function generate(save: boolean) {
-    const c = extractCards(notes)
+    if (!canGenerate) return
+    const c = extractCards(limitText(notes, NOTES_MAX))
     if (!save) {
       setPreviewOnly(c)
       setIdx(0)
@@ -92,7 +97,12 @@ export default function Page() {
       return
     }
     const id = uid('deck')
-    const deck: Deck = { id, name: deckName.trim() || '未命名牌組', cards: c, updatedAt: Date.now() }
+    const deck: Deck = {
+      id,
+      name: limitText(deckName.trim() || '未命名牌組', DECK_NAME_MAX),
+      cards: c,
+      updatedAt: Date.now(),
+    }
     setDecks((ds) => [deck, ...ds])
     setActiveId(id)
     setPreviewOnly(null)
@@ -204,17 +214,37 @@ export default function Page() {
               ))}
             </div>
             <label className="label">牌組名稱</label>
-            <input className="field" value={deckName} onChange={(e) => setDeckName(e.target.value)} />
+            <input
+              className="field"
+              maxLength={DECK_NAME_MAX}
+              value={deckName}
+              onChange={(e) => setDeckName(limitText(e.target.value, DECK_NAME_MAX))}
+            />
+            <div className="field-meta">
+              <span className="field-hint">存檔時顯示的名稱</span>
+              <span>{charCount(deckName)}/{DECK_NAME_MAX}</span>
+            </div>
             <div className="row">
               <label className="label">筆記（詞：解釋 / Q:… A:… / 條列）</label>
-              <span className="mono muted">{noteChars} 字</span>
+              <span className="mono muted">{noteChars}/{NOTES_MAX}</span>
             </div>
-            <textarea className="field" rows={12} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <textarea
+              className={cn('field', !canGenerate && 'is-invalid')}
+              rows={12}
+              maxLength={NOTES_MAX}
+              value={notes}
+              onChange={(e) => setNotes(limitText(e.target.value, NOTES_MAX))}
+            />
+            <div className="field-meta">
+              <span className={!canGenerate ? 'warn' : undefined}>{canGenerate ? '可解析' : '請貼上筆記'}</span>
+              <span className="field-hint">上限 {NOTES_MAX.toLocaleString()} 字</span>
+            </div>
+            {!canGenerate && <p className="field-error">筆記不可空白</p>}
             <div className="row" style={{ flexWrap: 'wrap' }}>
-              <button type="button" className="btn ghost" onClick={() => generate(false)} disabled={!notes.trim()}>
+              <button type="button" className="btn ghost" onClick={() => generate(false)} disabled={!canGenerate}>
                 僅預覽解析
               </button>
-              <button type="button" className="btn accent" onClick={() => generate(true)} disabled={!notes.trim()}>
+              <button type="button" className="btn accent" onClick={() => generate(true)} disabled={!canGenerate}>
                 解析並存成牌組
               </button>
             </div>

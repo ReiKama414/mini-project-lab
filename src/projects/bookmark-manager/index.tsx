@@ -2,7 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import {
+  charCount,
+  isNonEmpty,
+  isValidHttpUrl,
+  limitText,
+  normalizeHttpUrl,
+  uid,
+} from '../../lib/utils'
 
 const meta = getProject('bookmark-manager')!
 
@@ -16,6 +23,11 @@ type Bookmark = {
 }
 
 const FOLDERS = ['全部', '工作', '學習', '娛樂', '其他']
+const MAX_ITEMS = 200
+const MAX_TITLE = 80
+const MAX_URL = 2048
+const MAX_TAGS = 120
+const MAX_SEARCH = 80
 
 function faviconUrl(url: string) {
   try {
@@ -84,20 +96,22 @@ export default function Page() {
       .split(/[,，\s]+/)
       .map((t) => t.trim())
       .filter(Boolean)
+      .slice(0, 20)
   }
 
+  const titleOk = isNonEmpty(title)
+  const normalizedUrl = normalizeHttpUrl(url)
+  const urlOk = isValidHttpUrl(url)
+  const atLimit = !editing && items.length >= MAX_ITEMS
+  const canSave = titleOk && urlOk && !atLimit
+
   function add() {
-    if (!title.trim() || !url.trim()) return
-    try {
-      new URL(url)
-    } catch {
-      return
-    }
+    if (!canSave) return
     setItems([
       {
         id: uid('bm'),
         title: title.trim(),
-        url: url.trim(),
+        url: normalizedUrl,
         folder,
         tags: parseTags(tagInput),
         createdAt: Date.now(),
@@ -110,21 +124,14 @@ export default function Page() {
   }
 
   function saveEdit(id: string) {
-    const b = items.find((x) => x.id === id)
-    if (!b) return
-    if (!title.trim() || !url.trim()) return
-    try {
-      new URL(url)
-    } catch {
-      return
-    }
+    if (!titleOk || !urlOk) return
     setItems(
       items.map((x) =>
         x.id === id
           ? {
               ...x,
               title: title.trim(),
-              url: url.trim(),
+              url: normalizedUrl,
               folder,
               tags: parseTags(tagInput),
             }
@@ -158,18 +165,40 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <div className="grid-2">
-          <input
-            className="field"
-            placeholder="標題"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <input
-            className="field"
-            placeholder="URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              placeholder="標題"
+              value={title}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))}
+            />
+            <div className="field-meta">
+              <span className={!titleOk && title.length > 0 ? 'warn' : undefined}>
+                {!titleOk && title.length > 0 ? '請輸入標題' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(title)} / {MAX_TITLE}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${url.length > 0 && !urlOk ? ' is-invalid' : ''}`}
+              placeholder="URL"
+              value={url}
+              maxLength={MAX_URL}
+              onChange={(e) => setUrl(limitText(e.target.value, MAX_URL))}
+            />
+            <div className="field-meta">
+              <span className={!urlOk && url.length > 0 ? 'warn' : undefined}>
+                {!urlOk && url.length > 0 ? '請輸入有效的 http(s) 網址' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(url)} / {MAX_URL}
+              </span>
+            </div>
+          </div>
         </div>
         <div className="row">
           <select
@@ -182,16 +211,25 @@ export default function Page() {
               <option key={f}>{f}</option>
             ))}
           </select>
-          <input
-            className="field"
-            style={{ flex: 1 }}
-            placeholder="標籤（逗號分隔）"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-          />
+          <div className="stack" style={{ flex: 1, gap: 0 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="標籤（逗號分隔）"
+              value={tagInput}
+              maxLength={MAX_TAGS}
+              onChange={(e) => setTagInput(limitText(e.target.value, MAX_TAGS))}
+            />
+            <div className="field-meta">
+              <span className="field-hint">最多 20 個標籤</span>
+              <span>
+                {charCount(tagInput)} / {MAX_TAGS}
+              </span>
+            </div>
+          </div>
           {editing ? (
             <>
-              <button className="btn accent" onClick={() => saveEdit(editing)}>
+              <button className="btn accent" onClick={() => saveEdit(editing)} disabled={!titleOk || !urlOk}>
                 儲存
               </button>
               <button className="btn ghost" onClick={cancelEdit}>
@@ -199,11 +237,12 @@ export default function Page() {
               </button>
             </>
           ) : (
-            <button className="btn accent" onClick={add}>
+            <button className="btn accent" onClick={add} disabled={!canSave}>
               新增書籤
             </button>
           )}
         </div>
+        {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆書籤，請先刪除再新增</p>}
 
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {FOLDERS.map((f) => (
@@ -215,13 +254,22 @@ export default function Page() {
               {f}
             </button>
           ))}
-          <input
-            className="field"
-            style={{ flex: 1, minWidth: 140 }}
-            placeholder="搜尋標題 / URL / 標籤…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <div className="stack" style={{ flex: 1, minWidth: 140, gap: 0 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋標題 / URL / 標籤…"
+              value={q}
+              maxLength={MAX_SEARCH}
+              onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(q)} / {MAX_SEARCH}
+              </span>
+            </div>
+          </div>
         </div>
 
         {allTags.length > 0 && (
@@ -263,7 +311,7 @@ export default function Page() {
                 ) : (
                   <span
                     className="tag"
-                    style={{ width: 28, height: 28, justifyContent: 'center', textAlign: 'center' }}
+                    style={{ width: 28, height: 28, placeContent: 'center', textAlign: 'center' }}
                   >
                     {letterAvatar(b.title)}
                   </span>

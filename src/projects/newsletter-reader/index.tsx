@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { uid, limitText } from '../../lib/utils'
 
 const meta = getProject('newsletter-reader')!
+
+const Q_MAX = 120
+const FOLDER_MAX = 40
+const BODY_MAX = 20000
 
 type Folder = 'inbox' | 'star' | 'archive' | 'unread'
 type NL = {
@@ -111,8 +115,9 @@ export default function Page() {
           className="field"
           style={{ flex: 1, minWidth: 160 }}
           placeholder="搜尋主旨／寄件者／內容…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          maxLength={Q_MAX}
+            value={q}
+          onChange={(e) => setQ(limitText(e.target.value, Q_MAX))}
         />
         <button
           type="button"
@@ -147,7 +152,8 @@ export default function Page() {
             {f}
           </button>
         ))}
-        <input className="field" style={{ width: 120 }} placeholder="新資料夾" value={newFolder} onChange={(e) => setNewFolder(e.target.value)} />
+        <input className="field" style={{ width: 120 }} placeholder="新資料夾" maxLength={FOLDER_MAX}
+            value={newFolder} onChange={(e) => setNewFolder(limitText(e.target.value, FOLDER_MAX))} />
         <button
           type="button"
           className="btn sm ghost"
@@ -203,8 +209,9 @@ export default function Page() {
               <textarea
                 className="field"
                 rows={8}
-                value={current.body}
-                onChange={(e) => patch(current.id, { body: e.target.value })}
+                maxLength={BODY_MAX}
+              value={current.body}
+                onChange={(e) => patch(current.id, { body: limitText(e.target.value, BODY_MAX) })}
               />
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 <button type="button" className="btn sm ghost" onClick={() => patch(current.id, { starred: !current.starred })}>

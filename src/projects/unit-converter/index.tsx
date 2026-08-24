@@ -1,9 +1,12 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
-import { copyText } from '../../lib/utils'
+import { clamp, copyText, parseNumber } from '../../lib/utils'
 
 const meta = getProject('unit-converter')!
+
+const VALUE_MIN = -1e15
+const VALUE_MAX = 1e15
 
 type Category = 'length' | 'weight' | 'temp' | 'volume' | 'data'
 
@@ -69,26 +72,39 @@ export default function Page() {
   const [from, setFrom] = useState('m')
   const [to, setTo] = useState('km')
   const [value, setValue] = useState(1)
+  const [error, setError] = useState('')
 
   const units = UNITS[cat]
   const result = useMemo(() => {
+    if (error || !Number.isFinite(value)) return NaN
     const a = units.find((u) => u.id === from)
     const b = units.find((u) => u.id === to)
     if (!a || !b) return 0
     return b.fromBase(a.toBase(value))
-  }, [units, from, to, value])
+  }, [units, from, to, value, error])
 
   const allResults = useMemo(() => {
+    if (error || !Number.isFinite(value)) return []
     const a = units.find((u) => u.id === from)
     if (!a) return []
     const base = a.toBase(value)
     return units.map((u) => ({ id: u.id, label: u.label, value: u.fromBase(base) }))
-  }, [units, from, value])
+  }, [units, from, value, error])
 
   function changeCat(c: Category) {
     setCat(c)
     setFrom(UNITS[c][0]!.id)
     setTo(UNITS[c][1]!.id)
+  }
+
+  function onValueChange(raw: string) {
+    const n = parseNumber(raw)
+    if (!Number.isFinite(n)) {
+      setError('請輸入有效數字')
+      return
+    }
+    setError('')
+    setValue(clamp(n, VALUE_MIN, VALUE_MAX))
   }
 
   return (
@@ -109,11 +125,15 @@ export default function Page() {
           <label className="stack">
             <span className="label">數值</span>
             <input
-              className="field"
+              className={`field${error ? ' is-invalid' : ''}`}
               type="number"
+              min={VALUE_MIN}
+              max={VALUE_MAX}
               value={value}
-              onChange={(e) => setValue(Number(e.target.value))}
+              onChange={(e) => onValueChange(e.target.value)}
             />
+            {error && <p className="field-error">{error}</p>}
+            <p className="field-hint">範圍約 ±1e15</p>
           </label>
           <div className="grid-2">
             <label className="stack">
@@ -153,6 +173,7 @@ export default function Page() {
           </div>
           <button
             className="btn ghost"
+            disabled={!Number.isFinite(result)}
             onClick={() =>
               void copyText(
                 `${value} ${from} = ${result.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${to}`,

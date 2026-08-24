@@ -26,28 +26,32 @@ export function clamp(n: number, min: number, max: number) {
 
 /** Truncate string to at most `max` UTF-16 code units. */
 export function limitText(text: string, max: number) {
+  if (max <= 0) return ''
   return text.length <= max ? text : text.slice(0, max)
 }
 
-/** Character count (code-point aware for emoji / CJK). */
+/** Character count aligned with `maxLength` / `limitText` (UTF-16 code units). */
 export function charCount(text: string) {
-  return Array.from(text).length
+  return text.length
 }
 
-/** Parse a finite number; empty / invalid → null. */
-export function parseNumber(value: string | number): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+/**
+ * Parse a finite number.
+ * Invalid / empty → `fallback` (default NaN). Pass a number as second arg for a default.
+ */
+export function parseNumber(value: string | number, fallback = NaN): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback
   const t = String(value).trim()
-  if (!t) return null
+  if (!t) return fallback
   const n = Number(t)
-  return Number.isFinite(n) ? n : null
+  return Number.isFinite(n) ? n : fallback
 }
 
 export function isNonEmpty(text: string) {
   return text.trim().length > 0
 }
 
-/** Prepend https:// when scheme is missing. */
+/** Trim and prepend https:// when scheme is missing. */
 export function normalizeHttpUrl(raw: string) {
   const t = raw.trim()
   if (!t) return ''
@@ -62,52 +66,6 @@ export function isValidHttpUrl(raw: string) {
   } catch {
     return false
   }
-}
-
-export function isValidEmail(raw: string) {
-  const t = raw.trim()
-  if (!t || t.length > 254) return false
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)
-}
-
-/** Truncate string to at most `max` characters (UTF-16 code units). */
-export function limitText(s: string, max: number) {
-  if (max <= 0) return ''
-  return s.length <= max ? s : s.slice(0, max)
-}
-
-export function charCount(s: string) {
-  return s.length
-}
-
-export function parseNumber(raw: string, fallback = NaN) {
-  const t = raw.trim()
-  if (!t) return fallback
-  const n = Number(t)
-  return Number.isFinite(n) ? n : fallback
-}
-
-export function isNonEmpty(s: string) {
-  return s.trim().length > 0
-}
-
-export function isValidHttpUrl(raw: string) {
-  const t = raw.trim()
-  if (!t) return false
-  try {
-    const u = new URL(t)
-    return u.protocol === 'http:' || u.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
-/** Trim and prepend https:// when scheme is missing. */
-export function normalizeHttpUrl(raw: string) {
-  const t = raw.trim()
-  if (!t) return ''
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(t)) return t
-  return `https://${t}`
 }
 
 export function isValidEmail(raw: string) {

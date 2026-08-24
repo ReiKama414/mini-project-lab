@@ -4,9 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, parseNumber, copyText } from '../../lib/utils'
 
 const meta = getProject('timestamp')!
+
+const TS_MAX = 32
+const BATCH_MAX = 10_000
 
 function toMs(n: number) {
   return n < 1e12 ? n * 1000 : n
@@ -48,7 +51,12 @@ export default function Page() {
   const displayNow = unit === 'sec' ? liveSec : now
 
   function convertOne() {
-    const n = Number(ts.trim())
+    if (!isNonEmpty(ts)) {
+      setError('請輸入時間戳')
+      setConverted('')
+      return
+    }
+    const n = parseNumber(ts)
     if (!Number.isFinite(n)) {
       setError('無效時間戳')
       setConverted('')
@@ -130,10 +138,19 @@ export default function Page() {
           <label className="stack">
             <span className="label">時間戳 → 日期</span>
             <div className="row">
-              <input className="field mono" style={{ flex: 1 }} value={ts} onChange={(e) => setTs(e.target.value)} />
-              <button className="btn accent" onClick={convertOne}>
+              <input
+                className={`field mono${error ? ' is-invalid' : ''}`}
+                style={{ flex: 1 }}
+                value={ts}
+                maxLength={TS_MAX}
+                onChange={(e) => setTs(limitText(e.target.value, TS_MAX))}
+              />
+              <button className="btn accent" onClick={convertOne} disabled={!isNonEmpty(ts)}>
                 轉換
               </button>
+            </div>
+            <div className="field-meta">
+              <span>{charCount(ts)} / {TS_MAX}</span>
             </div>
             {converted && (
               <pre className="metric mono" style={{ whiteSpace: 'pre-wrap' }}>
@@ -156,11 +173,7 @@ export default function Page() {
               </button>
             </div>
           </label>
-          {error && (
-            <p className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
-              {error}
-            </p>
-          )}
+          {error && <p className="field-error">{error}</p>}
         </div>
         <div className="panel stack">
           <h3>批次轉換</h3>
@@ -171,8 +184,12 @@ export default function Page() {
             className="field mono"
             rows={8}
             value={batchIn}
-            onChange={(e) => setBatchIn(e.target.value)}
+            maxLength={BATCH_MAX}
+            onChange={(e) => setBatchIn(limitText(e.target.value, BATCH_MAX))}
           />
+          <div className="field-meta">
+            <span>{charCount(batchIn).toLocaleString()} / {BATCH_MAX.toLocaleString()}</span>
+          </div>
           <ul className="list">
             {batchRows.map((r, i) => (
               <li key={`${r.line}-${i}`} className="list-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 4 }}>

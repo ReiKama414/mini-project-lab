@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText, downloadText, uid } from '../../lib/utils'
 
 const meta = getProject('json-to-csv')!
+
+const JSON_MAX = 200_000
+const FILTER_MAX = 80
 
 type HistoryItem = {
   id: string
@@ -108,6 +111,14 @@ export default function Page() {
   }, [history, histFilter])
 
   function convert() {
+    if (!isNonEmpty(input)) {
+      setError('請輸入 JSON')
+      return null
+    }
+    if (charCount(input) > JSON_MAX) {
+      setError(`超過 ${JSON_MAX} 字元上限`)
+      return null
+    }
     try {
       const data = JSON.parse(input)
       if (!Array.isArray(data)) throw new Error('請提供 JSON 陣列，例如 [{"a":1}]')
@@ -176,7 +187,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm accent" onClick={() => runAndMaybeSave(true)}>
+          <button type="button" className="btn sm accent" onClick={() => runAndMaybeSave(true)} disabled={!isNonEmpty(input)}>
             轉換並存歷史
           </button>
           <button type="button" className="btn sm ghost" disabled={!csv} onClick={download}>
@@ -227,11 +238,20 @@ export default function Page() {
 
           <label className="stack">
             <span className="label">JSON 物件陣列</span>
-            <textarea className="field mono" rows={12} value={input} onChange={(e) => setInput(e.target.value)} />
+            <textarea
+              className={`field mono${error ? ' is-invalid' : ''}`}
+              rows={12}
+              value={input}
+              maxLength={JSON_MAX}
+              onChange={(e) => setInput(limitText(e.target.value, JSON_MAX))}
+            />
+            <div className="field-meta">
+              <span>{charCount(input).toLocaleString()} / {JSON_MAX.toLocaleString()}</span>
+            </div>
           </label>
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn accent" onClick={() => runAndMaybeSave(false)}>
+            <button type="button" className="btn accent" onClick={() => runAndMaybeSave(false)} disabled={!isNonEmpty(input)}>
               轉成 CSV
             </button>
             <button
@@ -254,11 +274,7 @@ export default function Page() {
             </button>
           </div>
 
-          {error && (
-            <p className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
-              {error}
-            </p>
-          )}
+          {error && <p className="field-error">{error}</p>}
 
           {keys.length > 0 && (
             <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -288,8 +304,12 @@ export default function Page() {
             className="field"
             placeholder="篩選歷史…"
             value={histFilter}
-            onChange={(e) => setHistFilter(e.target.value)}
+            maxLength={FILTER_MAX}
+            onChange={(e) => setHistFilter(limitText(e.target.value, FILTER_MAX))}
           />
+          <div className="field-meta">
+            <span>{charCount(histFilter)} / {FILTER_MAX}</span>
+          </div>
           <ul className="list">
             {filteredHistory.map((h) => (
               <li key={h.id} className="list-item stack">

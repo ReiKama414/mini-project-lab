@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { downloadText, uid, limitText, isNonEmpty } from '../../lib/utils'
 
 const meta = getProject('feature-flags')!
+
+const KEY_MAX = 64
+const USER_MAX = 80
 
 type Env = 'dev' | 'staging' | 'prod'
 type Flag = { id: string; key: string; on: boolean; pct: number; desc: string; env: Env }
@@ -90,8 +93,9 @@ export default function Page() {
             {e}
           </button>
         ))}
-        <input className="field mono" value={newKey} onChange={(e) => setNewKey(e.target.value)} style={{ width: 140 }} />
-        <button type="button" className="btn accent" onClick={addFlag}>
+        <input className="field mono" maxLength={KEY_MAX}
+            value={newKey} onChange={(e) => setNewKey(limitText(e.target.value.replace(/[^a-zA-Z0-9_.:-]/g, ''), KEY_MAX))} style={{ width: 140 }} />
+        <button type="button" className="btn accent" onClick={addFlag} disabled={!isNonEmpty(newKey)}>
           新增 Flag
         </button>
       </div>
@@ -176,7 +180,8 @@ export default function Page() {
         <div className="panel stack">
           <div className="label">評估模擬</div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <input className="field mono" value={evalUser} onChange={(e) => setEvalUser(e.target.value)} placeholder="user id" style={{ flex: 1 }} />
+            <input className="field mono" maxLength={USER_MAX}
+            value={evalUser} onChange={(e) => setEvalUser(limitText(e.target.value, USER_MAX))} placeholder="user id" style={{ flex: 1 }} />
             <select className="field" value={evalEnv} onChange={(e) => setEvalEnv(e.target.value as Env)} style={{ width: 120 }}>
               {ENVS.map((e) => (
                 <option key={e} value={e}>

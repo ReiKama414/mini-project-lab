@@ -3,9 +3,15 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useRef, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { charCount, clamp, copyText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('qr-generator')!
+
+const TEXT_MAX = 2048
+const FILTER_MAX = 80
+const HEX_MAX = 7
+const SIZE_MIN = 128
+const SIZE_MAX = 400
 
 type EcLevel = 'L' | 'M' | 'Q' | 'H'
 type HistoryItem = { id: string; text: string; at: number; fg: string; bg: string; size: number; level: EcLevel }
@@ -47,6 +53,8 @@ export default function Page() {
   const wrapRef = useRef<HTMLDivElement>(null)
 
   const value = text.trim()
+  const canAct = isNonEmpty(text) && charCount(text) <= TEXT_MAX
+  const sizeSafe = clamp(size, SIZE_MIN, SIZE_MAX)
   const stats = useMemo(
     () => ({
       chars: value.length,
@@ -63,9 +71,9 @@ export default function Page() {
   }, [history, filter])
 
   function saveHistory() {
-    if (!value) return
+    if (!canAct) return
     setHistory((h) =>
-      [{ id: uid('qr'), text: value, at: Date.now(), fg, bg, size, level }, ...h.filter((x) => x.text !== value)].slice(0, 24),
+      [{ id: uid('qr'), text: value, at: Date.now(), fg, bg, size: sizeSafe, level }, ...h.filter((x) => x.text !== value)].slice(0, 24),
     )
   }
 
@@ -97,13 +105,13 @@ export default function Page() {
     const img = new Image()
     img.onload = () => {
       const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
+      canvas.width = sizeSafe
+      canvas.height = sizeSafe
       const ctx = canvas.getContext('2d')
       if (!ctx) return
       ctx.fillStyle = bg
-      ctx.fillRect(0, 0, size, size)
-      ctx.drawImage(img, 0, 0, size, size)
+      ctx.fillRect(0, 0, sizeSafe, sizeSafe)
+      ctx.drawImage(img, 0, 0, sizeSafe, sizeSafe)
       canvas.toBlob((blob) => {
         if (blob) {
           downloadBlob('qrcode.png', blob)
@@ -120,13 +128,13 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" disabled={!value} onClick={saveHistory}>
+          <button type="button" className="btn sm ghost" disabled={!canAct} onClick={saveHistory}>
             存入歷史
           </button>
-          <button type="button" className="btn sm teal" disabled={!value} onClick={() => void downloadSvg()}>
+          <button type="button" className="btn sm teal" disabled={!canAct} onClick={() => void downloadSvg()}>
             SVG
           </button>
-          <button type="button" className="btn sm accent" disabled={!value} onClick={() => void downloadPng()}>
+          <button type="button" className="btn sm accent" disabled={!canAct} onClick={() => void downloadPng()}>
             PNG
           </button>
         </div>
@@ -155,24 +163,28 @@ export default function Page() {
           <label className="stack">
             <span className="label">內容（文字或 URL）</span>
             <textarea
-              className="field"
+              className={`field${!canAct && text ? ' is-invalid' : ''}`}
               rows={4}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              maxLength={TEXT_MAX}
+              onChange={(e) => setText(limitText(e.target.value, TEXT_MAX))}
               placeholder="https://…"
             />
+            <div className="field-meta">
+              <span>{charCount(text)} / {TEXT_MAX}</span>
+            </div>
           </label>
 
           <label className="stack">
-            <span className="label">尺寸：{size}px</span>
+            <span className="label">尺寸：{sizeSafe}px</span>
             <input
               className="field"
               type="range"
-              min={128}
-              max={400}
+              min={SIZE_MIN}
+              max={SIZE_MAX}
               step={8}
-              value={size}
-              onChange={(e) => setSize(Number(e.target.value))}
+              value={sizeSafe}
+              onChange={(e) => setSize(clamp(parseNumber(e.target.value, SIZE_MIN), SIZE_MIN, SIZE_MAX))}
             />
           </label>
 
@@ -215,7 +227,7 @@ export default function Page() {
                   onChange={(e) => setFg(e.target.value)}
                   style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }}
                 />
-                <input className="field mono" style={{ flex: 1 }} value={fg} onChange={(e) => setFg(e.target.value)} />
+                <input className="field mono" style={{ flex: 1 }} value={fg} maxLength={HEX_MAX} onChange={(e) => setFg(limitText(e.target.value, HEX_MAX))} />
               </div>
             </label>
             <label className="stack">
@@ -227,7 +239,7 @@ export default function Page() {
                   onChange={(e) => setBg(e.target.value)}
                   style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }}
                 />
-                <input className="field mono" style={{ flex: 1 }} value={bg} onChange={(e) => setBg(e.target.value)} />
+                <input className="field mono" style={{ flex: 1 }} value={bg} maxLength={HEX_MAX} onChange={(e) => setBg(limitText(e.target.value, HEX_MAX))} />
               </div>
             </label>
           </div>
@@ -236,7 +248,7 @@ export default function Page() {
             <button
               type="button"
               className="btn ghost"
-              disabled={!value}
+              disabled={!canAct}
               onClick={async () => {
                 await copyText(text)
                 setCopied(true)
@@ -245,10 +257,10 @@ export default function Page() {
             >
               {copied ? '已複製' : '複製文字'}
             </button>
-            <button type="button" className="btn teal" disabled={!value} onClick={() => void downloadSvg()}>
+            <button type="button" className="btn teal" disabled={!canAct} onClick={() => void downloadSvg()}>
               下載 SVG
             </button>
-            <button type="button" className="btn accent" disabled={!value} onClick={() => void downloadPng()}>
+            <button type="button" className="btn accent" disabled={!canAct} onClick={() => void downloadPng()}>
               下載 PNG
             </button>
           </div>
@@ -267,7 +279,7 @@ export default function Page() {
                   display: 'inline-block',
                 }}
               >
-                <QRCodeSVG value={value} size={size} fgColor={fg} bgColor={bg} level={level} includeMargin={false} />
+                <QRCodeSVG value={value} size={sizeSafe} fgColor={fg} bgColor={bg} level={level} includeMargin={false} />
               </div>
             ) : (
               <p className="muted">請輸入內容以產生 QR Code</p>
@@ -285,8 +297,12 @@ export default function Page() {
               className="field"
               placeholder="篩選歷史內容…"
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              maxLength={FILTER_MAX}
+              onChange={(e) => setFilter(limitText(e.target.value, FILTER_MAX))}
             />
+            <div className="field-meta">
+              <span>{charCount(filter)} / {FILTER_MAX}</span>
+            </div>
             <ul className="list">
               {filteredHistory.slice(0, 10).map((h) => (
                 <li key={h.id} className="list-item stack">

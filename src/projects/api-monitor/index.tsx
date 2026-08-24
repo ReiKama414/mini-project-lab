@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
 const meta = getProject('api-monitor')!
+
+const URL_MAX = 2048
+const NAME_MAX = 80
 
 type Probe = { at: number; ok: boolean; latency: number; note: string }
 type HistRow = { id: string; targetId: string; name: string; url: string; at: number; ok: boolean; latency: number; note: string }
@@ -77,6 +80,7 @@ export default function Page() {
   const [table, setTable] = useLocalStorage<HistRow[]>('lab:api-monitor:table', [])
   const [url, setUrl] = useState('https://httpbin.org/get')
   const [name, setName] = useState('custom')
+  const [formErr, setFormErr] = useState('')
   const [auto, setAuto] = useLocalStorage('lab:api-monitor:auto', true)
   const [busy, setBusy] = useState(false)
 
@@ -132,16 +136,31 @@ export default function Page() {
   }, [auto])
 
   function add() {
-    const u = url.trim()
-    if (!u) return
+    const u = normalizeHttpUrl(url)
+    if (!isValidHttpUrl(u) || !isNonEmpty(name)) {
+      setFormErr(!isNonEmpty(name) ? '請輸入名稱' : '請輸入有效的 http(s) URL')
+      return
+    }
     setTargets((xs) => [
       ...xs,
-      { id: uid('t'), name: name.trim() || u, url: u, ok: true, latency: 0, history: [], lastNote: '尚未探測' },
+      {
+        id: uid('t'),
+        name: limitText(name.trim(), NAME_MAX),
+        url: u,
+        ok: true,
+        latency: 0,
+        history: [],
+        lastNote: '尚未探測',
+      },
     ])
     setUrl('https://')
+    setFormErr('')
   }
 
   const healthy = targets.filter((t) => t.ok).length
+  const normalized = normalizeHttpUrl(url)
+  const urlOk = isValidHttpUrl(normalized)
+  const canAdd = urlOk && isNonEmpty(name)
 
   return (
     <ProjectShell
@@ -163,12 +182,43 @@ export default function Page() {
         <div className="metric panel">Down {targets.length - healthy}</div>
       </div>
 
-      <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        <input className="field" placeholder="名稱" value={name} onChange={(e) => setName(e.target.value)} style={{ width: 120 }} />
-        <input className="field mono" style={{ flex: 1, minWidth: 200 }} value={url} onChange={(e) => setUrl(e.target.value)} />
-        <button type="button" className="btn accent" onClick={add}>
-          新增
-        </button>
+      <div className="panel stack" style={{ marginBottom: 12 }}>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <input
+            className={cn('field', !isNonEmpty(name) && 'is-invalid')}
+            placeholder="名稱"
+            maxLength={NAME_MAX}
+            value={name}
+            onChange={(e) => {
+              setName(limitText(e.target.value, NAME_MAX))
+              setFormErr('')
+            }}
+            style={{ width: 120 }}
+          />
+          <input
+            className={cn('field mono', !urlOk && 'is-invalid')}
+            style={{ flex: 1, minWidth: 200 }}
+            maxLength={URL_MAX}
+            value={url}
+            onChange={(e) => {
+              setUrl(limitText(e.target.value, URL_MAX))
+              setFormErr('')
+            }}
+            onBlur={() => {
+              if (urlOk) setUrl(normalized)
+            }}
+          />
+          <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
+            新增
+          </button>
+        </div>
+        <div className="field-meta">
+          <span className={!canAdd ? 'warn' : undefined}>{canAdd ? '可新增' : '需名稱與有效 http(s) URL'}</span>
+          <span>
+            {charCount(name)}/{NAME_MAX} · {charCount(url)}/{URL_MAX}
+          </span>
+        </div>
+        {formErr && <p className="field-error">{formErr}</p>}
       </div>
 
       <div className="panel" style={{ marginBottom: 12 }}>

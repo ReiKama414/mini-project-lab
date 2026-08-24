@@ -2,9 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
 const meta = getProject('oauth-playground')!
+
+const CLIENT_MAX = 120
+const REDIRECT_MAX = 2048
+const SCOPE_MAX = 80
+const JWT_MAX = 8000
 
 type Provider = 'GitHub' | 'Google' | 'Discord'
 type Step = 1 | 2 | 3 | 4
@@ -237,9 +242,11 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel stack">
           <label className="label">client_id</label>
-          <input className="field mono" value={clientId} onChange={(e) => setClientId(e.target.value)} />
+          <input className={cn('field mono', !isNonEmpty(clientId) && 'is-invalid')} maxLength={CLIENT_MAX} value={clientId} onChange={(e) => setClientId(limitText(e.target.value, CLIENT_MAX))} />
+            <div className="field-meta"><span className={!isNonEmpty(clientId) ? 'warn' : undefined}>{isNonEmpty(clientId) ? 'Client ID OK' : '請填 Client ID'}</span><span>{charCount(clientId)}/{CLIENT_MAX}</span></div>
           <label className="label">redirect_uri</label>
-          <input className="field mono" value={redirect} onChange={(e) => setRedirect(e.target.value)} />
+          <input className={cn('field mono', !isValidHttpUrl(normalizeHttpUrl(redirect)) && 'is-invalid')} maxLength={REDIRECT_MAX} value={redirect} onChange={(e) => setRedirect(limitText(e.target.value, REDIRECT_MAX))} onBlur={() => { const n = normalizeHttpUrl(redirect); if (isValidHttpUrl(n)) setRedirect(n) }} />
+            <div className="field-meta"><span className={!isValidHttpUrl(normalizeHttpUrl(redirect)) ? 'warn' : undefined}>{isValidHttpUrl(normalizeHttpUrl(redirect)) ? 'Redirect URI 有效' : '需為 http(s) URL'}</span><span>{charCount(redirect)}/{REDIRECT_MAX}</span></div>
 
           <label className="label">Scopes</label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -255,7 +262,8 @@ export default function Page() {
             ))}
           </div>
           <div className="row">
-            <input className="field mono" placeholder="自訂 scope" value={customScope} onChange={(e) => setCustomScope(e.target.value)} />
+            <input className="field mono" maxLength={SCOPE_MAX} placeholder="自訂 scope" value={customScope} onChange={(e) => setCustomScope(limitText(e.target.value, SCOPE_MAX))} />
+            <div className="field-meta"><span className="field-hint">選填 scope</span><span>{charCount(customScope)}/{SCOPE_MAX}</span></div>
             <button
               type="button"
               className="btn sm ghost"
@@ -297,7 +305,7 @@ export default function Page() {
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {step === 1 && (
-              <button type="button" className="btn accent" onClick={goAuthorize}>
+              <button type="button" className="btn accent" onClick={goAuthorize} disabled={!isNonEmpty(clientId) || !isValidHttpUrl(normalizeHttpUrl(redirect))}>
                 1. Authorize
               </button>
             )}
@@ -357,7 +365,8 @@ export default function Page() {
             {!tokens.length && <li className="list-item muted">尚無 token</li>}
           </ul>
           <label className="label">貼上 JWT 解碼</label>
-          <textarea className="field mono" rows={2} value={manualJwt} onChange={(e) => setManualJwt(e.target.value)} placeholder="header.payload.sig" />
+          <textarea className="field mono" rows={2} maxLength={JWT_MAX} value={manualJwt} onChange={(e) => setManualJwt(limitText(e.target.value, JWT_MAX))} placeholder="header.payload.sig" />
+              <div className="field-meta"><span className="field-hint">手動貼上 JWT</span><span>{charCount(manualJwt)}/{JWT_MAX}</span></div>
           {viewToken && (
             <div className="row" style={{ flexWrap: 'wrap' }}>
               <button type="button" className="btn sm ghost" onClick={() => void copyText(viewToken.idToken)}>

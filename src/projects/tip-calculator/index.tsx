@@ -1,10 +1,15 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { clamp, copyText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('tip-calculator')!
+
+const BILL_MAX = 1_000_000
+const PCT_MAX = 100
+const PEOPLE_MIN = 1
+const PEOPLE_MAX = 50
 
 type HistoryItem = {
   id: string
@@ -30,6 +35,7 @@ export default function Page() {
   const [people, setPeople] = useLocalStorage('lab:tip-calculator:people', 2)
   const [roundUp, setRoundUp] = useLocalStorage('lab:tip-calculator:roundUp', false)
   const [history, setHistory] = useLocalStorage<HistoryItem[]>('lab:tip-calculator:history', [])
+  const [error, setError] = useState('')
 
   const calc = useMemo(() => {
     const taxAmt = (bill * tax) / 100
@@ -62,7 +68,25 @@ export default function Page() {
     .filter(Boolean)
     .join('\n')
 
+  const canSave = !error && Number.isFinite(bill) && bill >= 0
+
+  function setNum(
+    raw: string,
+    min: number,
+    max: number,
+    set: (n: number) => void,
+  ) {
+    const n = parseNumber(raw)
+    if (!Number.isFinite(n)) {
+      setError('請輸入有效數字')
+      return
+    }
+    setError('')
+    set(clamp(n, min, max))
+  }
+
   function saveHistory() {
+    if (!canSave) return
     setHistory((h) =>
       [
         {
@@ -84,11 +108,12 @@ export default function Page() {
   }
 
   function restore(item: HistoryItem) {
-    setBill(item.bill)
-    setTip(item.tip)
-    setTax(item.tax)
-    setPeople(item.people)
+    setBill(clamp(item.bill, 0, BILL_MAX))
+    setTip(clamp(item.tip, 0, PCT_MAX))
+    setTax(clamp(item.tax, 0, PCT_MAX))
+    setPeople(clamp(item.people, PEOPLE_MIN, PEOPLE_MAX))
     setRoundUp(item.roundUp)
+    setError('')
   }
 
   return (
@@ -96,7 +121,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={saveHistory}>
+          <button type="button" className="btn sm ghost" onClick={saveHistory} disabled={!canSave}>
             存入歷史
           </button>
           <button type="button" className="btn sm ghost" onClick={() => void copyText(summary)}>
@@ -110,45 +135,55 @@ export default function Page() {
           <label className="stack">
             <span className="label">帳單金額</span>
             <input
-              className="field"
+              className={`field${error ? ' is-invalid' : ''}`}
               type="number"
               min={0}
+              max={BILL_MAX}
               step={0.01}
               value={bill}
-              onChange={(e) => setBill(Number(e.target.value))}
+              onChange={(e) => setNum(e.target.value, 0, BILL_MAX, setBill)}
             />
+            <p className="field-hint">0–{BILL_MAX.toLocaleString()}</p>
           </label>
           <label className="stack">
             <span className="label">稅金 %（可選）</span>
             <input
-              className="field"
+              className={`field${error ? ' is-invalid' : ''}`}
               type="number"
               min={0}
+              max={PCT_MAX}
               value={tax}
-              onChange={(e) => setTax(Number(e.target.value))}
+              onChange={(e) => setNum(e.target.value, 0, PCT_MAX, setTax)}
             />
+            <p className="field-hint">0–{PCT_MAX}%</p>
           </label>
           <label className="stack">
             <span className="label">小費 %</span>
             <input
-              className="field"
+              className={`field${error ? ' is-invalid' : ''}`}
               type="number"
               min={0}
+              max={PCT_MAX}
               value={tip}
-              onChange={(e) => setTip(Number(e.target.value))}
+              onChange={(e) => setNum(e.target.value, 0, PCT_MAX, setTip)}
             />
+            <p className="field-hint">0–{PCT_MAX}%</p>
           </label>
           <label className="stack">
             <span className="label">分帳人數</span>
             <input
-              className="field"
+              className={`field${error ? ' is-invalid' : ''}`}
               type="number"
-              min={1}
+              min={PEOPLE_MIN}
+              max={PEOPLE_MAX}
               value={people}
-              onChange={(e) => setPeople(Math.max(1, Number(e.target.value)))}
+              onChange={(e) => setNum(e.target.value, PEOPLE_MIN, PEOPLE_MAX, setPeople)}
             />
+            <p className="field-hint">{PEOPLE_MIN}–{PEOPLE_MAX} 人</p>
           </label>
         </div>
+
+        {error && <p className="field-error">{error}</p>}
 
         <div>
           <div className="label">小費預設</div>
@@ -240,7 +275,7 @@ export default function Page() {
         )}
 
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="btn accent" onClick={saveHistory}>
+          <button type="button" className="btn accent" onClick={saveHistory} disabled={!canSave}>
             存入歷史
           </button>
           <button type="button" className="btn ghost" onClick={() => void copyText(summary)}>

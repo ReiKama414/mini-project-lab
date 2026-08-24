@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, copyText, hexToRgb, rgbToHex, rgbToHsl } from '../../lib/utils'
+import { clamp, copyText, hexToRgb, limitText, rgbToHex, rgbToHsl } from '../../lib/utils'
 
 const meta = getProject('hex-rgb-hsl')!
+
+const HEX_MAX = 7
+const RGB_TEXT_MAX = 32
+const HSL_TEXT_MAX = 32
 
 function hslToRgb(h: number, s: number, l: number) {
   h = ((h % 360) + 360) % 360
@@ -68,6 +72,9 @@ export default function Page() {
   const [hexInput, setHexInput] = useState('#e9a319')
   const [rgbInput, setRgbInput] = useState('233, 163, 25')
   const [hslInput, setHslInput] = useState('40, 84%, 51%')
+  const [hexError, setHexError] = useState('')
+  const [rgbError, setRgbError] = useState('')
+  const [hslError, setHslError] = useState('')
 
   useEffect(() => {
     const rgb = parseHex(hex)
@@ -88,26 +95,41 @@ export default function Page() {
     setL(hsl.l)
     setRgbInput(`${nr}, ${ng}, ${nb}`)
     setHslInput(`${hsl.h}, ${hsl.s}%, ${hsl.l}%`)
+    setHexError('')
+    setRgbError('')
+    setHslError('')
   }
 
   function fromHex(v: string) {
-    setHexInput(v)
-    const rgb = parseHex(v)
-    if (!rgb) return
+    const next = limitText(v, HEX_MAX)
+    setHexInput(next)
+    const rgb = parseHex(next)
+    if (!rgb) {
+      setHexError('請輸入有效 HEX')
+      return
+    }
     applyRgb(rgb.r, rgb.g, rgb.b)
   }
 
   function fromRgbText(v: string) {
-    setRgbInput(v)
-    const m = v.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
-    if (!m) return
+    const next = limitText(v, RGB_TEXT_MAX)
+    setRgbInput(next)
+    const m = next.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
+    if (!m) {
+      setRgbError('格式需為 r, g, b')
+      return
+    }
     applyRgb(clamp(+m[1]!, 0, 255), clamp(+m[2]!, 0, 255), clamp(+m[3]!, 0, 255))
   }
 
   function fromHslText(v: string) {
-    setHslInput(v)
-    const m = v.match(/(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?/)
-    if (!m) return
+    const next = limitText(v, HSL_TEXT_MAX)
+    setHslInput(next)
+    const m = next.match(/(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?/)
+    if (!m) {
+      setHslError('格式需為 h, s%, l%')
+      return
+    }
     const nh = clamp(+m[1]!, 0, 360)
     const ns = clamp(+m[2]!, 0, 100)
     const nl = clamp(+m[3]!, 0, 100)
@@ -147,29 +169,59 @@ export default function Page() {
           <label className="stack">
             <span className="label">HEX</span>
             <div className="row">
-              <input className="field mono" style={{ flex: 1 }} value={hexInput} onChange={(e) => fromHex(e.target.value)} />
+              <input
+                className={`field mono${hexError ? ' is-invalid' : ''}`}
+                style={{ flex: 1 }}
+                value={hexInput}
+                maxLength={HEX_MAX}
+                onChange={(e) => fromHex(e.target.value)}
+              />
               <button className="btn ghost sm" onClick={() => void copyText(preview)}>
                 複製
               </button>
             </div>
+            <div className="field-meta">
+              <span>{hexInput.length} / {HEX_MAX}</span>
+            </div>
+            {hexError && <p className="field-error">{hexError}</p>}
           </label>
           <label className="stack">
             <span className="label">RGB（r, g, b）</span>
             <div className="row">
-              <input className="field mono" style={{ flex: 1 }} value={rgbInput} onChange={(e) => fromRgbText(e.target.value)} />
+              <input
+                className={`field mono${rgbError ? ' is-invalid' : ''}`}
+                style={{ flex: 1 }}
+                value={rgbInput}
+                maxLength={RGB_TEXT_MAX}
+                onChange={(e) => fromRgbText(e.target.value)}
+              />
               <button className="btn ghost sm" onClick={() => void copyText(`rgb(${r}, ${g}, ${b})`)}>
                 複製
               </button>
             </div>
+            <div className="field-meta">
+              <span>{rgbInput.length} / {RGB_TEXT_MAX}</span>
+            </div>
+            {rgbError && <p className="field-error">{rgbError}</p>}
           </label>
           <label className="stack">
             <span className="label">HSL（h, s%, l%）</span>
             <div className="row">
-              <input className="field mono" style={{ flex: 1 }} value={hslInput} onChange={(e) => fromHslText(e.target.value)} />
+              <input
+                className={`field mono${hslError ? ' is-invalid' : ''}`}
+                style={{ flex: 1 }}
+                value={hslInput}
+                maxLength={HSL_TEXT_MAX}
+                onChange={(e) => fromHslText(e.target.value)}
+              />
               <button className="btn ghost sm" onClick={() => void copyText(`hsl(${h}, ${s}%, ${l}%)`)}>
                 複製
               </button>
             </div>
+            <div className="field-meta">
+              <span>{hslInput.length} / {HSL_TEXT_MAX}</span>
+            </div>
+            {hslError && <p className="field-error">{hslError}</p>}
           </label>
           <div className="grid-3">
             {(

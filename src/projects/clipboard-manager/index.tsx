@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
 
 const meta = getProject('clipboard-manager')!
+
+const TEXT_MAX = 5000
+const SEARCH_MAX = 80
 
 type Category = '一般' | '程式碼' | '連結' | '備註'
 type Clip = {
@@ -30,6 +33,9 @@ export default function Page() {
   const [filter, setFilter] = useState<'全部' | Category>('全部')
   const [q, setQ] = useState('')
   const [onlyPinned, setOnlyPinned] = useState(false)
+  const [error, setError] = useState('')
+
+  const canAdd = isNonEmpty(text)
 
   const visible = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -44,8 +50,12 @@ export default function Page() {
   }, [items, filter, q, onlyPinned])
 
   function add(content: string, cat?: Category) {
-    const t = content.trim()
-    if (!t) return
+    const t = limitText(content.trim(), TEXT_MAX)
+    if (!t) {
+      setError('請輸入內容')
+      return
+    }
+    setError('')
     const next: Clip = {
       id: uid('clip'),
       text: t,
@@ -75,17 +85,25 @@ export default function Page() {
       <div className="panel stack">
         <div className="row">
           <textarea
-            className="field"
+            className={`field${!canAdd && error ? ' is-invalid' : ''}`}
             style={{ flex: 1 }}
             rows={3}
             placeholder="手動加入剪貼內容…"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            maxLength={TEXT_MAX}
+            onChange={(e) => {
+              setText(limitText(e.target.value, TEXT_MAX))
+              setError('')
+            }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) add(text)
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canAdd) add(text)
             }}
           />
         </div>
+        <div className="field-meta">
+          <span>{charCount(text)} / {TEXT_MAX}</span>
+        </div>
+        {error && <p className="field-error">{error}</p>}
         <div className="row">
           <select
             className="field"
@@ -97,7 +115,7 @@ export default function Page() {
               <option key={c}>{c}</option>
             ))}
           </select>
-          <button className="btn accent" onClick={() => add(text)}>
+          <button className="btn accent" onClick={() => add(text)} disabled={!canAdd}>
             加入
           </button>
           <button className="btn teal" onClick={pasteFromSystem}>
@@ -129,11 +147,15 @@ export default function Page() {
             style={{ flex: 1, minWidth: 140 }}
             placeholder="搜尋…"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            maxLength={SEARCH_MAX}
+            onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
           />
           <button className="btn ghost sm" onClick={() => setItems([])} disabled={!items.length}>
             全部清除
           </button>
+        </div>
+        <div className="field-meta">
+          <span>搜尋 {charCount(q)} / {SEARCH_MAX}</span>
         </div>
 
         <div className="row">

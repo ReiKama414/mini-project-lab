@@ -155,9 +155,11 @@ export default function Page() {
     [system, setMsgs],
   )
 
+  const canSend = isNonEmpty(input) && !busy
+
   async function send() {
-    const text = input.trim()
-    if (!text || busy) return
+    const text = limitText(input.trim(), INPUT_MAX)
+    if (!isNonEmpty(text) || busy) return
     setInput('')
     setMsgs((m) => [...m, { id: uid('m'), role: 'user', text, at: Date.now() }])
     await runBot(text)
@@ -218,10 +220,18 @@ export default function Page() {
             ))}
           </div>
           <label className="label">自訂提示</label>
-          <textarea className="field" rows={4} value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} />
-          <p className="muted" style={{ margin: 0 }}>
-            意圖關鍵字：code／摘要／翻譯／待辦
-          </p>
+          <textarea
+            className={cn('field', !isNonEmpty(customPrompt) && 'is-invalid')}
+            rows={4}
+            maxLength={PROMPT_MAX}
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(limitText(e.target.value, PROMPT_MAX))}
+          />
+          <div className="field-meta">
+            <span className="field-hint">意圖關鍵字：code／摘要／翻譯／待辦</span>
+            <span>{charCount(customPrompt)}/{PROMPT_MAX}</span>
+          </div>
+          {!isNonEmpty(customPrompt) && <p className="field-error">請填寫系統提示</p>}
         </div>
         <div className="stack">
           <div className="panel stack" style={{ maxHeight: 420, overflow: 'auto' }}>
@@ -234,22 +244,29 @@ export default function Page() {
             {busy && !streaming && <div className="chat-bubble bot muted">思考中…</div>}
             <div ref={endRef} />
           </div>
-          <div className="row">
-            <input
-              className="field"
-              style={{ flex: 1 }}
-              value={input}
-              placeholder="輸入訊息…"
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-              disabled={busy}
-            />
-            <button type="button" className="btn accent" onClick={send} disabled={busy}>
-              送出
-            </button>
-            <button type="button" className="btn ghost" onClick={regenerate} disabled={busy || !msgs.some((m) => m.role === 'user')}>
-              重新產生
-            </button>
+          <div className="stack" style={{ gap: 4 }}>
+            <div className="row">
+              <input
+                className={cn('field', !isNonEmpty(input) && input.length > 0 && 'is-invalid')}
+                style={{ flex: 1 }}
+                value={input}
+                maxLength={INPUT_MAX}
+                placeholder="輸入訊息…"
+                onChange={(e) => setInput(limitText(e.target.value, INPUT_MAX))}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && canSend && void send()}
+                disabled={busy}
+              />
+              <button type="button" className="btn accent" onClick={() => void send()} disabled={!canSend}>
+                送出
+              </button>
+              <button type="button" className="btn ghost" onClick={regenerate} disabled={busy || !msgs.some((m) => m.role === 'user')}>
+                重新產生
+              </button>
+            </div>
+            <div className="field-meta">
+              <span className="field-hint">空白訊息無法送出</span>
+              <span>{charCount(input)}/{INPUT_MAX}</span>
+            </div>
           </div>
         </div>
       </div>

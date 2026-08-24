@@ -2,8 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { limitText, charCount, isNonEmpty, clamp, parseNumber, cn } from '../../lib/utils'
 
 const meta = getProject('github-repo-search')!
+
+const Q_MAX = 200
+const LANG_MAX = 40
 
 type Repo = {
   id: number
@@ -75,16 +79,21 @@ export default function Page() {
       <div className="panel stack">
         <div className="row">
           <input
-            className="field"
+            className={cn('field', !isNonEmpty(q) && 'is-invalid')}
             style={{ flex: 1 }}
             placeholder="搜尋關鍵字…"
+            maxLength={Q_MAX}
             value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && search(1, false)}
+            onChange={(e) => setQ(limitText(e.target.value, Q_MAX))}
+            onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(q) && search(1, false)}
           />
-          <button className="btn accent" onClick={() => search(1, false)} disabled={loading}>
+          <button className="btn accent" onClick={() => search(1, false)} disabled={loading || !isNonEmpty(q)}>
             {loading && page === 1 ? '搜尋中…' : '搜尋'}
           </button>
+        </div>
+        <div className="field-meta">
+          <span className={!isNonEmpty(q) ? 'warn' : undefined}>{isNonEmpty(q) ? '可搜尋' : '請輸入關鍵字'}</span>
+          <span>{charCount(q)}/{Q_MAX}</span>
         </div>
 
         <div className="grid-3">
@@ -93,7 +102,7 @@ export default function Page() {
             <select
               className="field"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => setLanguage(limitText(e.target.value, LANG_MAX))}
             >
               {LANGS.map((l) => (
                 <option key={l || 'any'} value={l}>
@@ -109,7 +118,7 @@ export default function Page() {
               type="number"
               min={0}
               value={minStars}
-              onChange={(e) => setMinStars(Number(e.target.value) || 0)}
+              onChange={(e) => setMinStars(clamp(parseNumber(e.target.value, 0), 0, 1000000))}
             />
           </label>
           <label className="stack" style={{ gap: 4 }}>

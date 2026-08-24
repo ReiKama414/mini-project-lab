@@ -2,9 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl, copyText, uid } from '../../lib/utils'
 
 const meta = getProject('url-shortener')!
+
+const URL_MAX = 2048
+const CODE_MAX = 32
+const NOTE_MAX = 80
+const SEARCH_MAX = 80
 
 type Link = {
   id: string
@@ -33,7 +38,12 @@ export default function Page() {
   const [custom, setCustom] = useState('')
   const [note, setNote] = useState('')
   const [msg, setMsg] = useState('')
+  const [error, setError] = useState('')
   const [q, setQ] = useState('')
+
+  const normalized = normalizeHttpUrl(url)
+  const urlOk = isValidHttpUrl(normalized)
+  const canCreate = urlOk && isNonEmpty(url)
 
   const visible = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -49,29 +59,32 @@ export default function Page() {
   const totalClicks = links.reduce((n, l) => n + l.clicks, 0)
 
   function create() {
-    try {
-      const u = new URL(url.trim())
-      let code = custom.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || makeCode()
-      if (links.some((l) => l.code === code)) {
-        setMsg(`短碼「${code}」已存在`)
-        return
-      }
-      const item: Link = {
-        id: uid('url'),
-        code,
-        url: u.toString(),
-        createdAt: Date.now(),
-        clicks: 0,
-        note: note.trim() || undefined,
-      }
-      setLinks([item, ...links])
-      setUrl('https://')
-      setCustom('')
-      setNote('')
-      setMsg(`已建立：${fullShortUrl(code)}`)
-    } catch {
-      setMsg('請輸入有效 URL')
+    const u = normalizeHttpUrl(url)
+    if (!isValidHttpUrl(u)) {
+      setError('請輸入有效的 http/https URL')
+      setMsg('')
+      return
     }
+    let code = limitText(custom.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''), CODE_MAX) || makeCode()
+    if (links.some((l) => l.code === code)) {
+      setError(`短碼「${code}」已存在`)
+      setMsg('')
+      return
+    }
+    const item: Link = {
+      id: uid('url'),
+      code,
+      url: u,
+      createdAt: Date.now(),
+      clicks: 0,
+      note: note.trim() ? limitText(note.trim(), NOTE_MAX) : undefined,
+    }
+    setLinks([item, ...links])
+    setUrl('https://')
+    setCustom('')
+    setNote('')
+    setError('')
+    setMsg(`已建立：${fullShortUrl(code)}`)
   }
 
   function open(item: Link) {
@@ -106,33 +119,52 @@ export default function Page() {
 
         <div className="stack" style={{ gap: 8 }}>
           <input
-            className="field"
+            className={`field${!urlOk && isNonEmpty(url) ? ' is-invalid' : ''}`}
             placeholder="原始 URL"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && create()}
+            maxLength={URL_MAX}
+            onChange={(e) => {
+              setUrl(limitText(e.target.value, URL_MAX))
+              setError('')
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && canCreate && create()}
           />
+          <div className="field-meta">
+            <span>{charCount(url)} / {URL_MAX}</span>
+          </div>
+          {!urlOk && isNonEmpty(url) && <p className="field-error">請輸入有效的 http/https URL</p>}
           <div className="row">
-            <input
-              className="field"
-              style={{ flex: 1 }}
-              placeholder="自訂短碼（選填）"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-            />
-            <input
-              className="field"
-              style={{ flex: 1 }}
-              placeholder="備註（選填）"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-            <button className="btn accent" onClick={create}>
+            <div className="stack" style={{ flex: 1, gap: 2 }}>
+              <input
+                className="field"
+                placeholder="自訂短碼（選填）"
+                value={custom}
+                maxLength={CODE_MAX}
+                onChange={(e) => setCustom(limitText(e.target.value, CODE_MAX))}
+              />
+              <div className="field-meta">
+                <span>{charCount(custom)} / {CODE_MAX}</span>
+              </div>
+            </div>
+            <div className="stack" style={{ flex: 1, gap: 2 }}>
+              <input
+                className="field"
+                placeholder="備註（選填）"
+                value={note}
+                maxLength={NOTE_MAX}
+                onChange={(e) => setNote(limitText(e.target.value, NOTE_MAX))}
+              />
+              <div className="field-meta">
+                <span>{charCount(note)} / {NOTE_MAX}</span>
+              </div>
+            </div>
+            <button className="btn accent" onClick={create} disabled={!canCreate}>
               縮短
             </button>
           </div>
         </div>
 
+        {error && <p className="field-error">{error}</p>}
         {msg && <p className="tag">{msg}</p>}
 
         <div className="row">
@@ -141,8 +173,12 @@ export default function Page() {
             style={{ flex: 1 }}
             placeholder="搜尋短碼 / URL / 備註…"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            maxLength={SEARCH_MAX}
+            onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
           />
+        </div>
+        <div className="field-meta">
+          <span>{charCount(q)} / {SEARCH_MAX}</span>
         </div>
 
         <ul className="list">

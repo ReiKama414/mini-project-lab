@@ -2,11 +2,16 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, downloadText, uid } from '../../lib/utils'
 
 const meta = getProject('markdown-notes')!
 
 type Note = { id: string; title: string; md: string; updatedAt: number; createdAt: number }
+
+const MAX_ITEMS = 100
+const MAX_TITLE = 80
+const MAX_MD = 50000
+const MAX_SEARCH = 80
 
 function mdToHtml(src: string) {
   let html = src.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -80,6 +85,7 @@ export default function Page() {
   }, [notes, q])
 
   function create() {
+    if (notes.length >= MAX_ITEMS) return
     const n: Note = {
       id: uid('md'),
       title: '新筆記',
@@ -94,8 +100,11 @@ export default function Page() {
 
   function update(patch: Partial<Note>) {
     if (!current) return
+    const next = { ...patch }
+    if (next.title != null) next.title = limitText(next.title, MAX_TITLE)
+    if (next.md != null) next.md = limitText(next.md, MAX_MD)
     setNotes(
-      notes.map((n) => (n.id === current.id ? { ...n, ...patch, updatedAt: Date.now() } : n)),
+      notes.map((n) => (n.id === current.id ? { ...n, ...next, updatedAt: Date.now() } : n)),
     )
   }
 
@@ -116,15 +125,25 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
-          <button className="btn accent" onClick={create}>
+          <button className="btn accent" onClick={create} disabled={notes.length >= MAX_ITEMS}>
             新增筆記
           </button>
-          <input
-            className="field"
-            placeholder="搜尋…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          {notes.length >= MAX_ITEMS && <p className="field-error">已達上限 {MAX_ITEMS} 則筆記</p>}
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className="field"
+              placeholder="搜尋…"
+              value={q}
+              maxLength={MAX_SEARCH}
+              onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(q)} / {MAX_SEARCH}
+              </span>
+            </div>
+          </div>
           <ul className="list">
             {visible.map((n) => (
               <li
@@ -151,11 +170,22 @@ export default function Page() {
         <div className="panel stack">
           {current ? (
             <>
-              <input
-                className="field"
-                value={current.title}
-                onChange={(e) => update({ title: e.target.value })}
-              />
+              <div className="stack" style={{ gap: 0 }}>
+                <input
+                  className={`field${!isNonEmpty(current.title) ? ' is-invalid' : ''}`}
+                  value={current.title}
+                  maxLength={MAX_TITLE}
+                  onChange={(e) => update({ title: limitText(e.target.value, MAX_TITLE) })}
+                />
+                <div className="field-meta">
+                  <span className={!isNonEmpty(current.title) ? 'warn' : undefined}>
+                    {!isNonEmpty(current.title) ? '標題不可空白' : '\u00a0'}
+                  </span>
+                  <span>
+                    {charCount(current.title)} / {MAX_TITLE}
+                  </span>
+                </div>
+              </div>
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 {(
                   [
@@ -191,24 +221,42 @@ export default function Page() {
               </div>
 
               {tab === 'edit' && (
-                <textarea
-                  className="field mono"
-                  rows={16}
-                  value={current.md}
-                  onChange={(e) => update({ md: e.target.value })}
-                />
+                <div className="stack" style={{ gap: 0 }}>
+                  <textarea
+                    className="field mono"
+                    rows={16}
+                    value={current.md}
+                    maxLength={MAX_MD}
+                    onChange={(e) => update({ md: limitText(e.target.value, MAX_MD) })}
+                  />
+                  <div className="field-meta">
+                    <span />
+                    <span>
+                      {charCount(current.md)} / {MAX_MD}
+                    </span>
+                  </div>
+                </div>
               )}
               {tab === 'preview' && (
                 <div className="metric" dangerouslySetInnerHTML={{ __html: html }} />
               )}
               {tab === 'split' && (
                 <div className="grid-2">
-                  <textarea
-                    className="field mono"
-                    rows={16}
-                    value={current.md}
-                    onChange={(e) => update({ md: e.target.value })}
-                  />
+                  <div className="stack" style={{ gap: 0 }}>
+                    <textarea
+                      className="field mono"
+                      rows={16}
+                      value={current.md}
+                      maxLength={MAX_MD}
+                      onChange={(e) => update({ md: limitText(e.target.value, MAX_MD) })}
+                    />
+                    <div className="field-meta">
+                      <span />
+                      <span>
+                        {charCount(current.md)} / {MAX_MD}
+                      </span>
+                    </div>
+                  </div>
                   <div className="metric" dangerouslySetInnerHTML={{ __html: html }} />
                 </div>
               )}

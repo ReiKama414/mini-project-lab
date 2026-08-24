@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText, copyText } from '../../lib/utils'
+import { uid, downloadText, copyText, charCount, isNonEmpty, limitText } from '../../lib/utils'
 
 const meta = getProject('survey-app')!
 
@@ -41,6 +41,10 @@ const PRESETS: { label: string; title: string; qs: Omit<Q, 'id'>[] }[] = [
     ],
   },
 ]
+
+const MAX_TITLE = 80
+const MAX_QUESTION = 200
+const MAX_QUESTIONS = 30
 
 export default function Page() {
   const [title, setTitle] = useLocalStorage('lab:survey:title', PRESETS[0]!.title)
@@ -155,7 +159,10 @@ export default function Page() {
             <label className="label">標題</label>
             <span className="mono muted">{title.length} 字</span>
           </div>
-          <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input className={`field${!isNonEmpty(title) ? ' is-invalid' : ''}`} value={title} maxLength={MAX_TITLE} onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))} />
+            <div className="field-meta"><span className={!isNonEmpty(title) ? 'warn' : undefined}>{!isNonEmpty(title) ? '標題不可空白' : ' '}</span><span>{charCount(title)} / {MAX_TITLE}</span></div>
+          </div>
           <div className="row">
             <button
               type="button"

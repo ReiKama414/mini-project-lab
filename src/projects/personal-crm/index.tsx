@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText, copyText } from '../../lib/utils'
+import { uid, downloadText, copyText, charCount, isNonEmpty, isValidEmail, limitText } from '../../lib/utils'
 
 const meta = getProject('personal-crm')!
 
@@ -56,6 +56,21 @@ const seed: Contact[] = [
     tag: '夥伴',
   },
 ]
+
+const MAX_ITEMS = 200
+const MAX_NAME = 60
+const MAX_COMPANY = 80
+const MAX_EMAIL = 120
+const MAX_TAG = 40
+const MAX_NOTE = 1000
+const MAX_SEARCH = 80
+
+function isValidDate(iso: string) {
+  if (!iso) return true
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const d = new Date(iso + 'T12:00:00')
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso
+}
 
 const empty = { name: '', company: '', email: '', note: '', next: '', status: '潛在' as Status, tag: '一般' }
 
@@ -121,13 +136,27 @@ export default function Page() {
     })
   }
 
+  const nameOk = isNonEmpty(form.name)
+  const emailOk = !form.email.trim() || isValidEmail(form.email)
+  const nextOk = isValidDate(form.next)
+  const atLimit = !editingId && contacts.length >= MAX_ITEMS
+  const canSave = nameOk && emailOk && nextOk && !atLimit
+
   function saveForm() {
-    if (!form.name.trim()) return
+    if (!canSave) return
+    const payload = {
+      ...form,
+      name: limitText(form.name.trim(), MAX_NAME),
+      company: limitText(form.company.trim(), MAX_COMPANY),
+      email: limitText(form.email.trim(), MAX_EMAIL),
+      note: limitText(form.note, MAX_NOTE),
+      tag: limitText(form.tag.trim() || '一般', MAX_TAG),
+    }
     if (editingId) {
-      setContacts((xs) => xs.map((x) => (x.id === editingId ? { ...x, ...form, name: form.name.trim() } : x)))
+      setContacts((xs) => xs.map((x) => (x.id === editingId ? { ...x, ...payload } : x)))
       setEditingId(null)
     } else {
-      setContacts((xs) => [{ id: uid('c'), ...form, name: form.name.trim() }, ...xs])
+      setContacts((xs) => [{ id: uid('c'), ...payload }, ...xs])
     }
     setForm(empty)
   }
@@ -193,9 +222,18 @@ export default function Page() {
               ))}
             </div>
           </div>
-          <input className="field" placeholder="姓名" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <input className="field" placeholder="公司" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
-          <input className="field" placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input className={`field${form.name.length > 0 && !nameOk ? ' is-invalid' : ''}`} placeholder="姓名" value={form.name} maxLength={MAX_NAME} onChange={(e) => setForm({ ...form, name: limitText(e.target.value, MAX_NAME) })} />
+            <div className="field-meta"><span className={!nameOk && form.name.length > 0 ? 'warn' : undefined}>{!nameOk && form.name.length > 0 ? '請輸入姓名' : ' '}</span><span>{charCount(form.name)} / {MAX_NAME}</span></div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input className="field" placeholder="公司" value={form.company} maxLength={MAX_COMPANY} onChange={(e) => setForm({ ...form, company: limitText(e.target.value, MAX_COMPANY) })} />
+            <div className="field-meta"><span /><span>{charCount(form.company)} / {MAX_COMPANY}</span></div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input className={`field${form.email.trim() && !emailOk ? ' is-invalid' : ''}`} placeholder="Email" type="email" value={form.email} maxLength={MAX_EMAIL} onChange={(e) => setForm({ ...form, email: limitText(e.target.value, MAX_EMAIL) })} />
+            <div className="field-meta"><span className={form.email.trim() && !emailOk ? 'warn' : undefined}>{form.email.trim() && !emailOk ? 'Email 格式無效' : ' '}</span><span>{charCount(form.email)} / {MAX_EMAIL}</span></div>
+          </div>
           <div>
             <div className="label">標籤預設</div>
             <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -211,7 +249,10 @@ export default function Page() {
               ))}
             </div>
           </div>
-          <input className="field" placeholder="標籤" value={form.tag} onChange={(e) => setForm({ ...form, tag: e.target.value })} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input className="field" placeholder="標籤" value={form.tag} maxLength={MAX_TAG} onChange={(e) => setForm({ ...form, tag: limitText(e.target.value, MAX_TAG) })} />
+            <div className="field-meta"><span /><span>{charCount(form.tag)} / {MAX_TAG}</span></div>
+          </div>
           <label className="label">狀態</label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {STATUSES.map((s) => (
@@ -226,10 +267,15 @@ export default function Page() {
             ))}
           </div>
           <label className="label">下次跟進</label>
-          <input className="field" type="date" value={form.next} onChange={(e) => setForm({ ...form, next: e.target.value })} />
-          <textarea className="field" rows={3} placeholder="備註" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+          <input className={`field${!nextOk ? ' is-invalid' : ''}`} type="date" value={form.next} onChange={(e) => setForm({ ...form, next: e.target.value })} />
+          {!nextOk && <p className="field-error">請選擇有效日期</p>}
+          <div className="stack" style={{ gap: 0 }}>
+            <textarea className="field" rows={3} placeholder="備註" value={form.note} maxLength={MAX_NOTE} onChange={(e) => setForm({ ...form, note: limitText(e.target.value, MAX_NOTE) })} />
+            <div className="field-meta"><span /><span>{charCount(form.note)} / {MAX_NOTE}</span></div>
+          </div>
+          {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 位聯絡人</p>}
           <div className="row">
-            <button type="button" className="btn accent" onClick={saveForm}>
+            <button type="button" className="btn accent" onClick={saveForm} disabled={!canSave}>
               {editingId ? '更新' : '儲存'}
             </button>
             {editingId && (
@@ -248,7 +294,10 @@ export default function Page() {
         </div>
 
         <div className="panel stack">
-          <input className="field" placeholder="搜尋姓名／公司／Email…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="stack" style={{ gap: 0, flex: 1 }}>
+            <input className="field" placeholder="搜尋姓名／公司／Email…" value={q} maxLength={MAX_SEARCH} onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))} />
+            <div className="field-meta"><span /><span>{charCount(q)} / {MAX_SEARCH}</span></div>
+          </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <span className="muted">標籤</span>
             <select className="field" style={{ width: 120 }} value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>

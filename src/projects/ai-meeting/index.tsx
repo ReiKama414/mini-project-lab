@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-meeting')!
+
+const TITLE_MAX = 120
+const NOTES_MAX = 20000
 
 type Action = { id: string; text: string; owner: string; done: boolean }
 
@@ -59,7 +62,10 @@ export default function Page() {
   const [summary, setSummary] = useState('')
   const [ready, setReady] = useState(false)
 
+  const canAnalyze = isNonEmpty(notes)
+
   function analyze() {
+    if (!canAnalyze) return
     const lines = notes
       .split(/\n|[。！？.!?]/)
       .map((s) => s.trim())
@@ -120,10 +126,30 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel stack">
           <label className="label">會議標題</label>
-          <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input
+            className="field"
+            maxLength={TITLE_MAX}
+            value={title}
+            onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))}
+          />
+          <div className="field-meta">
+            <span className="field-hint">標題會出現在匯出 Markdown</span>
+            <span>{charCount(title)}/{TITLE_MAX}</span>
+          </div>
           <label className="label">會議筆記</label>
-          <textarea className="field" rows={12} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          <button type="button" className="btn accent" onClick={analyze}>
+          <textarea
+            className={cn('field', !canAnalyze && 'is-invalid')}
+            rows={12}
+            maxLength={NOTES_MAX}
+            value={notes}
+            onChange={(e) => setNotes(limitText(e.target.value, NOTES_MAX))}
+          />
+          <div className="field-meta">
+            <span className={!canAnalyze ? 'warn' : undefined}>{canAnalyze ? '可分析' : '請貼上會議筆記'}</span>
+            <span>{charCount(notes)}/{NOTES_MAX}</span>
+          </div>
+          {!canAnalyze && <p className="field-error">筆記不可空白</p>}
+          <button type="button" className="btn accent" onClick={analyze} disabled={!canAnalyze}>
             產生摘要
           </button>
         </div>

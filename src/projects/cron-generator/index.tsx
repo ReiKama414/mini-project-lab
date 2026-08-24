@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText } from '../../lib/utils'
 
 const meta = getProject('cron-generator')!
+
+const FIELD_MAX = 40
 
 const PRESETS = [
   { label: '每分鐘', expr: '* * * * *' },
@@ -128,11 +130,11 @@ export default function Page() {
   function applyExpr(e: string) {
     const [a, b, c, d, f] = e.split(/\s+/)
     if (a == null || b == null || c == null || d == null || f == null) return
-    setMin(a)
-    setHour(b)
-    setDom(c)
-    setMon(d)
-    setDow(f)
+    setMin(limitText(a, FIELD_MAX))
+    setHour(limitText(b, FIELD_MAX))
+    setDom(limitText(c, FIELD_MAX))
+    setMon(limitText(d, FIELD_MAX))
+    setDow(limitText(f, FIELD_MAX))
   }
 
   return (
@@ -157,7 +159,16 @@ export default function Page() {
           ).map(([label, val, set]) => (
             <label key={label} className="stack">
               <span className="label">{label}</span>
-              <input className="field mono" value={val} onChange={(e) => set(e.target.value)} />
+              <input
+                className={`field mono${!isNonEmpty(val) ? ' is-invalid' : ''}`}
+                value={val}
+                maxLength={FIELD_MAX}
+                onChange={(e) => set(limitText(e.target.value, FIELD_MAX))}
+              />
+              <div className="field-meta">
+                <span>{charCount(val)} / {FIELD_MAX}</span>
+              </div>
+              {!isNonEmpty(val) && <p className="field-error">不可空白</p>}
             </label>
           ))}
         </div>

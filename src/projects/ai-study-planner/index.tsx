@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { downloadText, uid, limitText, charCount, isNonEmpty, clamp, parseNumber, cn } from '../../lib/utils'
 
 const meta = getProject('ai-study-planner')!
+
+const GOAL_MAX = 200
+const NAME_MAX = 80
+const HOURS_MAX = 40
 
 type Subject = { id: string; name: string; hoursPerWeek: number }
 type Milestone = { id: string; title: string; week: number; done: boolean }
@@ -95,8 +99,12 @@ export default function Page() {
   }, [subjects, grid])
 
   function addSubject() {
-    if (!name.trim()) return
-    const s = { id: uid('s'), name: name.trim(), hoursPerWeek: hours }
+    if (!isNonEmpty(name)) return
+    const s = {
+      id: uid('s'),
+      name: limitText(name.trim(), NAME_MAX),
+      hoursPerWeek: clamp(hours, 1, HOURS_MAX),
+    }
     setSubjects((xs) => [...xs, s])
     setMilestones((ms) => [
       ...ms,
@@ -179,7 +187,16 @@ export default function Page() {
           </span>
         </div>
         <label className="label">學習目標</label>
-        <input className="field" value={goal} onChange={(e) => setGoal(e.target.value)} />
+        <input
+          className="field"
+          maxLength={GOAL_MAX}
+          value={goal}
+          onChange={(e) => setGoal(limitText(e.target.value, GOAL_MAX))}
+        />
+        <div className="field-meta">
+          <span className="field-hint">一句話描述最終成果</span>
+          <span>{charCount(goal)}/{GOAL_MAX}</span>
+        </div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <span className="label">預設方案</span>
           {PRESETS.map((p) => (
@@ -194,19 +211,32 @@ export default function Page() {
         <div className="panel stack">
           <div className="label">科目與每週時數</div>
           <div className="row">
-            <input className="field" style={{ flex: 1 }} placeholder="科目名稱" value={name} onChange={(e) => setName(e.target.value)} />
+            <input
+              className={cn('field', !isNonEmpty(name) && 'is-invalid')}
+              style={{ flex: 1 }}
+              maxLength={NAME_MAX}
+              placeholder="科目名稱"
+              value={name}
+              onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+            />
             <input
               className="field"
               style={{ width: 90 }}
               type="number"
               min={1}
-              max={40}
+              max={HOURS_MAX}
               value={hours}
-              onChange={(e) => setHours(Number(e.target.value) || 1)}
+              onChange={(e) => setHours(clamp(parseNumber(e.target.value, 1), 1, HOURS_MAX))}
             />
-            <button type="button" className="btn accent" onClick={addSubject}>
+            <button type="button" className="btn accent" onClick={addSubject} disabled={!isNonEmpty(name)}>
               新增
             </button>
+          </div>
+          <div className="field-meta">
+            <span className={!isNonEmpty(name) ? 'warn' : undefined}>
+              {isNonEmpty(name) ? '可新增' : '請輸入科目名稱'}
+            </span>
+            <span>{charCount(name)}/{NAME_MAX} · 時數 1–{HOURS_MAX}</span>
           </div>
           {subjects.length === 0 ? (
             <div className="list-item stack">
@@ -225,10 +255,15 @@ export default function Page() {
                     style={{ width: 80 }}
                     type="number"
                     min={1}
+                    max={HOURS_MAX}
                     value={s.hoursPerWeek}
                     onChange={(e) =>
                       setSubjects((xs) =>
-                        xs.map((x) => (x.id === s.id ? { ...x, hoursPerWeek: Number(e.target.value) || 1 } : x)),
+                        xs.map((x) =>
+                          x.id === s.id
+                            ? { ...x, hoursPerWeek: clamp(parseNumber(e.target.value, 1), 1, HOURS_MAX) }
+                            : x,
+                        ),
                       )
                     }
                   />

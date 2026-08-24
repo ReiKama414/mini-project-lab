@@ -2,9 +2,20 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { clamp, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('bmi-calculator')!
+
+const CM_MIN = 50
+const CM_MAX = 250
+const KG_MIN = 20
+const KG_MAX = 300
+const FT_MIN = 3
+const FT_MAX = 8
+const IN_MIN = 0
+const IN_MAX = 11
+const LB_MIN = 40
+const LB_MAX = 660
 
 function category(bmi: number, asia: boolean) {
   if (asia) {
@@ -22,6 +33,22 @@ function category(bmi: number, asia: boolean) {
 
 type Hist = { id: string; cm: number; kg: number; bmi: number; at: number }
 
+function setClamped(
+  raw: string,
+  min: number,
+  max: number,
+  set: (n: number) => void,
+  setErr: (msg: string) => void,
+) {
+  const n = parseNumber(raw)
+  if (!Number.isFinite(n)) {
+    setErr('請輸入有效數字')
+    return
+  }
+  setErr('')
+  set(clamp(n, min, max))
+}
+
 export default function Page() {
   const [unit, setUnit] = useLocalStorage<'metric' | 'imperial'>('lab:bmi:unit', 'metric')
   const [asia, setAsia] = useLocalStorage('lab:bmi:asia', true)
@@ -31,6 +58,7 @@ export default function Page() {
   const [inch, setInch] = useState(7)
   const [lb, setLb] = useState(143)
   const [history, setHistory] = useLocalStorage<Hist[]>('lab:bmi:history', [])
+  const [error, setError] = useState('')
 
   const metric = useMemo(() => {
     if (unit === 'metric') return { cm, kg }
@@ -53,9 +81,10 @@ export default function Page() {
   }, [metric.cm, asia])
 
   const cat = category(bmi, asia)
+  const canSave = Number.isFinite(bmi) && bmi > 0 && !error
 
   function save() {
-    if (!bmi) return
+    if (!canSave) return
     setHistory(
       [{ id: uid('b'), cm: metric.cm, kg: metric.kg, bmi, at: Date.now() }, ...history].slice(0, 20),
     )
@@ -89,20 +118,26 @@ export default function Page() {
               <label className="stack">
                 <span className="label">身高 (cm)</span>
                 <input
-                  className="field"
+                  className={`field${error ? ' is-invalid' : ''}`}
                   type="number"
+                  min={CM_MIN}
+                  max={CM_MAX}
                   value={cm}
-                  onChange={(e) => setCm(Number(e.target.value))}
+                  onChange={(e) => setClamped(e.target.value, CM_MIN, CM_MAX, setCm, setError)}
                 />
+                <p className="field-hint">{CM_MIN}–{CM_MAX} cm</p>
               </label>
               <label className="stack">
                 <span className="label">體重 (kg)</span>
                 <input
-                  className="field"
+                  className={`field${error ? ' is-invalid' : ''}`}
                   type="number"
+                  min={KG_MIN}
+                  max={KG_MAX}
                   value={kg}
-                  onChange={(e) => setKg(Number(e.target.value))}
+                  onChange={(e) => setClamped(e.target.value, KG_MIN, KG_MAX, setKg, setError)}
                 />
+                <p className="field-hint">{KG_MIN}–{KG_MAX} kg</p>
               </label>
             </div>
           ) : (
@@ -110,32 +145,43 @@ export default function Page() {
               <label className="stack">
                 <span className="label">呎</span>
                 <input
-                  className="field"
+                  className={`field${error ? ' is-invalid' : ''}`}
                   type="number"
+                  min={FT_MIN}
+                  max={FT_MAX}
                   value={ft}
-                  onChange={(e) => setFt(Number(e.target.value))}
+                  onChange={(e) => setClamped(e.target.value, FT_MIN, FT_MAX, setFt, setError)}
                 />
+                <p className="field-hint">{FT_MIN}–{FT_MAX}</p>
               </label>
               <label className="stack">
                 <span className="label">吋</span>
                 <input
-                  className="field"
+                  className={`field${error ? ' is-invalid' : ''}`}
                   type="number"
+                  min={IN_MIN}
+                  max={IN_MAX}
                   value={inch}
-                  onChange={(e) => setInch(Number(e.target.value))}
+                  onChange={(e) => setClamped(e.target.value, IN_MIN, IN_MAX, setInch, setError)}
                 />
+                <p className="field-hint">{IN_MIN}–{IN_MAX}</p>
               </label>
               <label className="stack">
                 <span className="label">磅</span>
                 <input
-                  className="field"
+                  className={`field${error ? ' is-invalid' : ''}`}
                   type="number"
+                  min={LB_MIN}
+                  max={LB_MAX}
                   value={lb}
-                  onChange={(e) => setLb(Number(e.target.value))}
+                  onChange={(e) => setClamped(e.target.value, LB_MIN, LB_MAX, setLb, setError)}
                 />
+                <p className="field-hint">{LB_MIN}–{LB_MAX}</p>
               </label>
             </div>
           )}
+
+          {error && <p className="field-error">{error}</p>}
 
           <div style={{ textAlign: 'center' }}>
             <div className="metric" style={{ fontSize: 48 }}>
@@ -157,7 +203,7 @@ export default function Page() {
           <div className="progress">
             <span style={{ width: `${Math.min(100, (bmi / 40) * 100)}%`, background: cat.color }} />
           </div>
-          <button className="btn accent" onClick={save} disabled={!bmi}>
+          <button className="btn accent" onClick={save} disabled={!canSave}>
             儲存本次紀錄
           </button>
         </div>

@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
 
 const meta = getProject('shopping-list')!
 
@@ -15,6 +15,9 @@ type Item = {
 }
 
 const AISLES = ['生鮮蔬果', '肉類海鮮', '乳製品', '乾貨雜糧', '零食飲料', '日用品', '冷凍', '其他']
+const MAX_ITEMS = 200
+const MAX_NAME = 80
+const MAX_QTY = 20
 
 const LEGACY_AISLE: Record<string, string> = {
   生鮮: '生鮮蔬果',
@@ -49,6 +52,11 @@ export default function Page() {
   const [filterAisle, setFilterAisle] = useState('all')
   const [copied, setCopied] = useState(false)
 
+  const nameOk = isNonEmpty(name)
+  const qtyOk = isNonEmpty(qty)
+  const atLimit = items.length >= MAX_ITEMS
+  const canAdd = nameOk && qtyOk && !atLimit
+
   const pending = items.filter((i) => !i.done).length
   const doneCount = items.length - pending
 
@@ -66,8 +74,8 @@ export default function Page() {
   }, [visible])
 
   function add() {
-    if (!name.trim()) return
-    setItems([{ id: uid('shop'), name: name.trim(), aisle, done: false, qty: qty.trim() || '1' }, ...items])
+    if (!canAdd) return
+    setItems([{ id: uid('shop'), name: name.trim(), aisle, done: false, qty: qty.trim() }, ...items])
     setName('')
   }
 
@@ -110,24 +118,46 @@ export default function Page() {
           <span className="tag">已購 {doneCount}</span>
           <span className="muted">共 {items.length} 項</span>
         </div>
-        <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1, minWidth: 120 }}
-            placeholder="品項"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && add()}
-          />
-          <input className="field" style={{ width: 80 }} value={qty} onChange={(e) => setQty(e.target.value)} placeholder="數量" />
-          <select className="field" style={{ maxWidth: 140 }} value={aisle} onChange={(e) => setAisle(e.target.value)}>
-            {AISLES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-          <button className="btn accent" onClick={add}>
-            加入
-          </button>
+        <div className="stack" style={{ gap: 0 }}>
+          <div className="row">
+            <input
+              className={`field${name.length > 0 && !nameOk ? ' is-invalid' : ''}`}
+              style={{ flex: 1, minWidth: 120 }}
+              placeholder="品項"
+              value={name}
+              maxLength={MAX_NAME}
+              onChange={(e) => setName(limitText(e.target.value, MAX_NAME))}
+              onKeyDown={(e) => e.key === 'Enter' && add()}
+            />
+            <input
+              className={`field${!qtyOk ? ' is-invalid' : ''}`}
+              style={{ width: 80 }}
+              value={qty}
+              maxLength={MAX_QTY}
+              onChange={(e) => setQty(limitText(e.target.value, MAX_QTY))}
+              placeholder="數量"
+            />
+            <select className="field" style={{ maxWidth: 140 }} value={aisle} onChange={(e) => setAisle(e.target.value)}>
+              {AISLES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+            <button className="btn accent" onClick={add} disabled={!canAdd}>
+              加入
+            </button>
+          </div>
+          <div className="field-meta">
+            <span className={atLimit || (!nameOk && name.length > 0) ? 'warn' : undefined}>
+              {atLimit
+                ? `已達上限 ${MAX_ITEMS} 項`
+                : !nameOk && name.length > 0
+                  ? '請輸入品項'
+                  : '\u00a0'}
+            </span>
+            <span>
+              {charCount(name)} / {MAX_NAME} · 數量 {charCount(qty)} / {MAX_QTY}
+            </span>
+          </div>
         </div>
         <div className="row">
           <select

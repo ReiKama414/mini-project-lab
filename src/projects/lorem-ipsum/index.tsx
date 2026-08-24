@@ -2,9 +2,16 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { charCount, clamp, copyText, downloadText, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('lorem-ipsum')!
+
+const AMOUNT_MAX: Record<'paragraphs' | 'sentences' | 'words', number> = {
+  paragraphs: 50,
+  sentences: 100,
+  words: 500,
+}
+const FILTER_MAX = 80
 
 const WORDS = [
   'lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit',
@@ -86,7 +93,8 @@ export default function Page() {
   const [histFilter, setHistFilter] = useState('')
 
   function generate() {
-    const n = Math.min(100, Math.max(1, amount))
+    const max = AMOUNT_MAX[mode]
+    const n = clamp(Number.isFinite(amount) ? amount : 1, 1, max)
     let out = ''
     if (mode === 'words') {
       const words: string[] = []
@@ -192,14 +200,18 @@ export default function Page() {
           </div>
 
           <label className="stack">
-            <span className="label">{amountLabel}（1–100）</span>
+            <span className="label">{amountLabel}（1–{AMOUNT_MAX[mode]}）</span>
             <input
               className="field"
               type="number"
               min={1}
-              max={100}
+              max={AMOUNT_MAX[mode]}
               value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (!Number.isFinite(n)) return
+                setAmount(clamp(n, 1, AMOUNT_MAX[mode]))
+              }}
             />
           </label>
 
@@ -280,8 +292,12 @@ export default function Page() {
             className="field"
             placeholder="篩選預覽文字…"
             value={histFilter}
-            onChange={(e) => setHistFilter(e.target.value)}
+            maxLength={FILTER_MAX}
+            onChange={(e) => setHistFilter(limitText(e.target.value, FILTER_MAX))}
           />
+          <div className="field-meta">
+            <span>{charCount(histFilter)} / {FILTER_MAX}</span>
+          </div>
           <ul className="list">
             {filteredHistory.map((h) => (
               <li key={h.id} className="list-item stack">

@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText } from '../../lib/utils'
+import { charCount, limitText, copyText } from '../../lib/utils'
 
 const meta = getProject('markdown-previewer')!
+
+const MD_MAX = 50_000
 
 const TEMPLATES: Record<string, { label: string; body: string }> = {
   basic: {
@@ -221,9 +223,13 @@ export default function Page() {
             className="field mono"
             rows={18}
             value={md}
-            onChange={(e) => setMd(e.target.value)}
+            maxLength={MD_MAX}
+            onChange={(e) => setMd(limitText(e.target.value, MD_MAX))}
             style={{ minHeight: 360 }}
           />
+          <div className="field-meta">
+            <span>{charCount(md).toLocaleString()} / {MD_MAX.toLocaleString()}</span>
+          </div>
         </div>
         <div className="panel stack">
           <span className="label">預覽</span>

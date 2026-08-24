@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { copyText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-caption')!
+
+const KW_MAX = 120
+const SCENE_MAX = 200
 
 type Style = 'ig' | 'product' | 'alt' | 'linkedin'
 type Variant = { id: string; text: string; style: Style; at: number }
@@ -72,6 +75,7 @@ export default function Page() {
     () => list.map((c) => ({ id: c.id, n: c.text.length })),
     [list],
   )
+  const canGenerate = isNonEmpty(kw)
 
   return (
     <ProjectShell meta={meta}>
@@ -79,18 +83,29 @@ export default function Page() {
         <div className="panel stack">
           <label className="label">關鍵字</label>
           <input
-            className="field"
+            className={cn('field', !canGenerate && 'is-invalid')}
+            maxLength={KW_MAX}
             value={kw}
-            onChange={(e) => setKw(e.target.value)}
+            onChange={(e) => setKw(limitText(e.target.value, KW_MAX))}
             placeholder="主題, 物件, 氛圍"
           />
+          <div className="field-meta">
+            <span className={!canGenerate ? 'warn' : undefined}>{canGenerate ? '可產生' : '請輸入關鍵字'}</span>
+            <span>{charCount(kw)}/{KW_MAX}</span>
+          </div>
+          {!canGenerate && <p className="field-error">關鍵字不可空白</p>}
           <label className="label">場景描述（可選）</label>
           <input
             className="field"
+            maxLength={SCENE_MAX}
             value={scene}
-            onChange={(e) => setScene(e.target.value)}
+            onChange={(e) => setScene(limitText(e.target.value, SCENE_MAX))}
             placeholder="例如：窗邊咖啡廳、產品棚拍"
           />
+          <div className="field-meta">
+            <span className="field-hint">選填，會嵌入文案</span>
+            <span>{charCount(scene)}/{SCENE_MAX}</span>
+          </div>
           <label className="label">風格</label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {(Object.keys(STYLE_LABEL) as Style[]).map((s) => (
@@ -107,11 +122,12 @@ export default function Page() {
           <button
             type="button"
             className="btn accent"
-            onClick={() => setList(buildVariants(kw, scene, style))}
+            disabled={!canGenerate}
+            onClick={() => setList(buildVariants(limitText(kw, KW_MAX), limitText(scene, SCENE_MAX), style))}
           >
             產生多則變體
           </button>
-          <p className="muted">本機模板產生，可當靈感起點再微調。</p>
+          <p className="field-hint">本機模板產生，可當靈感起點再微調。</p>
         </div>
 
         <div className="panel stack">

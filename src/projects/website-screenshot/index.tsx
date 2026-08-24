@@ -2,8 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
 const meta = getProject('website-screenshot')!
+
+const URL_MAX = 2048
 
 type Device = 'desktop' | 'tablet' | 'mobile'
 type HistoryItem = { url: string; title: string; at: number }
@@ -21,9 +24,7 @@ function hashHue(s: string) {
 }
 
 function normalizeUrl(raw: string) {
-  const t = raw.trim()
-  if (!t) return ''
-  return t.startsWith('http://') || t.startsWith('https://') ? t : `https://${t}`
+  return normalizeHttpUrl(raw)
 }
 
 export default function Page() {
@@ -102,20 +103,37 @@ export default function Page() {
       <div className="panel stack">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <input
-            className="field"
+            className={cn('field', (!isNonEmpty(url) || !isValidHttpUrl(fullUrl)) && 'is-invalid')}
             style={{ flex: 1, minWidth: 200 }}
+            maxLength={URL_MAX}
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && void fetchMeta()}
+            onChange={(e) => setUrl(limitText(e.target.value, URL_MAX))}
+            onBlur={() => {
+              const n = normalizeUrl(url)
+              if (isValidHttpUrl(n)) setUrl(n)
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && isValidHttpUrl(fullUrl) && void fetchMeta()}
             placeholder="example.com 或 https://"
           />
-          <button type="button" className="btn accent" onClick={() => void fetchMeta()} disabled={loadingMeta}>
+          <button
+            type="button"
+            className="btn accent"
+            onClick={() => void fetchMeta()}
+            disabled={loadingMeta || !isValidHttpUrl(fullUrl)}
+          >
             {loadingMeta ? '讀取 meta…' : '產生預覽卡'}
           </button>
-          <button type="button" className="btn teal" onClick={openUrl}>
+          <button type="button" className="btn teal" onClick={openUrl} disabled={!isValidHttpUrl(fullUrl)}>
             開啟網址
           </button>
         </div>
+        <div className="field-meta">
+          <span className={!isValidHttpUrl(fullUrl) ? 'warn' : undefined}>
+            {isValidHttpUrl(fullUrl) ? 'URL 有效' : '請輸入有效的 http(s) 網址'}
+          </span>
+          <span>{charCount(url)}/{URL_MAX}</span>
+        </div>
+        {!isValidHttpUrl(fullUrl) && isNonEmpty(url) && <p className="field-error">網址格式無效</p>}
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {(['desktop', 'tablet', 'mobile'] as Device[]).map((d) => (
             <button key={d} type="button" className={`btn sm ${device === d ? 'accent' : 'ghost'}`} onClick={() => setDevice(d)}>

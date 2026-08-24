@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText } from '../../lib/utils'
+import { downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('sql-playground')!
+
+const SQL_MAX = 2000
 
 type Row = { id: number; name: string; role: string; score: number }
 
@@ -172,10 +174,21 @@ export default function Page() {
   const preview = useMemo(() => TABLE, [])
 
   function run() {
-    const r = runSelect(sql)
+    if (!isNonEmpty(sql)) {
+      setResult({ cols: [], rows: [], error: '請輸入 SQL' })
+      return
+    }
+    if (charCount(sql) > SQL_MAX) {
+      setResult({ cols: [], rows: [], error: `SQL 超過 ${SQL_MAX} 字上限` })
+      return
+    }
+    const q = limitText(sql, SQL_MAX)
+    const r = runSelect(q)
     setResult(r)
-    if (!r.error) setHistory((h) => [sql.trim(), ...h.filter((x) => x !== sql.trim())].slice(0, 12))
+    if (!r.error) setHistory((h) => [q.trim(), ...h.filter((x) => x !== q.trim())].slice(0, 12))
   }
+
+  const canRun = isNonEmpty(sql) && charCount(sql) <= SQL_MAX
 
   function exportCsv() {
     if (!result || result.error || !result.cols.length) return
@@ -277,27 +290,29 @@ export default function Page() {
         </div>
         <div className="panel stack">
           <textarea
-            className="field mono"
+            className={cn('field mono', (!isNonEmpty(sql) || charCount(sql) > SQL_MAX) && 'is-invalid')}
             rows={5}
+            maxLength={SQL_MAX}
             value={sql}
-            onChange={(e) => setSql(e.target.value)}
+            onChange={(e) => setSql(limitText(e.target.value, SQL_MAX))}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) run()
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canRun) run()
             }}
           />
+          <div className="field-meta">
+            <span className={!canRun ? 'warn' : undefined}>{canRun ? '可執行' : '請輸入有效 SELECT（有長度上限）'}</span>
+            <span>{charCount(sql)}/{SQL_MAX}</span>
+          </div>
+          {!isNonEmpty(sql) && <p className="field-error">SQL 不可空白</p>}
           <div className="row">
-            <button type="button" className="btn accent" onClick={run}>
+            <button type="button" className="btn accent" onClick={run} disabled={!canRun}>
               執行（Ctrl/⌘+Enter）
             </button>
             <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!result || !!result.error}>
               匯出結果 CSV
             </button>
           </div>
-          {result?.error && (
-            <div className="list-item" style={{ background: 'var(--rose-soft)', color: 'var(--rose)' }}>
-              SQL 錯誤：{result.error}
-            </div>
-          )}
+          {result?.error && <p className="field-error">SQL 錯誤：{result.error}</p>}
           {result && !result.error && (
             <>
               <div className="muted">{result.rows.length} rows</div>

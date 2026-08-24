@@ -2,9 +2,16 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, copyText } from '../../lib/utils'
+import { clamp, copyText, parseNumber } from '../../lib/utils'
 
 const meta = getProject('random-number')!
+
+const RANGE_MIN = -1_000_000_000
+const RANGE_MAX = 1_000_000_000
+const COUNT_MIN = 1
+const COUNT_MAX = 200
+const DEC_MIN = 0
+const DEC_MAX = 8
 
 function cryptoInt(min: number, max: number) {
   const lo = Math.ceil(min)
@@ -43,9 +50,16 @@ export default function Page() {
   const [copied, setCopied] = useState(false)
 
   function generate() {
-    const lo = Math.min(min, max)
-    const hi = Math.max(min, max)
-    const n = clamp(count, 1, 200)
+    const loRaw = Number.isFinite(min) ? min : NaN
+    const hiRaw = Number.isFinite(max) ? max : NaN
+    if (!Number.isFinite(loRaw) || !Number.isFinite(hiRaw)) {
+      setError('請輸入有效數字')
+      setResults([])
+      return
+    }
+    const lo = Math.min(clamp(loRaw, RANGE_MIN, RANGE_MAX), clamp(hiRaw, RANGE_MIN, RANGE_MAX))
+    const hi = Math.max(clamp(loRaw, RANGE_MIN, RANGE_MAX), clamp(hiRaw, RANGE_MIN, RANGE_MAX))
+    const n = clamp(count, COUNT_MIN, COUNT_MAX)
     setError('')
     setCopied(false)
 
@@ -57,7 +71,7 @@ export default function Page() {
           setResults([])
           return
         }
-        out = Array.from({ length: n }, () => cryptoFloat(lo, hi, clamp(decimals, 0, 8)))
+        out = Array.from({ length: n }, () => cryptoFloat(lo, hi, clamp(decimals, DEC_MIN, DEC_MAX)))
       } else {
         const ilo = Math.ceil(lo)
         const ihi = Math.floor(hi)
@@ -87,6 +101,16 @@ export default function Page() {
     }
   }
 
+  function setRange(raw: string, set: (n: number) => void) {
+    const n = parseNumber(raw)
+    if (!Number.isFinite(n)) {
+      setError('請輸入有效數字')
+      return
+    }
+    setError('')
+    set(clamp(n, RANGE_MIN, RANGE_MAX))
+  }
+
   const text = results.join(', ')
 
   return (
@@ -96,22 +120,45 @@ export default function Page() {
           <div className="grid-3">
             <label className="stack">
               <span className="label">最小值</span>
-              <input className="field" type="number" value={min} onChange={(e) => setMin(Number(e.target.value))} />
+              <input
+                className={`field${error ? ' is-invalid' : ''}`}
+                type="number"
+                min={RANGE_MIN}
+                max={RANGE_MAX}
+                value={min}
+                onChange={(e) => setRange(e.target.value, setMin)}
+              />
             </label>
             <label className="stack">
               <span className="label">最大值</span>
-              <input className="field" type="number" value={max} onChange={(e) => setMax(Number(e.target.value))} />
+              <input
+                className={`field${error ? ' is-invalid' : ''}`}
+                type="number"
+                min={RANGE_MIN}
+                max={RANGE_MAX}
+                value={max}
+                onChange={(e) => setRange(e.target.value, setMax)}
+              />
             </label>
             <label className="stack">
               <span className="label">數量</span>
               <input
                 className="field"
                 type="number"
-                min={1}
-                max={200}
+                min={COUNT_MIN}
+                max={COUNT_MAX}
                 value={count}
-                onChange={(e) => setCount(Number(e.target.value))}
+                onChange={(e) => {
+                  const n = parseNumber(e.target.value)
+                  if (!Number.isFinite(n)) {
+                    setError('請輸入有效數字')
+                    return
+                  }
+                  setError('')
+                  setCount(clamp(n, COUNT_MIN, COUNT_MAX))
+                }}
               />
+              <p className="field-hint">{COUNT_MIN}–{COUNT_MAX}</p>
             </label>
           </div>
           <div className="row">
@@ -129,17 +176,21 @@ export default function Page() {
                 <input
                   className="field"
                   type="number"
-                  min={0}
-                  max={8}
+                  min={DEC_MIN}
+                  max={DEC_MAX}
                   style={{ width: 72 }}
                   value={decimals}
-                  onChange={(e) => setDecimals(Number(e.target.value))}
+                  onChange={(e) => {
+                    const n = parseNumber(e.target.value)
+                    if (!Number.isFinite(n)) return
+                    setDecimals(clamp(n, DEC_MIN, DEC_MAX))
+                  }}
                 />
               </label>
             )}
           </div>
           <div className="row">
-            <button className="btn accent" onClick={generate}>
+            <button className="btn accent" onClick={generate} disabled={!!error && error === '請輸入有效數字'}>
               產生
             </button>
             <button
@@ -153,11 +204,7 @@ export default function Page() {
               {copied ? '已複製' : '複製'}
             </button>
           </div>
-          {error && (
-            <p className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
-              {error}
-            </p>
-          )}
+          {error && <p className="field-error">{error}</p>}
           {results.length > 0 && (
             <div className="metric mono" style={{ fontSize: 22, wordBreak: 'break-all' }}>
               {text}

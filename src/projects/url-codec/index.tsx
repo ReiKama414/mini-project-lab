@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText } from '../../lib/utils'
 
 const meta = getProject('url-codec')!
+
+const TEXT_MAX = 8192
 
 type Mode = 'component' | 'uri'
 
@@ -62,8 +64,12 @@ export default function Page() {
   const parts = useMemo(() => componentWiseDecode(encoded || raw), [encoded, raw])
 
   function encode() {
+    if (!isNonEmpty(raw)) {
+      setError('請輸入原始字串')
+      return
+    }
     try {
-      setEncoded(mode === 'uri' ? encodeURI(raw) : encodeURIComponent(raw))
+      setEncoded(limitText(mode === 'uri' ? encodeURI(raw) : encodeURIComponent(raw), TEXT_MAX))
       setError('')
       setCopied(false)
     } catch {
@@ -72,9 +78,13 @@ export default function Page() {
   }
 
   function decode() {
+    const src = encoded || raw
+    if (!isNonEmpty(src)) {
+      setError('請輸入要解碼的字串')
+      return
+    }
     try {
-      const src = encoded || raw
-      setRaw(mode === 'uri' ? decodeURI(src) : decodeURIComponent(src))
+      setRaw(limitText(mode === 'uri' ? decodeURI(src) : decodeURIComponent(src), TEXT_MAX))
       setError('')
       setCopied(false)
     } catch {
@@ -109,13 +119,22 @@ export default function Page() {
         </p>
         <label className="stack">
           <span className="label">原始字串</span>
-          <textarea className="field" rows={4} value={raw} onChange={(e) => setRaw(e.target.value)} />
+          <textarea
+            className="field"
+            rows={4}
+            value={raw}
+            maxLength={TEXT_MAX}
+            onChange={(e) => setRaw(limitText(e.target.value, TEXT_MAX))}
+          />
+          <div className="field-meta">
+            <span>{charCount(raw)} / {TEXT_MAX}</span>
+          </div>
         </label>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="btn accent" onClick={encode}>
+          <button type="button" className="btn accent" onClick={encode} disabled={!isNonEmpty(raw)}>
             Encode
           </button>
-          <button type="button" className="btn teal" onClick={decode}>
+          <button type="button" className="btn teal" onClick={decode} disabled={!isNonEmpty(encoded || raw)}>
             Decode
           </button>
           <button
@@ -138,14 +157,14 @@ export default function Page() {
             className="field mono"
             rows={4}
             value={encoded}
-            onChange={(e) => setEncoded(e.target.value)}
+            maxLength={TEXT_MAX}
+            onChange={(e) => setEncoded(limitText(e.target.value, TEXT_MAX))}
           />
+          <div className="field-meta">
+            <span>{charCount(encoded)} / {TEXT_MAX}</span>
+          </div>
         </label>
-        {error && (
-          <p className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
-            {error}
-          </p>
-        )}
+        {error && <p className="field-error">{error}</p>}
         <div className="metric stack">
           <span className="muted">即時對照</span>
           <code className="mono" style={{ wordBreak: 'break-all', fontSize: 13 }}>

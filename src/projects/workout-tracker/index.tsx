@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('workout-tracker')!
 
@@ -31,6 +31,18 @@ const PRESETS = [
   '開合跳',
 ]
 
+const MAX_ITEMS = 500
+const MAX_EXERCISE = 40
+const MAX_SETS = 100
+const MAX_REPS = 500
+const MAX_WEIGHT = 1000
+
+function isValidDate(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const d = new Date(iso + 'T12:00:00')
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso
+}
+
 function volume(w: Workout) {
   return w.sets * w.reps * w.weight
 }
@@ -39,11 +51,23 @@ export default function Page() {
   const [items, setItems] = useLocalStorage<Workout[]>('lab:workout-tracker', [])
   const [exercise, setExercise] = useState(PRESETS[0]!)
   const [customEx, setCustomEx] = useState('')
-  const [sets, setSets] = useState(3)
-  const [reps, setReps] = useState(10)
-  const [weight, setWeight] = useState(40)
+  const [setsStr, setSetsStr] = useState('3')
+  const [repsStr, setRepsStr] = useState('10')
+  const [weightStr, setWeightStr] = useState('40')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [filterEx, setFilterEx] = useState('all')
+
+  const sets = parseNumber(setsStr)
+  const reps = parseNumber(repsStr)
+  const weight = parseNumber(weightStr)
+  const name = (customEx.trim() || exercise).trim()
+  const nameOk = isNonEmpty(name)
+  const setsOk = sets != null && sets >= 1
+  const repsOk = reps != null && reps >= 1
+  const weightOk = weight != null && weight >= 0
+  const dateOk = isValidDate(date)
+  const atLimit = items.length >= MAX_ITEMS
+  const canAdd = nameOk && setsOk && repsOk && weightOk && dateOk && !atLimit
 
   const prMap = useMemo(() => {
     const map: Record<string, number> = {}
@@ -73,10 +97,16 @@ export default function Page() {
   }, [items])
 
   function add() {
-    const name = (customEx.trim() || exercise).trim()
-    if (!name || sets <= 0 || reps <= 0) return
+    if (!canAdd || sets == null || reps == null || weight == null) return
     setItems([
-      { id: uid('wo'), exercise: name, sets, reps, weight: Math.max(0, weight), date },
+      {
+        id: uid('wo'),
+        exercise: name,
+        sets: clamp(Math.round(sets), 1, MAX_SETS),
+        reps: clamp(Math.round(reps), 1, MAX_REPS),
+        weight: clamp(weight, 0, MAX_WEIGHT),
+        date,
+      },
       ...items,
     ])
     setCustomEx('')
@@ -101,29 +131,84 @@ export default function Page() {
           ))}
         </div>
         <div className="grid-2">
-          <input
-            className="field"
-            placeholder="或輸入自訂動作…"
-            value={customEx}
-            onChange={(e) => setCustomEx(e.target.value)}
-          />
-          <input className="field" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className="field"
+              placeholder="或輸入自訂動作…"
+              value={customEx}
+              maxLength={MAX_EXERCISE}
+              onChange={(e) => setCustomEx(limitText(e.target.value, MAX_EXERCISE))}
+            />
+            <div className="field-meta">
+              <span className="field-hint">{nameOk ? `將記錄：${name}` : '請選擇或輸入動作'}</span>
+              <span>
+                {charCount(customEx)} / {MAX_EXERCISE}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${!dateOk ? ' is-invalid' : ''}`}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            {!dateOk && <p className="field-error">請選擇有效日期</p>}
+          </div>
           <label className="stack" style={{ gap: 4 }}>
             <span className="label">組數</span>
-            <input className="field" type="number" min={1} value={sets} onChange={(e) => setSets(Number(e.target.value))} />
+            <input
+              className={`field${!setsOk ? ' is-invalid' : ''}`}
+              type="number"
+              min={1}
+              max={MAX_SETS}
+              value={setsStr}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (n == null) setSetsStr(e.target.value)
+                else setSetsStr(String(clamp(Math.round(n), 1, MAX_SETS)))
+              }}
+            />
+            {!setsOk && <p className="field-error">組數須為 1–{MAX_SETS}</p>}
           </label>
           <label className="stack" style={{ gap: 4 }}>
             <span className="label">次數</span>
-            <input className="field" type="number" min={1} value={reps} onChange={(e) => setReps(Number(e.target.value))} />
+            <input
+              className={`field${!repsOk ? ' is-invalid' : ''}`}
+              type="number"
+              min={1}
+              max={MAX_REPS}
+              value={repsStr}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (n == null) setRepsStr(e.target.value)
+                else setRepsStr(String(clamp(Math.round(n), 1, MAX_REPS)))
+              }}
+            />
+            {!repsOk && <p className="field-error">次數須為 1–{MAX_REPS}</p>}
           </label>
           <label className="stack" style={{ gap: 4 }}>
             <span className="label">重量 (kg)</span>
-            <input className="field" type="number" min={0} value={weight} onChange={(e) => setWeight(Number(e.target.value))} />
+            <input
+              className={`field${!weightOk ? ' is-invalid' : ''}`}
+              type="number"
+              min={0}
+              max={MAX_WEIGHT}
+              step="0.5"
+              value={weightStr}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (n == null) setWeightStr(e.target.value)
+                else setWeightStr(String(clamp(n, 0, MAX_WEIGHT)))
+              }}
+            />
+            {!weightOk && <p className="field-error">重量須 ≥ 0</p>}
           </label>
-          <button className="btn accent" onClick={add} style={{ alignSelf: 'end' }}>
+          <button className="btn accent" onClick={add} style={{ alignSelf: 'end' }} disabled={!canAdd}>
             記錄訓練
           </button>
         </div>
+        {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
       </div>
 
       <div className="panel stack">

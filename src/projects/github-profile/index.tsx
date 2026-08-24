@@ -2,8 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('github-profile')!
+
+const USER_MAX = 39
 
 type Profile = {
   login: string
@@ -122,12 +125,13 @@ export default function Page() {
       <div className="panel stack">
         <div className="row">
           <input
-            className="field"
+            className={cn('field', !isNonEmpty(user) && 'is-invalid')}
             style={{ flex: 1 }}
             placeholder="GitHub 帳號"
+            maxLength={USER_MAX}
             value={user}
-            onChange={(e) => setUser(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && load()}
+            onChange={(e) => setUser(limitText(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''), USER_MAX))}
+            onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(user) && load()}
           />
           <label className="row" style={{ gap: 6 }}>
             <input
@@ -139,9 +143,13 @@ export default function Page() {
               近期動態
             </span>
           </label>
-          <button className="btn accent" onClick={load} disabled={loading}>
+          <button className="btn accent" onClick={load} disabled={loading || !isNonEmpty(user)}>
             {loading ? '查詢中…' : '查詢'}
           </button>
+        </div>
+        <div className="field-meta">
+          <span className={!isNonEmpty(user) ? 'warn' : undefined}>{isNonEmpty(user) ? '可查詢' : '請輸入帳號'}</span>
+          <span>{charCount(user)}/{USER_MAX}</span>
         </div>
 
         {error && (

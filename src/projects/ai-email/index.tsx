@@ -2,9 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-email')!
+
+const TO_MAX = 120
+const CC_MAX = 200
+const SUBJECT_MAX = 200
+const POINTS_MAX = 5000
 
 type Tone = '正式' | '友善' | '簡潔' | '說服'
 type Length = '短' | '中' | '長'
@@ -123,30 +128,79 @@ export default function Page() {
   const [picked, setPicked] = useState(0)
 
   function regen() {
-    const next = [0, 1, 2].map((v) => generate(to, cc, subject, points, tone, length, lang, v))
+    if (!isNonEmpty(points)) return
+    const next = [0, 1, 2].map((v) =>
+      generate(
+        limitText(to, TO_MAX),
+        limitText(cc, CC_MAX),
+        limitText(subject, SUBJECT_MAX),
+        limitText(points, POINTS_MAX),
+        tone,
+        length,
+        lang,
+        v,
+      ),
+    )
     setDrafts(next)
     setPicked(0)
   }
 
   const out = drafts[picked] || ''
+  const canGenerate = isNonEmpty(points)
 
   return (
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
           <label className="label">收件者</label>
-          <input className="field" value={to} onChange={(e) => setTo(e.target.value)} placeholder="王經理" />
+          <input
+            className="field"
+            maxLength={TO_MAX}
+            value={to}
+            onChange={(e) => setTo(limitText(e.target.value, TO_MAX))}
+            placeholder="王經理"
+          />
+          <div className="field-meta">
+            <span className="field-hint">顯示名稱或信箱</span>
+            <span>{charCount(to)}/{TO_MAX}</span>
+          </div>
           <label className="label">副本 CC（選填）</label>
           <input
             className="field"
+            maxLength={CC_MAX}
             value={cc}
-            onChange={(e) => setCc(e.target.value)}
+            onChange={(e) => setCc(limitText(e.target.value, CC_MAX))}
             placeholder="pm@example.com — 副本對象會出現在信頭"
           />
+          <div className="field-meta">
+            <span className="field-hint">選填</span>
+            <span>{charCount(cc)}/{CC_MAX}</span>
+          </div>
           <label className="label">主旨</label>
-          <input className="field" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="專案進度同步" />
+          <input
+            className="field"
+            maxLength={SUBJECT_MAX}
+            value={subject}
+            onChange={(e) => setSubject(limitText(e.target.value, SUBJECT_MAX))}
+            placeholder="專案進度同步"
+          />
+          <div className="field-meta">
+            <span className="field-hint">建議簡潔明確</span>
+            <span>{charCount(subject)}/{SUBJECT_MAX}</span>
+          </div>
           <label className="label">重點（每行一點）</label>
-          <textarea className="field" rows={6} value={points} onChange={(e) => setPoints(e.target.value)} />
+          <textarea
+            className={cn('field', !canGenerate && 'is-invalid')}
+            rows={6}
+            maxLength={POINTS_MAX}
+            value={points}
+            onChange={(e) => setPoints(limitText(e.target.value, POINTS_MAX))}
+          />
+          <div className="field-meta">
+            <span className={!canGenerate ? 'warn' : undefined}>{canGenerate ? '可產生' : '請輸入至少一點重點'}</span>
+            <span>{charCount(points)}/{POINTS_MAX}</span>
+          </div>
+          {!canGenerate && <p className="field-error">重點不可空白</p>}
           <label className="label">語氣</label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {(['正式', '友善', '簡潔', '說服'] as Tone[]).map((t) => (
@@ -171,7 +225,7 @@ export default function Page() {
               </button>
             ))}
           </div>
-          <button type="button" className="btn accent" onClick={regen}>
+          <button type="button" className="btn accent" onClick={regen} disabled={!canGenerate}>
             產生 3 個變體
           </button>
         </div>

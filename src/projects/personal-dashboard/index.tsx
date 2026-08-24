@@ -2,13 +2,22 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { pick, randomInt, uid } from '../../lib/utils'
+import { pick, randomInt, uid, charCount, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl } from '../../lib/utils'
 
 const meta = getProject('personal-dashboard')!
 
 type Todo = { id: string; text: string; done: boolean }
 type Link = { id: string; label: string; url: string }
 type Weather = { city: string; temp: number; condition: string; humidity: number; wind: number }
+
+const MAX_TODOS = 100
+const MAX_LINKS = 30
+const MAX_TODO = 80
+const MAX_FOCUS = 80
+const MAX_NOTE = 2000
+const MAX_CITY = 40
+const MAX_LABEL = 40
+const MAX_URL = 2048
 
 const CONDITIONS = ['晴朗', '多雲', '陰天', '小雨', '陣雨', '微風']
 
@@ -52,9 +61,17 @@ export default function Page() {
     return '晚安'
   }, [now])
 
+  const draftOk = isNonEmpty(draft)
+  const todosAtLimit = todos.length >= MAX_TODOS
+  const canAddTodo = draftOk && !todosAtLimit
+  const linkLabelOk = isNonEmpty(linkLabel)
+  const linkUrlOk = isValidHttpUrl(linkUrl)
+  const linksAtLimit = links.length >= MAX_LINKS
+  const canAddLink = linkLabelOk && linkUrlOk && !linksAtLimit
+
   function addTodo() {
-    if (!draft.trim()) return
-    setTodos((t) => [...t, { id: uid('t'), text: draft.trim(), done: false }])
+    if (!canAddTodo) return
+    setTodos((t) => [...t, { id: uid('t'), text: limitText(draft.trim(), MAX_TODO), done: false }])
     setDraft('')
   }
 
@@ -89,7 +106,10 @@ export default function Page() {
               刷新
             </button>
           </div>
-          <input className="field" value={weather.city} onChange={(e) => setWeather((w) => ({ ...w, city: e.target.value }))} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input className="field" value={weather.city} maxLength={MAX_CITY} onChange={(e) => setWeather((w) => ({ ...w, city: limitText(e.target.value, MAX_CITY) }))} />
+            <div className="field-meta"><span /><span>{charCount(weather.city)} / {MAX_CITY}</span></div>
+          </div>
           <div className="metric">
             {weather.temp}°C · {weather.condition}
           </div>
@@ -99,7 +119,10 @@ export default function Page() {
         </div>
         <div className="panel stack">
           <div className="label">今日焦點</div>
-          <input className="field" value={focus} onChange={(e) => setFocus(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input className="field" value={focus} maxLength={MAX_FOCUS} onChange={(e) => setFocus(limitText(e.target.value, MAX_FOCUS))} />
+            <div className="field-meta"><span /><span>{charCount(focus)} / {MAX_FOCUS}</span></div>
+          </div>
           <div className="progress">
             <div style={{ width: `${pct}%`, height: 8, borderRadius: 4, background: 'var(--teal)' }} />
           </div>
@@ -113,15 +136,11 @@ export default function Page() {
         <div className="panel stack">
           <div className="label">待辦（可編輯）</div>
           <div className="row">
-            <input
-              className="field"
-              style={{ flex: 1 }}
-              value={draft}
-              placeholder="新增待辦"
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addTodo()}
-            />
-            <button type="button" className="btn accent" onClick={addTodo}>
+            <div className="stack" style={{ flex: 1, gap: 0 }}>
+              <input className={`field${draft.length > 0 && !draftOk ? ' is-invalid' : ''}`} style={{ width: '100%' }} value={draft} maxLength={MAX_TODO} placeholder="新增待辦" onChange={(e) => setDraft(limitText(e.target.value, MAX_TODO))} onKeyDown={(e) => e.key === 'Enter' && addTodo()} />
+              <div className="field-meta"><span className={todosAtLimit ? 'warn' : undefined}>{todosAtLimit ? `待辦上限 ${MAX_TODOS}` : ' '}</span><span>{charCount(draft)} / {MAX_TODO}</span></div>
+            </div>
+            <button type="button" className="btn accent" onClick={addTodo} disabled={!canAddTodo}>
               新增
             </button>
           </div>
@@ -138,7 +157,8 @@ export default function Page() {
                     className="field"
                     style={{ flex: 1 }}
                     value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
+                    maxLength={MAX_TODO}
+                    onChange={(e) => setEditText(limitText(e.target.value, MAX_TODO))}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         setTodos((xs) => xs.map((x) => (x.id === t.id ? { ...x, text: editText.trim() || x.text } : x)))
@@ -173,17 +193,27 @@ export default function Page() {
         </div>
         <div className="panel stack">
           <div className="label">快速筆記</div>
-          <textarea className="field" rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="隨手記…" />
+          <div className="stack" style={{ gap: 0 }}>
+            <textarea className="field" rows={4} value={note} maxLength={MAX_NOTE} onChange={(e) => setNote(limitText(e.target.value, MAX_NOTE))} placeholder="隨手記…" />
+            <div className="field-meta"><span /><span>{charCount(note)} / {MAX_NOTE}</span></div>
+          </div>
           <div className="label">快速連結</div>
           <div className="row">
-            <input className="field" placeholder="名稱" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} />
-            <input className="field" style={{ flex: 1 }} placeholder="URL" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+            <div className="stack" style={{ gap: 0 }}>
+              <input className={`field${linkLabel.length > 0 && !linkLabelOk ? ' is-invalid' : ''}`} placeholder="名稱" value={linkLabel} maxLength={MAX_LABEL} onChange={(e) => setLinkLabel(limitText(e.target.value, MAX_LABEL))} />
+              <div className="field-meta"><span /><span>{charCount(linkLabel)} / {MAX_LABEL}</span></div>
+            </div>
+            <div className="stack" style={{ flex: 1, gap: 0 }}>
+              <input className={`field${linkUrl.length > 0 && !linkUrlOk ? ' is-invalid' : ''}`} style={{ width: '100%' }} placeholder="URL" value={linkUrl} maxLength={MAX_URL} onChange={(e) => setLinkUrl(limitText(e.target.value, MAX_URL))} />
+              <div className="field-meta"><span className={linkUrl.length > 0 && !linkUrlOk ? 'warn' : undefined}>{linkUrl.length > 0 && !linkUrlOk ? '網址無效' : ' '}</span><span>{charCount(linkUrl)} / {MAX_URL}</span></div>
+            </div>
             <button
               type="button"
               className="btn ghost"
+              disabled={!canAddLink}
               onClick={() => {
-                if (!linkLabel.trim() || !linkUrl.trim()) return
-                setLinks((xs) => [...xs, { id: uid('l'), label: linkLabel.trim(), url: linkUrl.trim() }])
+                if (!canAddLink) return
+                setLinks((xs) => [...xs, { id: uid('l'), label: linkLabel.trim(), url: normalizeHttpUrl(linkUrl) }])
                 setLinkLabel('')
                 setLinkUrl('https://')
               }}

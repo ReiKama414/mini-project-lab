@@ -2,9 +2,15 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
 const meta = getProject('rss-reader')!
+
+const NAME_MAX = 80
+const URL_MAX = 2048
+const TITLE_MAX = 200
+const SUMMARY_MAX = 2000
+const Q_MAX = 120
 
 type FeedSource = { id: string; name: string; url: string }
 type Item = {
@@ -152,20 +158,30 @@ export default function Page() {
         <div className="panel stack">
           <div className="label">訂閱來源</div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <input className="field" placeholder="名稱" value={feedName} onChange={(e) => setFeedName(e.target.value)} />
-            <input className="field" style={{ flex: 1, minWidth: 160 }} placeholder="RSS URL" value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} />
+            <input className={cn('field', !isNonEmpty(feedName) && 'is-invalid')} maxLength={NAME_MAX} placeholder="名稱" value={feedName} onChange={(e) => setFeedName(limitText(e.target.value, NAME_MAX))} />
+            <input className={cn('field', !isValidHttpUrl(normalizeHttpUrl(feedUrl)) && 'is-invalid')} style={{ flex: 1, minWidth: 160 }} maxLength={URL_MAX} placeholder="RSS URL" value={feedUrl} onChange={(e) => setFeedUrl(limitText(e.target.value, URL_MAX))} onBlur={() => { const n = normalizeHttpUrl(feedUrl); if (isValidHttpUrl(n)) setFeedUrl(n) }} />
             <button
               type="button"
               className="btn accent"
               onClick={() => {
-                if (!feedName.trim()) return
-                setSources((xs) => [...xs, { id: uid('s'), name: feedName.trim(), url: feedUrl.trim() }])
+                if (!isNonEmpty(feedName) || !isValidHttpUrl(normalizeHttpUrl(feedUrl))) return
+                const u = normalizeHttpUrl(feedUrl)
+                setSources((xs) => [...xs, { id: uid('s'), name: limitText(feedName.trim(), NAME_MAX), url: u }])
                 setFeedName('')
                 setFeedUrl('https://')
               }}
+              disabled={!isNonEmpty(feedName) || !isValidHttpUrl(normalizeHttpUrl(feedUrl))}
             >
               加入
             </button>
+          </div>
+          <div className="field-meta">
+            <span className={!isNonEmpty(feedName) || !isValidHttpUrl(normalizeHttpUrl(feedUrl)) ? 'warn' : undefined}>
+              {!isNonEmpty(feedName) ? '請填來源名稱' : !isValidHttpUrl(normalizeHttpUrl(feedUrl)) ? '請輸入有效 RSS URL' : '可加入'}
+            </span>
+            <span>
+              {charCount(feedName)}/{NAME_MAX} · {charCount(feedUrl)}/{URL_MAX}
+            </span>
           </div>
           <ul className="list">
             {sources.map((s) => (
@@ -187,21 +203,22 @@ export default function Page() {
           </ul>
           {msg && <p className="muted">{msg}</p>}
           <div className="label">手動新增文章</div>
-          <input className="field" placeholder="標題" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <textarea className="field" rows={2} placeholder="摘要" value={summary} onChange={(e) => setSummary(e.target.value)} />
+          <input className={cn('field', !isNonEmpty(title) && 'is-invalid')} maxLength={TITLE_MAX} placeholder="標題" value={title} onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))} />
+          <textarea className="field" rows={2} maxLength={SUMMARY_MAX} placeholder="摘要" value={summary} onChange={(e) => setSummary(limitText(e.target.value, SUMMARY_MAX))} />
+          <div className="field-meta"><span className="field-hint">手動新增文章</span><span>{charCount(summary)}/{SUMMARY_MAX}</span></div>
           <button
             type="button"
             className="btn ghost"
             onClick={() => {
-              if (!title.trim()) return
+              if (!isNonEmpty(title)) return
               const src = sources[0]
               setItems((xs) => [
                 {
                   id: uid('f'),
-                  title: title.trim(),
+                  title: limitText(title.trim(), TITLE_MAX),
                   sourceId: src?.id || 'manual',
                   source: src?.name || '自訂',
-                  summary: summary.trim() || '手動加入的訂閱項目。',
+                  summary: limitText(summary.trim() || '手動加入的訂閱項目。', SUMMARY_MAX),
                   link: '#',
                   read: false,
                   at: new Date().toISOString().slice(0, 10),
@@ -211,6 +228,7 @@ export default function Page() {
               setTitle('')
               setSummary('')
             }}
+            disabled={!isNonEmpty(title)}
           >
             新增項目
           </button>
@@ -234,7 +252,7 @@ export default function Page() {
                 </option>
               ))}
             </select>
-            <input className="field" style={{ flex: 1, minWidth: 120 }} placeholder="搜尋…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="field" style={{ flex: 1, minWidth: 120 }} placeholder="搜尋…" value={q} onChange={(e) => setQ(limitText(e.target.value, Q_MAX))} />
           </div>
           <ul className="list">
             {shown.map((it) => (

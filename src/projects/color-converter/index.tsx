@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, copyText, hexToRgb, rgbToHex, rgbToHsl } from '../../lib/utils'
+import { clamp, copyText, hexToRgb, limitText, parseNumber, rgbToHex, rgbToHsl } from '../../lib/utils'
 
 const meta = getProject('color-converter')!
+
+const HEX_MAX = 7
 
 function hslToRgb(h: number, s: number, l: number) {
   h = ((h % 360) + 360) % 360
@@ -136,10 +138,20 @@ export default function Page() {
             <label className="stack" style={{ flex: 1 }}>
               <span className="label">HEX</span>
               <div className="row">
-                <input className="field mono" style={{ flex: 1 }} value={hex} onChange={(e) => fromHex(e.target.value)} />
-                <button className="btn sm ghost" onClick={() => void copyText(hexNorm)}>
+                <input
+                  className={`field mono${!valid ? ' is-invalid' : ''}`}
+                  style={{ flex: 1 }}
+                  value={hex}
+                  maxLength={HEX_MAX}
+                  onChange={(e) => fromHex(limitText(e.target.value, HEX_MAX))}
+                />
+                <button className="btn sm ghost" onClick={() => void copyText(hexNorm)} disabled={!valid}>
                   複製
                 </button>
+              </div>
+              {!valid && <p className="field-error">請輸入有效 HEX（#RGB 或 #RRGGBB）</p>}
+              <div className="field-meta">
+                <span>{hex.length} / {HEX_MAX}</span>
               </div>
             </label>
           </div>
@@ -167,7 +179,11 @@ export default function Page() {
                   min={0}
                   max={255}
                   value={val}
-                  onChange={(e) => set(clamp(Number(e.target.value), 0, 255))}
+                  onChange={(e) => {
+                    const n = parseNumber(e.target.value)
+                    if (!Number.isFinite(n)) return
+                    set(clamp(n, 0, 255))
+                  }}
                 />
               </label>
             ))}
@@ -188,7 +204,11 @@ export default function Page() {
                   min={0}
                   max={max}
                   value={val}
-                  onChange={(e) => set(clamp(Number(e.target.value), 0, max))}
+                  onChange={(e) => {
+                    const n = parseNumber(e.target.value)
+                    if (!Number.isFinite(n)) return
+                    set(clamp(n, 0, max))
+                  }}
                 />
               </label>
             ))}

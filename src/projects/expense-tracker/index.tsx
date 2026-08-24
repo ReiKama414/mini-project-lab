@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('expense-tracker')!
 
@@ -16,6 +16,10 @@ type Expense = {
 }
 
 const CATS = ['餐飲', '交通', '購物', '娛樂', '居住', '醫療', '其他']
+const MAX_ITEMS = 500
+const MAX_TITLE = 80
+const MAX_NOTE = 200
+const MAX_AMOUNT = 1_000_000_000
 
 function monthKey(iso: string) {
   return iso.slice(0, 7)
@@ -23,6 +27,12 @@ function monthKey(iso: string) {
 
 function currentMonth() {
   return new Date().toISOString().slice(0, 7)
+}
+
+function isValidDate(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const d = new Date(iso + 'T12:00:00')
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso
 }
 
 function escapeCsv(v: string | number) {
@@ -49,12 +59,19 @@ export default function Page() {
     },
   ])
   const [title, setTitle] = useState('')
-  const [amount, setAmount] = useState(100)
+  const [amountStr, setAmountStr] = useState('100')
   const [category, setCategory] = useState(CATS[0]!)
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState('')
   const [month, setMonth] = useLocalStorage('lab:expense-tracker:month', currentMonth())
   const [filterCat, setFilterCat] = useState('全部')
+
+  const amount = parseNumber(amountStr)
+  const amountOk = amount != null && amount >= 0
+  const titleOk = isNonEmpty(title)
+  const dateOk = isValidDate(date)
+  const atLimit = items.length >= MAX_ITEMS
+  const canAdd = titleOk && amountOk && dateOk && !atLimit
 
   const months = useMemo(() => {
     const set = new Set(items.map((i) => monthKey(i.date)))
@@ -81,12 +98,13 @@ export default function Page() {
   const maxCat = byCat[0]?.[1] || 1
 
   function add() {
-    if (!title.trim() || amount <= 0) return
+    if (!canAdd || amount == null) return
+    const amt = clamp(amount, 0, MAX_AMOUNT)
     setItems([
       {
         id: uid('exp'),
         title: title.trim(),
-        amount,
+        amount: amt,
         category,
         date,
         note: note.trim() || undefined,
@@ -96,6 +114,7 @@ export default function Page() {
     setMonth(monthKey(date))
     setTitle('')
     setNote('')
+    setAmountStr('100')
   }
 
   function exportCsv() {
@@ -132,37 +151,79 @@ export default function Page() {
         </div>
 
         <div className="grid-2">
-          <input
-            className="field"
-            placeholder="項目"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && add()}
-          />
-          <input
-            className="field"
-            type="number"
-            min={1}
-            value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
-          />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              placeholder="項目"
+              value={title}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))}
+              onKeyDown={(e) => e.key === 'Enter' && add()}
+            />
+            <div className="field-meta">
+              <span className={!titleOk && title.length > 0 ? 'warn' : undefined}>
+                {!titleOk && title.length > 0 ? '請輸入項目名稱' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(title)} / {MAX_TITLE}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${!amountOk ? ' is-invalid' : ''}`}
+              type="number"
+              min={0}
+              max={MAX_AMOUNT}
+              step="0.01"
+              value={amountStr}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (n == null) setAmountStr(e.target.value)
+                else setAmountStr(String(clamp(n, 0, MAX_AMOUNT)))
+              }}
+            />
+            <div className="field-meta">
+              <span className={!amountOk ? 'warn' : undefined}>
+                {!amountOk ? '金額須為 ≥ 0 的數字' : '\u00a0'}
+              </span>
+              <span className="field-hint">0 – {MAX_AMOUNT.toLocaleString()}</span>
+            </div>
+          </div>
           <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
             {CATS.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
-          <input className="field" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <input
-            className="field"
-            style={{ gridColumn: '1 / -1' }}
-            placeholder="備註（選填）"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${!dateOk ? ' is-invalid' : ''}`}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            {!dateOk && <p className="field-error">請選擇有效日期</p>}
+          </div>
+          <div className="stack" style={{ gridColumn: '1 / -1', gap: 0 }}>
+            <input
+              className="field"
+              placeholder="備註（選填）"
+              value={note}
+              maxLength={MAX_NOTE}
+              onChange={(e) => setNote(limitText(e.target.value, MAX_NOTE))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(note)} / {MAX_NOTE}
+              </span>
+            </div>
+          </div>
         </div>
-        <button className="btn accent" onClick={add}>
+        <button className="btn accent" onClick={add} disabled={!canAdd}>
           新增支出
         </button>
+        {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
 
         {byCat.length > 0 && (
           <div className="stack" style={{ gap: 10 }}>

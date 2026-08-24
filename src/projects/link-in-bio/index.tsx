@@ -1,7 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid, charCount, isValidHttpUrl, limitText } from '../../lib/utils'
 
 const meta = getProject('link-in-bio')!
 
@@ -16,6 +16,14 @@ const THEMES = [
 ]
 
 const EMOJI_PRESETS = ['🧑‍💻', '🚀', '🎨', '📚', '☕', '🌿', '🐱', '✨']
+
+const MAX_LINKS = 30
+const MAX_SOCIALS = 12
+const MAX_NAME = 40
+const MAX_BIO = 200
+const MAX_LABEL = 40
+const MAX_URL = 2048
+const MAX_EMOJI = 8
 
 export default function Page() {
   const [name, setName] = useLocalStorage('lab:link-in-bio:name', '@kamay')
@@ -95,9 +103,24 @@ export default function Page() {
     >
       <div className="grid-2">
         <div className="panel stack">
-          <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
-          <textarea className="field" rows={2} value={bio} onChange={(e) => setBio(e.target.value)} />
-
+          <div className="stack" style={{ gap: 0 }}>
+            <input className="field" value={name} maxLength={MAX_NAME} onChange={(e) => setName(limitText(e.target.value, MAX_NAME))} />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(name)} / {MAX_NAME}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <textarea className="field" rows={2} value={bio} maxLength={MAX_BIO} onChange={(e) => setBio(limitText(e.target.value, MAX_BIO))} />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(bio)} / {MAX_BIO}
+              </span>
+            </div>
+          </div>
           <span className="label">頭像</span>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {(['emoji', 'color', 'upload'] as const).map((m) => (
@@ -123,7 +146,7 @@ export default function Page() {
                   {e}
                 </button>
               ))}
-              <input className="field" style={{ width: 80 }} value={avatarEmoji} onChange={(e) => setAvatarEmoji(e.target.value)} />
+              <input className="field" style={{ width: 80 }} value={avatarEmoji} maxLength={MAX_EMOJI} onChange={(e) => setAvatarEmoji(limitText(e.target.value, MAX_EMOJI))} />
             </div>
           )}
           {avatarMode === 'color' && (
@@ -176,20 +199,21 @@ export default function Page() {
                 className="field"
                 style={{ width: 56 }}
                 value={s.icon}
-                onChange={(e) => setSocials((xs) => xs.map((x) => (x.id === s.id ? { ...x, icon: e.target.value } : x)))}
+                maxLength={MAX_EMOJI} onChange={(e) => setSocials((xs) => xs.map((x) => (x.id === s.id ? { ...x, icon: limitText(e.target.value, MAX_EMOJI) } : x)))}
                 title="圖示文字"
               />
               <input
                 className="field"
                 style={{ width: 90 }}
                 value={s.label}
-                onChange={(e) => setSocials((xs) => xs.map((x) => (x.id === s.id ? { ...x, label: e.target.value } : x)))}
+                maxLength={MAX_LABEL} onChange={(e) => setSocials((xs) => xs.map((x) => (x.id === s.id ? { ...x, label: limitText(e.target.value, MAX_LABEL) } : x)))}
               />
               <input
-                className="field"
+                className={`field${s.url && !isValidHttpUrl(s.url) ? ' is-invalid' : ''}`}
                 style={{ flex: 1 }}
                 value={s.url}
-                onChange={(e) => setSocials((xs) => xs.map((x) => (x.id === s.id ? { ...x, url: e.target.value } : x)))}
+                maxLength={MAX_URL}
+                onChange={(e) => setSocials((xs) => xs.map((x) => (x.id === s.id ? { ...x, url: limitText(e.target.value, MAX_URL) } : x)))}
               />
               <button type="button" className="btn sm danger" onClick={() => setSocials((xs) => xs.filter((x) => x.id !== s.id))}>
                 ×
@@ -200,7 +224,7 @@ export default function Page() {
           <button
             type="button"
             className="btn ghost"
-            onClick={() => setLinks((xs) => [...xs, { id: uid('l'), label: '新連結', url: 'https://' }])}
+            onClick={() => setLinks((xs) => xs.length >= MAX_LINKS ? xs : [...xs, { id: uid('l'), label: '新連結', url: 'https://' }])} disabled={links.length >= MAX_LINKS}
           >
             新增連結
           </button>
@@ -222,13 +246,14 @@ export default function Page() {
               <input
                 className="field"
                 value={l.label}
-                onChange={(e) => setLinks((xs) => xs.map((x) => (x.id === l.id ? { ...x, label: e.target.value } : x)))}
+                maxLength={MAX_LABEL} onChange={(e) => setLinks((xs) => xs.map((x) => (x.id === l.id ? { ...x, label: limitText(e.target.value, MAX_LABEL) } : x)))}
               />
               <input
-                className="field"
+                className={`field${l.url && !isValidHttpUrl(l.url) ? ' is-invalid' : ''}`}
                 style={{ flex: 1 }}
                 value={l.url}
-                onChange={(e) => setLinks((xs) => xs.map((x) => (x.id === l.id ? { ...x, url: e.target.value } : x)))}
+                maxLength={MAX_URL}
+                onChange={(e) => setLinks((xs) => xs.map((x) => (x.id === l.id ? { ...x, url: limitText(e.target.value, MAX_URL) } : x)))}
               />
               <button type="button" className="btn sm danger" onClick={() => setLinks((xs) => xs.filter((x) => x.id !== l.id))}>
                 ×

@@ -2,8 +2,16 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { clamp, parseNumber } from '../../lib/utils'
 
 const meta = getProject('pomodoro')!
+
+const WORK_MIN = 1
+const WORK_MAX = 60
+const SHORT_MIN = 1
+const SHORT_MAX = 30
+const LONG_MIN = 5
+const LONG_MAX = 45
 
 type Mode = 'work' | 'short' | 'long'
 
@@ -48,9 +56,9 @@ export default function Page() {
 
   function durationOf(m: Mode) {
     const { workMin: w, shortMin: s, longMin: l } = minsRef.current
-    if (m === 'work') return Math.max(1, w) * 60
-    if (m === 'short') return Math.max(1, s) * 60
-    return Math.max(1, l) * 60
+    if (m === 'work') return clamp(Math.max(1, w), WORK_MIN, WORK_MAX) * 60
+    if (m === 'short') return clamp(Math.max(1, s), SHORT_MIN, SHORT_MAX) * 60
+    return clamp(Math.max(1, l), LONG_MIN, LONG_MAX) * 60
   }
 
   useEffect(() => {
@@ -148,41 +156,41 @@ export default function Page() {
 
         <div className="panel stack">
           <h3>設定</h3>
-          <label className="label">專注（分）{workMin}</label>
+          <label className="label">專注（分）{workMin}（{WORK_MIN}–{WORK_MAX}）</label>
           <input
             className="field"
             type="range"
-            min={1}
-            max={60}
-            value={workMin}
+            min={WORK_MIN}
+            max={WORK_MAX}
+            value={clamp(workMin, WORK_MIN, WORK_MAX)}
             onChange={(e) => {
-              const v = +e.target.value
+              const v = clamp(parseNumber(e.target.value, WORK_MIN), WORK_MIN, WORK_MAX)
               setWorkMin(v)
               if (mode === 'work' && !running) setSeconds(v * 60)
             }}
           />
-          <label className="label">短休（分）{shortMin}</label>
+          <label className="label">短休（分）{shortMin}（{SHORT_MIN}–{SHORT_MAX}）</label>
           <input
             className="field"
             type="range"
-            min={1}
-            max={30}
-            value={shortMin}
+            min={SHORT_MIN}
+            max={SHORT_MAX}
+            value={clamp(shortMin, SHORT_MIN, SHORT_MAX)}
             onChange={(e) => {
-              const v = +e.target.value
+              const v = clamp(parseNumber(e.target.value, SHORT_MIN), SHORT_MIN, SHORT_MAX)
               setShortMin(v)
               if (mode === 'short' && !running) setSeconds(v * 60)
             }}
           />
-          <label className="label">長休（分）{longMin}</label>
+          <label className="label">長休（分）{longMin}（{LONG_MIN}–{LONG_MAX}）</label>
           <input
             className="field"
             type="range"
-            min={5}
-            max={45}
-            value={longMin}
+            min={LONG_MIN}
+            max={LONG_MAX}
+            value={clamp(longMin, LONG_MIN, LONG_MAX)}
             onChange={(e) => {
-              const v = +e.target.value
+              const v = clamp(parseNumber(e.target.value, LONG_MIN), LONG_MIN, LONG_MAX)
               setLongMin(v)
               if (mode === 'long' && !running) setSeconds(v * 60)
             }}

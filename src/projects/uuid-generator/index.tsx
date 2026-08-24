@@ -3,9 +3,13 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { v4 as uuidv4, validate as uuidValidate, version as uuidVersion } from 'uuid'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { charCount, clamp, copyText, downloadText, limitText, parseNumber } from '../../lib/utils'
 
 const meta = getProject('uuid-generator')!
+
+const COUNT_MIN = 1
+const COUNT_MAX = 500
+const CHECK_MAX = 64
 
 type UuidVersion = 'v4'
 
@@ -54,9 +58,9 @@ export default function Page() {
   }
 
   function generate(append = false) {
-    const n = Math.min(200, Math.max(1, Number.isFinite(count) ? count : 1))
+    const n = clamp(Number.isFinite(count) ? count : COUNT_MIN, COUNT_MIN, COUNT_MAX)
     const next = Array.from({ length: n }, () => makeOne())
-    setList((prev) => (append ? [...prev, ...next].slice(-200) : next))
+    setList((prev) => (append ? [...prev, ...next].slice(-COUNT_MAX) : next))
     setHistory((h) => [...next, ...h.filter((x) => !next.includes(x))].slice(0, 40))
     setCopied(false)
   }
@@ -80,18 +84,23 @@ export default function Page() {
         <div className="panel stack">
           <div className="grid-2">
             <label className="stack">
-              <span className="label">數量（1–200）</span>
+              <span className="label">數量（{COUNT_MIN}–{COUNT_MAX}）</span>
               <input
                 className="field"
                 type="number"
-                min={1}
-                max={200}
+                min={COUNT_MIN}
+                max={COUNT_MAX}
                 value={count}
-                onChange={(e) => setCount(Number(e.target.value))}
+                onChange={(e) => {
+                  const n = parseNumber(e.target.value)
+                  if (!Number.isFinite(n)) return
+                  setCount(clamp(n, COUNT_MIN, COUNT_MAX))
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') generate(false)
                 }}
               />
+              <p className="field-hint">單次最多 {COUNT_MAX} 組</p>
             </label>
             <label className="stack">
               <span className="label">版本</span>
@@ -161,17 +170,18 @@ export default function Page() {
             <label className="stack">
               <span className="label">貼上要檢查的 UUID</span>
               <input
-                className="field mono"
+                className={`field mono${checkInput && validation && !validation.ok ? ' is-invalid' : ''}`}
                 value={checkInput}
-                onChange={(e) => setCheckInput(e.target.value)}
+                maxLength={CHECK_MAX}
+                onChange={(e) => setCheckInput(limitText(e.target.value, CHECK_MAX))}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
               />
+              <div className="field-meta">
+                <span>{charCount(checkInput)} / {CHECK_MAX}</span>
+              </div>
+              {validation && !validation.ok && <p className="field-error">{validation.message}</p>}
+              {validation?.ok && <p className="field-hint">{validation.message}</p>}
             </label>
-            {validation && (
-              <p className={validation.ok ? 'muted' : ''} style={validation.ok ? undefined : { color: 'var(--rose)' }}>
-                {validation.message}
-              </p>
-            )}
             <p className="muted" style={{ fontSize: 12 }}>
               使用 <code>uuid</code> 套件產生與驗證 RFC 4122 UUID v4。
             </p>

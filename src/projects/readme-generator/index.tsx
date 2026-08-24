@@ -2,9 +2,16 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('readme-generator')!
+
+const NAME_MAX = 120
+const DESC_MAX = 500
+const STACK_MAX = 200
+const FEATURES_MAX = 3000
+const INSTALL_MAX = 2000
+const API_MAX = 3000
 
 type Sections = {
   badges: boolean
@@ -128,31 +135,89 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel stack">
           <label className="label">專案名稱</label>
-          <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            className={cn('field', !isNonEmpty(name) && 'is-invalid')}
+            maxLength={NAME_MAX}
+            value={name}
+            onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+          />
+          <div className="field-meta">
+            <span className={!isNonEmpty(name) ? 'warn' : undefined}>{isNonEmpty(name) ? '可預覽' : '請填專案名稱'}</span>
+            <span>{charCount(name)}/{NAME_MAX}</span>
+          </div>
           <label className="label">簡介</label>
-          <textarea className="field" rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} />
+          <textarea
+            className="field"
+            rows={2}
+            maxLength={DESC_MAX}
+            value={desc}
+            onChange={(e) => setDesc(limitText(e.target.value, DESC_MAX))}
+          />
+          <div className="field-meta">
+            <span className="field-hint">一句話說明專案</span>
+            <span>{charCount(desc)}/{DESC_MAX}</span>
+          </div>
           {sections.stack && (
             <>
               <label className="label">技術棧</label>
-              <input className="field" value={stack} onChange={(e) => setStack(e.target.value)} />
+              <input
+                className="field"
+                maxLength={STACK_MAX}
+                value={stack}
+                onChange={(e) => setStack(limitText(e.target.value, STACK_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">逗號分隔</span>
+                <span>{charCount(stack)}/{STACK_MAX}</span>
+              </div>
             </>
           )}
           {sections.features && (
             <>
               <label className="label">功能（每行一項）</label>
-              <textarea className="field" rows={4} value={features} onChange={(e) => setFeatures(e.target.value)} />
+              <textarea
+                className="field"
+                rows={4}
+                maxLength={FEATURES_MAX}
+                value={features}
+                onChange={(e) => setFeatures(limitText(e.target.value, FEATURES_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">每行一項功能</span>
+                <span>{charCount(features)}/{FEATURES_MAX}</span>
+              </div>
             </>
           )}
           {sections.install && (
             <>
               <label className="label">安裝指令</label>
-              <textarea className="field mono" rows={3} value={install} onChange={(e) => setInstall(e.target.value)} />
+              <textarea
+                className="field mono"
+                rows={3}
+                maxLength={INSTALL_MAX}
+                value={install}
+                onChange={(e) => setInstall(limitText(e.target.value, INSTALL_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">shell 指令</span>
+                <span>{charCount(install)}/{INSTALL_MAX}</span>
+              </div>
             </>
           )}
           {sections.api && (
             <>
               <label className="label">API 說明（每行一項）</label>
-              <textarea className="field mono" rows={3} value={api} onChange={(e) => setApi(e.target.value)} />
+              <textarea
+                className="field mono"
+                rows={3}
+                maxLength={API_MAX}
+                value={api}
+                onChange={(e) => setApi(limitText(e.target.value, API_MAX))}
+              />
+              <div className="field-meta">
+                <span className="field-hint">每行一項</span>
+                <span>{charCount(api)}/{API_MAX}</span>
+              </div>
             </>
           )}
           {sections.license && (

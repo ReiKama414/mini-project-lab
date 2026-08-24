@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText, downloadText } from '../../lib/utils'
 
 const meta = getProject('json-formatter')!
+
+const JSON_MAX = 200_000
+const PATH_MAX = 200
 
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep)
@@ -57,6 +60,7 @@ export default function Page() {
 
   const status = useMemo(() => {
     if (!input.trim()) return { ok: false, msg: '空白' }
+    if (charCount(input) > JSON_MAX) return { ok: false, msg: `超過 ${JSON_MAX} 字元上限` }
     try {
       JSON.parse(input)
       return { ok: true, msg: '有效 JSON' }
@@ -65,7 +69,15 @@ export default function Page() {
     }
   }, [input])
 
+  const canRun = isNonEmpty(input) && charCount(input) <= JSON_MAX && status.ok
+
   function run(pretty: boolean) {
+    if (!canRun && !isNonEmpty(input)) return
+    if (charCount(input) > JSON_MAX) {
+      setError(`超過 ${JSON_MAX} 字元上限`)
+      setOutput('')
+      return
+    }
     try {
       let obj: unknown = JSON.parse(input)
       if (sortKeys) obj = sortKeysDeep(obj)
@@ -100,32 +112,36 @@ export default function Page() {
         <label className="stack">
           <span className="label">輸入 JSON</span>
           <textarea
-            className="field mono"
+            className={`field mono${!status.ok && isNonEmpty(input) ? ' is-invalid' : ''}`}
             rows={10}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            maxLength={JSON_MAX}
+            onChange={(e) => setInput(limitText(e.target.value, JSON_MAX))}
           />
+          <div className="field-meta">
+            <span>{charCount(input).toLocaleString()} / {JSON_MAX.toLocaleString()}</span>
+            <span className={status.ok ? undefined : 'warn'}>{status.msg}</span>
+          </div>
         </label>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <span className={status.ok ? 'muted' : ''} style={status.ok ? undefined : { color: 'var(--rose)' }}>
-            {status.msg}
-          </span>
           <label className="row" style={{ gap: 6 }}>
             <input type="checkbox" checked={sortKeys} onChange={(e) => setSortKeys(e.target.checked)} />
             排序鍵名
           </label>
         </div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button className="btn accent" onClick={() => run(true)}>
+          <button className="btn accent" onClick={() => run(true)} disabled={!isNonEmpty(input)}>
             格式化
           </button>
-          <button className="btn teal" onClick={() => run(false)}>
+          <button className="btn teal" onClick={() => run(false)} disabled={!isNonEmpty(input)}>
             壓縮
           </button>
           <button
             className="btn ghost"
+            disabled={!isNonEmpty(input)}
             onClick={() => {
               try {
+                if (charCount(input) > JSON_MAX) throw new Error(`超過 ${JSON_MAX} 字元上限`)
                 JSON.parse(input)
                 setError('')
                 setOutput('✓ 驗證通過')
@@ -155,11 +171,7 @@ export default function Page() {
             下載
           </button>
         </div>
-        {error && (
-          <p className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
-            {error}
-          </p>
-        )}
+        {error && <p className="field-error">{error}</p>}
         {output && (
           <pre className="metric mono" style={{ whiteSpace: 'pre-wrap', overflow: 'auto', maxHeight: 320 }}>
             {output}
@@ -172,10 +184,11 @@ export default function Page() {
               className="field mono"
               style={{ flex: 1 }}
               value={path}
-              onChange={(e) => setPath(e.target.value)}
+              maxLength={PATH_MAX}
+              onChange={(e) => setPath(limitText(e.target.value, PATH_MAX))}
               placeholder="nested.a"
             />
-            <button className="btn accent" onClick={queryPath}>
+            <button className="btn accent" onClick={queryPath} disabled={!isNonEmpty(input) || !isNonEmpty(path)}>
               查詢
             </button>
             <button className="btn ghost sm" disabled={!pathResult} onClick={() => void copyText(pathResult)}>

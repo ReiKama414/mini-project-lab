@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-tweet')!
 
@@ -11,6 +11,8 @@ type Item = { id: string; text: string; chars: number; n?: number; tone: Tone; t
 type Hist = { id: string; topic: string; tone: Tone; mode: 'single' | 'thread'; items: Item[]; at: number }
 
 const LIMIT = 280
+const TOPIC_MAX = 120
+const TAGS_MAX = 120
 
 const PRESETS: { label: string; topic: string; tags: string; tone: Tone }[] = [
   { label: '側專案上線', topic: '側專案上線', tags: 'sideproject, BuildInPublic', tone: '專業' },
@@ -102,12 +104,16 @@ export default function Page() {
 
   const threadFull = useMemo(() => items.map((it) => it.text).join('\n\n'), [items])
   const overLimit = items.filter((it) => it.chars > LIMIT).length
+  const canGenerate = isNonEmpty(topic)
 
   function generate() {
-    const next = mode === 'thread' ? thread(topic, tone, tags) : singleVariants(topic, tone, tags)
+    if (!canGenerate) return
+    const t = limitText(topic, TOPIC_MAX)
+    const tagStr = limitText(tags, TAGS_MAX)
+    const next = mode === 'thread' ? thread(t, tone, tagStr) : singleVariants(t, tone, tagStr)
     setItems(next)
     setHistory((h) =>
-      [{ id: uid('h'), topic: topic.trim() || '今日進度', tone, mode, items: next, at: Date.now() }, ...h].slice(0, 20),
+      [{ id: uid('h'), topic: t.trim() || '今日進度', tone, mode, items: next, at: Date.now() }, ...h].slice(0, 20),
     )
   }
 
@@ -183,9 +189,20 @@ export default function Page() {
         <div className="panel stack">
           <div className="row">
             <label className="label">主題</label>
-            <span className="mono muted">{topic.length} 字</span>
+            <span className="mono muted">{charCount(topic)}/{TOPIC_MAX}</span>
           </div>
-          <input className="field" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="今天想發什麼？" />
+          <input
+            className={cn('field', !canGenerate && 'is-invalid')}
+            maxLength={TOPIC_MAX}
+            value={topic}
+            onChange={(e) => setTopic(limitText(e.target.value, TOPIC_MAX))}
+            placeholder="今天想發什麼？"
+          />
+          <div className="field-meta">
+            <span className={!canGenerate ? 'warn' : undefined}>{canGenerate ? '可產生' : '請輸入主題'}</span>
+            <span className="field-hint">單則結果仍會截斷至 {LIMIT} 字</span>
+          </div>
+          {!canGenerate && <p className="field-error">主題不可空白</p>}
           <label className="label">語氣</label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {(['專業', '勵志', '幽默', '冷靜'] as Tone[]).map((v) => (
@@ -196,9 +213,19 @@ export default function Page() {
           </div>
           <div className="row">
             <label className="label">額外 Hashtags</label>
-            <span className="mono muted">{tags.length} 字</span>
+            <span className="mono muted">{charCount(tags)}/{TAGS_MAX}</span>
           </div>
-          <input className="field" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="空白或逗號分隔" />
+          <input
+            className="field"
+            maxLength={TAGS_MAX}
+            value={tags}
+            onChange={(e) => setTags(limitText(e.target.value, TAGS_MAX))}
+            placeholder="空白或逗號分隔"
+          />
+          <div className="field-meta">
+            <span className="field-hint">最多約 5 個標籤會寫入貼文</span>
+            <span>{charCount(tags)}/{TAGS_MAX}</span>
+          </div>
           <label className="label">模式</label>
           <div className="row">
             <button type="button" className={`btn sm ${mode === 'single' ? 'accent' : 'ghost'}`} onClick={() => setMode('single')}>
@@ -209,7 +236,7 @@ export default function Page() {
             </button>
           </div>
           <div className="row">
-            <button type="button" className="btn accent" onClick={generate}>
+            <button type="button" className="btn accent" onClick={generate} disabled={!canGenerate}>
               產生
             </button>
             {mode === 'thread' && items.length > 0 && (

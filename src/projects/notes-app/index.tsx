@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('notes-app')!
+
+const TITLE_MAX = 80
+const BODY_MAX = 5000
+const SEARCH_MAX = 80
 
 type Note = {
   id: string
@@ -60,14 +64,17 @@ export default function Page() {
 
   function update(patch: Partial<Note>) {
     if (!current) return
+    const next = { ...patch }
+    if (typeof next.title === 'string') next.title = limitText(next.title, TITLE_MAX)
+    if (typeof next.body === 'string') next.body = limitText(next.body, BODY_MAX)
     setNotes(
       notes.map((n) =>
-        n.id === current.id ? { ...n, ...patch, updatedAt: Date.now() } : n,
+        n.id === current.id ? { ...n, ...next, updatedAt: Date.now() } : n,
       ),
     )
   }
 
-  const charCount = current ? current.body.length : 0
+  const bodyCount = current ? charCount(current.body) : 0
   const wordCount = current
     ? current.body.trim() ? current.body.trim().split(/\s+/).length : 0
     : 0
@@ -83,8 +90,12 @@ export default function Page() {
             className="field"
             placeholder="搜尋標題或內容…"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            maxLength={SEARCH_MAX}
+            onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
           />
+          <div className="field-meta">
+            <span>{charCount(q)} / {SEARCH_MAX}</span>
+          </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {FOLDERS.map((f) => (
               <button
@@ -135,41 +146,52 @@ export default function Page() {
         <div className="panel stack">
           {current ? (
             <>
-              <div className="row">
-                <input
-                  className="field"
-                  style={{ flex: 1 }}
-                  value={current.title}
-                  onChange={(e) => update({ title: e.target.value })}
-                />
-                <select
-                  className="field"
-                  style={{ maxWidth: 120 }}
-                  value={current.folder}
-                  onChange={(e) => update({ folder: e.target.value })}
-                >
-                  {FOLDERS.filter((f) => f !== '全部').map((f) => (
-                    <option key={f}>{f}</option>
-                  ))}
-                </select>
-                <button
-                  className={`btn sm ${current.pinned ? 'teal' : 'ghost'}`}
-                  onClick={() => update({ pinned: !current.pinned })}
-                >
-                  {current.pinned ? '已釘選' : '釘選'}
-                </button>
+              <div className="stack" style={{ gap: 4 }}>
+                <div className="row">
+                  <input
+                    className={`field${!isNonEmpty(current.title) ? ' is-invalid' : ''}`}
+                    style={{ flex: 1 }}
+                    value={current.title}
+                    maxLength={TITLE_MAX}
+                    onChange={(e) => update({ title: e.target.value })}
+                  />
+                  <select
+                    className="field"
+                    style={{ maxWidth: 120 }}
+                    value={current.folder}
+                    onChange={(e) => update({ folder: e.target.value })}
+                  >
+                    {FOLDERS.filter((f) => f !== '全部').map((f) => (
+                      <option key={f}>{f}</option>
+                    ))}
+                  </select>
+                  <button
+                    className={`btn sm ${current.pinned ? 'teal' : 'ghost'}`}
+                    onClick={() => update({ pinned: !current.pinned })}
+                  >
+                    {current.pinned ? '已釘選' : '釘選'}
+                  </button>
+                </div>
+                <div className="field-meta">
+                  <span>{charCount(current.title)} / {TITLE_MAX}</span>
+                </div>
+                {!isNonEmpty(current.title) && <p className="field-error">標題不可空白</p>}
               </div>
               <textarea
                 className="field"
                 rows={16}
                 value={current.body}
+                maxLength={BODY_MAX}
                 onChange={(e) => update({ body: e.target.value })}
                 placeholder="開始書寫…"
               />
+              <div className="field-meta">
+                <span>{bodyCount.toLocaleString()} / {BODY_MAX.toLocaleString()}</span>
+                <span>約 {wordCount} 詞</span>
+              </div>
               <div className="row">
                 <span className="muted">
-                  {charCount.toLocaleString()} 字元 · 約 {wordCount} 詞 · 建立{' '}
-                  {new Date(current.createdAt).toLocaleString('zh-TW')} · 更新{' '}
+                  建立 {new Date(current.createdAt).toLocaleString('zh-TW')} · 更新{' '}
                   {new Date(current.updatedAt).toLocaleString('zh-TW')}
                 </span>
                 <button

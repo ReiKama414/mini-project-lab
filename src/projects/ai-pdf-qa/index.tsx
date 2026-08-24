@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText, copyText } from '../../lib/utils'
+import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-pdf-qa')!
+
+const DOC_MAX = 20000
+const Q_MAX = 500
 
 type Chunk = { id: string; text: string; index: number }
 type Hit = { chunkId: string; sentence: string; score: number }
@@ -121,8 +124,8 @@ export default function Page() {
   const favs = history.filter((h) => h.favorite)
 
   function ask(question = q) {
-    const query = question.trim()
-    if (!query) return
+    const query = limitText(question.trim(), Q_MAX)
+    if (!isNonEmpty(query) || !isNonEmpty(doc)) return
     setQ(query)
     const { answer, hits } = search(chunks, query)
     setLastHits(hits)
@@ -195,14 +198,19 @@ export default function Page() {
             ))}
           </div>
           <label className="label">文件內容（貼上 PDF 文字）</label>
-          <textarea className="field" rows={10} value={doc} onChange={(e) => setDoc(e.target.value)} />
-          {!doc.trim() ? (
-            <div className="list-item stack">
-              <strong>文件是空的</strong>
-              <p className="muted" style={{ margin: 0 }}>
-                貼上文字或選範例。本 demo 用關鍵字匹配句子，不呼叫真實 LLM。
-              </p>
-            </div>
+          <textarea
+            className={cn('field', !isNonEmpty(doc) && 'is-invalid')}
+            rows={10}
+            maxLength={DOC_MAX}
+            value={doc}
+            onChange={(e) => setDoc(limitText(e.target.value, DOC_MAX))}
+          />
+          <div className="field-meta">
+            <span className={!isNonEmpty(doc) ? 'warn' : undefined}>{isNonEmpty(doc) ? '可提問' : '請貼上文件'}</span>
+            <span>{charCount(doc)}/{DOC_MAX}</span>
+          </div>
+          {!isNonEmpty(doc) ? (
+            <p className="field-error">文件不可空白。可貼上文字或選範例（關鍵字匹配，非真實 LLM）。</p>
           ) : (
             <>
               <div className="label">文件區塊預覽</div>
@@ -216,7 +224,7 @@ export default function Page() {
               </ul>
             </>
           )}
-          <button type="button" className="btn accent" disabled={!doc.trim()} onClick={() => setStep('ask')}>
+          <button type="button" className="btn accent" disabled={!isNonEmpty(doc)} onClick={() => setStep('ask')}>
             下一步：開始提問 →
           </button>
         </div>
@@ -235,20 +243,24 @@ export default function Page() {
             </div>
             <label className="label">問題</label>
             <input
-              className="field"
+              className={cn('field', !isNonEmpty(q) && 'is-invalid')}
+              maxLength={Q_MAX}
               value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && ask()}
+              onChange={(e) => setQ(limitText(e.target.value, Q_MAX))}
+              onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(q) && isNonEmpty(doc) && ask()}
               placeholder="例如：退款政策是什麼？"
             />
+            <div className="field-meta">
+              <span className={!isNonEmpty(q) ? 'warn' : undefined}>{isNonEmpty(q) ? '可搜尋' : '請輸入問題'}</span>
+              <span>{charCount(q)}/{Q_MAX}</span>
+            </div>
             <div className="row">
-              <button type="button" className="btn accent" onClick={() => ask()} disabled={!doc.trim() || !q.trim()}>
+              <button type="button" className="btn accent" onClick={() => ask()} disabled={!isNonEmpty(doc) || !isNonEmpty(q)}>
                 搜尋並回答
               </button>
               <button type="button" className="btn ghost" onClick={() => setStep('doc')}>
                 ← 改文件
               </button>
-              <span className="mono muted">{q.length} 字</span>
             </div>
             {lastAnswer ? (
               <div className="list-item stack">

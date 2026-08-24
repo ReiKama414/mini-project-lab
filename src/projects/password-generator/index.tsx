@@ -2,7 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { charCount, clamp, copyText, downloadText, limitText, parseNumber, uid } from '../../lib/utils'
+
+const LENGTH_MIN = 8
+const LENGTH_MAX = 128
+const BATCH_MIN = 1
+const BATCH_MAX = 20
+const FILTER_MAX = 80
 
 const meta = getProject('password-generator')!
 
@@ -75,6 +81,10 @@ export default function Page() {
     return { avgLen, avgScore, strong }
   }, [history])
 
+  const safeLength = clamp(length, LENGTH_MIN, LENGTH_MAX)
+  const safeBatch = clamp(batch, BATCH_MIN, BATCH_MAX)
+  const canGenerate = Object.values(opts).some(Boolean)
+
   function makeOne(): string | null {
     const required: string[] = []
     let pool = ''
@@ -94,7 +104,7 @@ export default function Page() {
     })
     if (!pool) return null
     const out = [...required]
-    while (out.length < length) out.push(securePick(pool))
+    while (out.length < safeLength) out.push(securePick(pool))
     for (let i = out.length - 1; i > 0; i--) {
       const arr = new Uint32Array(1)
       crypto.getRandomValues(arr)
@@ -105,7 +115,8 @@ export default function Page() {
   }
 
   function generate() {
-    const n = Math.min(20, Math.max(1, batch))
+    if (!canGenerate) return
+    const n = safeBatch
     const results: string[] = []
     for (let i = 0; i < n; i++) {
       const r = makeOne()
@@ -130,7 +141,7 @@ export default function Page() {
   }
 
   function applyPreset(p: (typeof PRESETS)[number]) {
-    setLength(p.length)
+    setLength(clamp(p.length, LENGTH_MIN, LENGTH_MAX))
     setOpts(p.opts)
     setExcludeAmbiguous(p.excludeAmbiguous)
   }
@@ -140,7 +151,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm accent" onClick={generate}>
+          <button type="button" className="btn sm accent" onClick={generate} disabled={!canGenerate}>
             產生
           </button>
           <button
@@ -175,28 +186,41 @@ export default function Page() {
           </div>
 
           <label className="stack">
-            <span className="label">長度：{length}</span>
+            <span className="label">長度：{safeLength}（{LENGTH_MIN}–{LENGTH_MAX}）</span>
             <input
               className="field"
               type="range"
-              min={8}
-              max={64}
-              value={length}
-              onChange={(e) => setLength(Number(e.target.value))}
+              min={LENGTH_MIN}
+              max={LENGTH_MAX}
+              value={safeLength}
+              onChange={(e) => setLength(clamp(parseNumber(e.target.value, LENGTH_MIN), LENGTH_MIN, LENGTH_MAX))}
+            />
+            <input
+              className="field"
+              type="number"
+              min={LENGTH_MIN}
+              max={LENGTH_MAX}
+              value={safeLength}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (!Number.isFinite(n)) return
+                setLength(clamp(n, LENGTH_MIN, LENGTH_MAX))
+              }}
             />
           </label>
 
           <label className="stack">
-            <span className="label">一次產生數量：{batch}</span>
+            <span className="label">一次產生數量：{safeBatch}（{BATCH_MIN}–{BATCH_MAX}）</span>
             <input
               className="field"
               type="range"
-              min={1}
-              max={10}
-              value={batch}
-              onChange={(e) => setBatch(Number(e.target.value))}
+              min={BATCH_MIN}
+              max={BATCH_MAX}
+              value={safeBatch}
+              onChange={(e) => setBatch(clamp(parseNumber(e.target.value, BATCH_MIN), BATCH_MIN, BATCH_MAX))}
             />
           </label>
+          {!canGenerate && <p className="field-error">請至少勾選一種字元類型</p>}
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {(
@@ -228,7 +252,7 @@ export default function Page() {
           </label>
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn accent" onClick={generate}>
+            <button type="button" className="btn accent" onClick={generate} disabled={!canGenerate}>
               產生密碼
             </button>
             <button
@@ -297,8 +321,12 @@ export default function Page() {
             className="field"
             placeholder="篩選密碼／長度…"
             value={histFilter}
-            onChange={(e) => setHistFilter(e.target.value)}
+            maxLength={FILTER_MAX}
+            onChange={(e) => setHistFilter(limitText(e.target.value, FILTER_MAX))}
           />
+          <div className="field-meta">
+            <span>{charCount(histFilter)} / {FILTER_MAX}</span>
+          </div>
           <label className="stack">
             <span className="label">最低強度篩選：{STRENGTH[minScore]}</span>
             <input

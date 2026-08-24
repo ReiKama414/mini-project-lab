@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('movie-watchlist')!
 
@@ -25,6 +25,12 @@ const STATUS_LABEL: Record<Status, string> = {
   watched: '已看',
 }
 
+const MAX_ITEMS = 200
+const MAX_TITLE = 120
+const MAX_YEAR = 4
+const MAX_NOTES = 1000
+const MAX_SEARCH = 80
+
 export default function Page() {
   const [movies, setMovies] = useLocalStorage<Movie[]>('lab:movie-watchlist', [])
   const [title, setTitle] = useState('')
@@ -33,6 +39,12 @@ export default function Page() {
   const [filter, setFilter] = useState<'all' | Status>('all')
   const [genreFilter, setGenreFilter] = useState('all')
   const [search, setSearch] = useState('')
+
+  const titleOk = isNonEmpty(title)
+  const yearNum = year.trim() ? parseNumber(year) : null
+  const yearOk = !year.trim() || (yearNum != null && yearNum >= 1888 && yearNum <= 2100)
+  const atLimit = movies.length >= MAX_ITEMS
+  const canAdd = titleOk && yearOk && !atLimit
 
   const visible = useMemo(() => {
     return movies.filter((m) => {
@@ -51,12 +63,12 @@ export default function Page() {
   }
 
   function add() {
-    if (!title.trim()) return
+    if (!canAdd) return
     setMovies([
       {
         id: uid('mv'),
         title: title.trim(),
-        year,
+        year: year.trim(),
         status: 'want',
         rating: 0,
         genres: [...genres],
@@ -70,15 +82,58 @@ export default function Page() {
   }
 
   function patch(id: string, p: Partial<Movie>) {
-    setMovies(movies.map((m) => (m.id === id ? { ...m, ...p } : m)))
+    setMovies(
+      movies.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              ...p,
+              notes: p.notes != null ? limitText(p.notes, MAX_NOTES) : m.notes,
+              rating: p.rating != null ? clamp(p.rating, 0, 5) : m.rating,
+            }
+          : m,
+      ),
+    )
   }
 
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <div className="grid-2">
-          <input className="field" placeholder="片名" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <input className="field" placeholder="年份" value={year} onChange={(e) => setYear(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              placeholder="片名"
+              value={title}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))}
+            />
+            <div className="field-meta">
+              <span className={!titleOk && title.length > 0 ? 'warn' : undefined}>
+                {!titleOk && title.length > 0 ? '請輸入片名' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(title)} / {MAX_TITLE}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${year.trim() && !yearOk ? ' is-invalid' : ''}`}
+              placeholder="年份（選填）"
+              value={year}
+              maxLength={MAX_YEAR}
+              onChange={(e) => setYear(limitText(e.target.value.replace(/\D/g, ''), MAX_YEAR))}
+            />
+            <div className="field-meta">
+              <span className={year.trim() && !yearOk ? 'warn' : undefined}>
+                {year.trim() && !yearOk ? '年份須為 1888–2100' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(year)} / {MAX_YEAR}
+              </span>
+            </div>
+          </div>
         </div>
         <div className="row">
           <span className="muted">類型標籤</span>
@@ -88,20 +143,30 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <button className="btn accent" onClick={add}>
+        <button className="btn accent" onClick={add} disabled={!canAdd}>
           加入片單
         </button>
+        {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 部，請先刪除再新增</p>}
       </div>
 
       <div className="panel stack">
         <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1, minWidth: 140 }}
-            placeholder="搜尋片名或備註…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="stack" style={{ flex: 1, minWidth: 140, gap: 0 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋片名或備註…"
+              value={search}
+              maxLength={MAX_SEARCH}
+              onChange={(e) => setSearch(limitText(e.target.value, MAX_SEARCH))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(search)} / {MAX_SEARCH}
+              </span>
+            </div>
+          </div>
           {(['all', 'want', 'watching', 'watched'] as const).map((f) => (
             <button key={f} className={`btn sm ${filter === f ? 'accent' : 'ghost'}`} onClick={() => setFilter(f)}>
               {f === 'all' ? '全部' : STATUS_LABEL[f]}
@@ -158,14 +223,23 @@ export default function Page() {
                   </button>
                 ))}
               </div>
-              <textarea
-                className="field"
-                rows={2}
-                style={{ fontFamily: 'inherit', minHeight: 56 }}
-                placeholder="觀影備註…"
-                value={m.notes ?? ''}
-                onChange={(e) => patch(m.id, { notes: e.target.value })}
-              />
+              <div className="stack" style={{ gap: 0 }}>
+                <textarea
+                  className="field"
+                  rows={2}
+                  style={{ fontFamily: 'inherit', minHeight: 56 }}
+                  placeholder="觀影備註…"
+                  value={m.notes ?? ''}
+                  maxLength={MAX_NOTES}
+                  onChange={(e) => patch(m.id, { notes: limitText(e.target.value, MAX_NOTES) })}
+                />
+                <div className="field-meta">
+                  <span />
+                  <span>
+                    {charCount(m.notes ?? '')} / {MAX_NOTES}
+                  </span>
+                </div>
+              </div>
             </li>
           ))}
           {!visible.length && <p className="muted">沒有符合條件的電影</p>}

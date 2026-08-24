@@ -2,9 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText } from '../../lib/utils'
+import { charCount, limitText, copyText } from '../../lib/utils'
 
 const meta = getProject('regex-tester')!
+
+const PATTERN_MAX = 500
+const TEXT_MAX = 20_000
+const REPL_MAX = 500
+const FLAGS_MAX = 10
 
 const CHEATSHEET = [
   { syn: '.', desc: '任意字元（除換行，除非 s）' },
@@ -97,7 +102,15 @@ export default function Page() {
           </div>
           <label className="stack">
             <span className="label">Pattern</span>
-            <input className="field mono" value={pattern} onChange={(e) => setPattern(e.target.value)} />
+            <input
+              className={`field mono${result.ok === false ? ' is-invalid' : ''}`}
+              value={pattern}
+              maxLength={PATTERN_MAX}
+              onChange={(e) => setPattern(limitText(e.target.value, PATTERN_MAX))}
+            />
+            <div className="field-meta">
+              <span>{charCount(pattern)} / {PATTERN_MAX}</span>
+            </div>
           </label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {FLAG_OPTS.map(({ f, label }) => (
@@ -109,24 +122,47 @@ export default function Page() {
           </div>
           <label className="stack">
             <span className="label">Flags 字串</span>
-            <input className="field mono" value={flags} onChange={(e) => setFlags(e.target.value.replace(/[^gimsuy]/g, ''))} />
+            <input
+              className="field mono"
+              value={flags}
+              maxLength={FLAGS_MAX}
+              onChange={(e) => setFlags(limitText(e.target.value.replace(/[^gimsuy]/g, ''), FLAGS_MAX))}
+            />
+            <div className="field-meta">
+              <span>{charCount(flags)} / {FLAGS_MAX}</span>
+            </div>
           </label>
           {mode === 'replace' && (
             <label className="stack">
               <span className="label">取代字串（可用 $&、$1…）</span>
-              <input className="field mono" value={replacement} onChange={(e) => setReplacement(e.target.value)} />
+              <input
+                className="field mono"
+                value={replacement}
+                maxLength={REPL_MAX}
+                onChange={(e) => setReplacement(limitText(e.target.value, REPL_MAX))}
+              />
+              <div className="field-meta">
+                <span>{charCount(replacement)} / {REPL_MAX}</span>
+              </div>
             </label>
           )}
           <label className="stack">
             <span className="label">測試文字</span>
-            <textarea className="field mono" rows={8} value={text} onChange={(e) => setText(e.target.value)} />
+            <textarea
+              className="field mono"
+              rows={8}
+              value={text}
+              maxLength={TEXT_MAX}
+              onChange={(e) => setText(limitText(e.target.value, TEXT_MAX))}
+            />
+            <div className="field-meta">
+              <span>{charCount(text).toLocaleString()} / {TEXT_MAX.toLocaleString()}</span>
+            </div>
           </label>
         </div>
         <div className="panel stack">
           {!result.ok ? (
-            <p className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
-              {result.error}
-            </p>
+            <p className="field-error">{result.error}</p>
           ) : (
             <>
               <div className="metric">

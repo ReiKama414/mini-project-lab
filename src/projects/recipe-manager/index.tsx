@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('recipe-manager')!
 
@@ -17,12 +17,20 @@ type Recipe = {
 }
 
 const CATEGORIES = ['家常', '湯品', '主食', '甜點', '飲品', '素食', '其他']
+const MAX_ITEMS = 200
+const MAX_TITLE = 80
+const MAX_INGREDIENTS = 2000
+const MAX_STEPS = 5000
+const MAX_SEARCH = 80
+const MAX_TIME = 24 * 60
+const MAX_SERVINGS = 100
 
 function parseIngredients(raw: string) {
   return raw
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
+    .slice(0, 100)
 }
 
 export default function Page() {
@@ -32,13 +40,20 @@ export default function Page() {
   const [category, setCategory] = useState(CATEGORIES[0]!)
   const [ingredients, setIngredients] = useState('')
   const [steps, setSteps] = useState('')
-  const [time, setTime] = useState(30)
-  const [baseServings, setBaseServings] = useState(2)
+  const [timeStr, setTimeStr] = useState('30')
+  const [baseServingsStr, setBaseServingsStr] = useState('2')
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('all')
   const [servings, setServings] = useState(2)
   const [checked, setChecked] = useState<Record<string, boolean>>({})
 
+  const time = parseNumber(timeStr)
+  const baseServings = parseNumber(baseServingsStr)
+  const titleOk = isNonEmpty(title)
+  const timeOk = time != null && time >= 1
+  const servingsOk = baseServings != null && baseServings >= 1
+  const atLimit = recipes.length >= MAX_ITEMS
+  const canAdd = titleOk && timeOk && servingsOk && !atLimit
   const filtered = useMemo(() => {
     return recipes.filter((r) => {
       if (catFilter !== 'all' && (r.category || '其他') !== catFilter) return false
@@ -70,15 +85,15 @@ export default function Page() {
   }
 
   function add() {
-    if (!title.trim()) return
+    if (!canAdd || time == null || baseServings == null) return
     const r: Recipe = {
       id: uid('rcp'),
       title: title.trim(),
       category,
       ingredients: parseIngredients(ingredients),
-      steps,
-      time,
-      baseServings: Math.max(1, baseServings),
+      steps: limitText(steps, MAX_STEPS),
+      time: clamp(Math.round(time), 1, MAX_TIME),
+      baseServings: clamp(Math.round(baseServings), 1, MAX_SERVINGS),
     }
     setRecipes([r, ...recipes])
     setActive(r.id)
@@ -111,56 +126,116 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
-          <input className="field" placeholder="食譜名稱" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
+              placeholder="食譜名稱"
+              value={title}
+              maxLength={MAX_TITLE}
+              onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))}
+            />
+            <div className="field-meta">
+              <span className={!titleOk && title.length > 0 ? 'warn' : undefined}>
+                {!titleOk && title.length > 0 ? '請輸入食譜名稱' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(title)} / {MAX_TITLE}
+              </span>
+            </div>
+          </div>
           <div className="grid-2">
             <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
               {CATEGORIES.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
-            <input
-              className="field"
-              type="number"
-              min={1}
-              value={time}
-              onChange={(e) => setTime(Number(e.target.value))}
-              placeholder="分鐘"
-            />
-            <input
-              className="field"
-              type="number"
-              min={1}
-              value={baseServings}
-              onChange={(e) => setBaseServings(Number(e.target.value))}
-              placeholder="基準份量"
-            />
+            <div className="stack" style={{ gap: 0 }}>
+              <input
+                className={`field${!timeOk ? ' is-invalid' : ''}`}
+                type="number"
+                min={1}
+                max={MAX_TIME}
+                value={timeStr}
+                onChange={(e) => {
+                  const n = parseNumber(e.target.value)
+                  if (n == null) setTimeStr(e.target.value)
+                  else setTimeStr(String(clamp(Math.round(n), 1, MAX_TIME)))
+                }}
+                placeholder="分鐘"
+              />
+              {!timeOk && <p className="field-error">時間須為 1–{MAX_TIME} 分鐘</p>}
+            </div>
+            <div className="stack" style={{ gap: 0 }}>
+              <input
+                className={`field${!servingsOk ? ' is-invalid' : ''}`}
+                type="number"
+                min={1}
+                max={MAX_SERVINGS}
+                value={baseServingsStr}
+                onChange={(e) => {
+                  const n = parseNumber(e.target.value)
+                  if (n == null) setBaseServingsStr(e.target.value)
+                  else setBaseServingsStr(String(clamp(Math.round(n), 1, MAX_SERVINGS)))
+                }}
+                placeholder="基準份量"
+              />
+              {!servingsOk && <p className="field-error">份量須為 1–{MAX_SERVINGS}</p>}
+            </div>
           </div>
-          <textarea
-            className="field"
-            rows={4}
-            style={{ fontFamily: 'inherit' }}
-            placeholder="食材（一行一項，可含數字如「雞蛋 2 顆」）"
-            value={ingredients}
-            onChange={(e) => setIngredients(e.target.value)}
-          />
-          <textarea
-            className="field"
-            rows={4}
-            style={{ fontFamily: 'inherit' }}
-            placeholder="步驟"
-            value={steps}
-            onChange={(e) => setSteps(e.target.value)}
-          />
-          <button className="btn accent" onClick={add}>
+          <div className="stack" style={{ gap: 0 }}>
+            <textarea
+              className="field"
+              rows={4}
+              style={{ fontFamily: 'inherit' }}
+              placeholder="食材（一行一項，可含數字如「雞蛋 2 顆」）"
+              value={ingredients}
+              maxLength={MAX_INGREDIENTS}
+              onChange={(e) => setIngredients(limitText(e.target.value, MAX_INGREDIENTS))}
+            />
+            <div className="field-meta">
+              <span className="field-hint">最多 100 行</span>
+              <span>
+                {charCount(ingredients)} / {MAX_INGREDIENTS}
+              </span>
+            </div>
+          </div>
+          <div className="stack" style={{ gap: 0 }}>
+            <textarea
+              className="field"
+              rows={4}
+              style={{ fontFamily: 'inherit' }}
+              placeholder="步驟"
+              value={steps}
+              maxLength={MAX_STEPS}
+              onChange={(e) => setSteps(limitText(e.target.value, MAX_STEPS))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(steps)} / {MAX_STEPS}
+              </span>
+            </div>
+          </div>
+          <button className="btn accent" onClick={add} disabled={!canAdd}>
             收藏食譜
           </button>
+          {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 則食譜</p>}
 
-          <input
-            className="field"
-            placeholder="搜尋食譜或食材…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="stack" style={{ gap: 0 }}>
+            <input
+              className="field"
+              placeholder="搜尋食譜或食材…"
+              value={search}
+              maxLength={MAX_SEARCH}
+              onChange={(e) => setSearch(limitText(e.target.value, MAX_SEARCH))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(search)} / {MAX_SEARCH}
+              </span>
+            </div>
+          </div>
           <div className="row">
             <button className={`btn sm ${catFilter === 'all' ? 'accent' : 'ghost'}`} onClick={() => setCatFilter('all')}>
               全部
@@ -210,7 +285,7 @@ export default function Page() {
                   −
                 </button>
                 <strong>{servings} 人份</strong>
-                <button className="btn sm ghost" onClick={() => setServings(servings + 1)}>
+                <button className="btn sm ghost" onClick={() => setServings(Math.min(MAX_SERVINGS, servings + 1))}>
                   ＋
                 </button>
                 <button className="btn sm ghost" onClick={() => setServings(current.baseServings)}>
