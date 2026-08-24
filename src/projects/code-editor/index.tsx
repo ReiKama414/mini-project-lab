@@ -1,64 +1,79 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 
 const meta = getProject('code-editor')!
 
-const snippets: Record<string, string> = {
-  html: `<!DOCTYPE html>
-<html>
-<body style="font-family:sans-serif;padding:24px;background:#0f172a;color:#e2e8f0">
-  <h1>Hello Lab</h1>
-  <button onclick="document.body.style.background='#134e4a'">換色</button>
-</body>
-</html>`,
-  css: `body { margin: 0; font-family: Georgia, serif; }
-.hero { padding: 48px; background: linear-gradient(120deg,#0ea5e9,#6366f1); color: #fff; }`,
-  js: `const el = document.createElement('div')
-el.textContent = 'JS 已執行 · ' + new Date().toLocaleTimeString()
-el.style.cssText = 'padding:16px;font:16px monospace'
-document.body.appendChild(el)`,
+const SAMPLES: Record<string, { html: string; css: string; js: string }> = {
+  hello: {
+    html: '<h1 id="title">Hello Lab</h1>\n<button id="btn">點我</button>',
+    css: 'body{font-family:system-ui;padding:24px}\nh1{color:#f0734a}\nbutton{padding:8px 14px;border-radius:8px;border:0;background:#1a2e28;color:#fff}',
+    js: 'document.getElementById("btn").onclick=()=>{\n  document.getElementById("title").textContent="Clicked!"\n}',
+  },
+  card: {
+    html: '<div class="card"><h2>Card</h2><p>預覽即時更新</p></div>',
+    css: '.card{max-width:280px;padding:20px;border-radius:16px;background:linear-gradient(135deg,#d4f0eb,#ffe0d4);box-shadow:0 8px 24px rgba(0,0,0,.08)}',
+    js: '',
+  },
 }
 
 export default function Page() {
   const [tab, setTab] = useLocalStorage<'html' | 'css' | 'js'>('lab:code-editor:tab', 'html')
-  const [code, setCode] = useLocalStorage('lab:code-editor:code', {
-    html: snippets.html,
-    css: snippets.css,
-    js: snippets.js,
-  })
-  const [runKey, setRunKey] = useState(0)
+  const [html, setHtml] = useLocalStorage('lab:code-editor:html', SAMPLES.hello!.html)
+  const [css, setCss] = useLocalStorage('lab:code-editor:css', SAMPLES.hello!.css)
+  const [js, setJs] = useLocalStorage('lab:code-editor:js', SAMPLES.hello!.js)
 
-  const srcDoc = useMemo(() => {
-    void runKey
-    return `<!DOCTYPE html><html><head><style>${code.css}</style></head><body>${code.html.replace(/^[\s\S]*<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '') || code.html}<script>${code.js}<\/script></body></html>`
-  }, [code, runKey])
+  const srcDoc = useMemo(
+    () => `<!doctype html><html><head><style>${css}</style></head><body>${html}<script>${js}<\\/script></body></html>`,
+    [html, css, js],
+  )
+
+  const value = tab === 'html' ? html : tab === 'css' ? css : js
+  const setValue = tab === 'html' ? setHtml : tab === 'css' ? setCss : setJs
 
   return (
     <ProjectShell meta={meta}>
-      <div className="row" style={{ marginBottom: 8 }}>
+      <div className="row" style={{ marginBottom: 12 }}>
         {(['html', 'css', 'js'] as const).map((t) => (
-          <button key={t} type="button" className={`btn sm ${tab === t ? 'accent' : 'ghost'}`} onClick={() => setTab(t)}>
+          <button
+            key={t}
+            type="button"
+            className={`btn sm ${tab === t ? 'accent' : 'ghost'}`}
+            onClick={() => setTab(t)}
+          >
             {t.toUpperCase()}
           </button>
         ))}
-        <button type="button" className="btn teal sm" onClick={() => setRunKey((k) => k + 1)}>
-          Run
-        </button>
-        <button type="button" className="btn ghost sm" onClick={() => setCode((c) => ({ ...c, [tab]: snippets[tab]! }))}>
-          載入片段
-        </button>
+        {Object.entries(SAMPLES).map(([k, s]) => (
+          <button
+            key={k}
+            type="button"
+            className="btn ghost sm"
+            onClick={() => {
+              setHtml(s.html)
+              setCss(s.css)
+              setJs(s.js)
+            }}
+          >
+            範例：{k}
+          </button>
+        ))}
       </div>
       <div className="grid-2">
         <textarea
-          className="field mono panel"
-          style={{ minHeight: 360, fontSize: 13 }}
-          value={code[tab]}
-          onChange={(e) => setCode((c) => ({ ...c, [tab]: e.target.value }))}
-          spellCheck={false}
+          className="field panel mono"
+          style={{ minHeight: 380 }}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
         />
-        <iframe title="preview" className="panel" style={{ minHeight: 360, width: '100%', background: '#fff', border: 0 }} srcDoc={srcDoc} sandbox="allow-scripts" />
+        <iframe
+          title="preview"
+          className="panel"
+          style={{ minHeight: 380, width: '100%', background: '#fff', border: 0 }}
+          srcDoc={srcDoc}
+          sandbox="allow-scripts"
+        />
       </div>
     </ProjectShell>
   )

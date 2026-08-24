@@ -1,68 +1,165 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { randomInt } from '../../lib/utils'
 
 const meta = getProject('server-monitor')!
 
 type Metrics = { cpu: number; mem: number; disk: number; netIn: number; netOut: number; load: number }
+type Histories = { cpu: number[]; mem: number[]; load: number[] }
+type Alert = { id: string; at: number; metric: string; value: number; threshold: number }
+
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(1, ...data)
+  const pts = data
+    .map((v, i) => {
+      const x = (i / Math.max(1, data.length - 1)) * 100
+      const y = 100 - (v / max) * 100
+      return `${x},${y}`
+    })
+    .join(' ')
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: 48 }}>
+      <polyline fill="none" stroke={color} strokeWidth="2" points={pts} vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
 
 export default function Page() {
   const [host, setHost] = useLocalStorage('lab:server-monitor:host', 'prod-web-01')
+  const [cpuThreshold, setCpuThreshold] = useLocalStorage('lab:server-monitor:cpu-th', 80)
+  const [memThreshold, setMemThreshold] = useLocalStorage('lab:server-monitor:mem-th', 85)
   const [m, setM] = useState<Metrics>({ cpu: 32, mem: 58, disk: 71, netIn: 12, netOut: 8, load: 1.2 })
-  const [history, setHistory] = useState<number[]>(Array.from({ length: 24 }, () => randomInt(10, 70)))
+  const [hist, setHist] = useState<Histories>(() => ({
+    cpu: Array.from({ length: 40 }, () => randomInt(10, 70)),
+    mem: Array.from({ length: 40 }, () => randomInt(40, 75)),
+    load: Array.from({ length: 40 }, () => Number((Math.random() * 2.5).toFixed(2))),
+  }))
+  const [alerts, setAlerts] = useState<Alert[]>([])
 
   useEffect(() => {
     const id = setInterval(() => {
-      setM((prev) => ({
-        cpu: Math.min(100, Math.max(5, prev.cpu + randomInt(-8, 8))),
-        mem: Math.min(100, Math.max(20, prev.mem + randomInt(-3, 3))),
-        disk: Math.min(100, Math.max(40, prev.disk + randomInt(-1, 1))),
-        netIn: randomInt(5, 40),
-        netOut: randomInt(3, 30),
-        load: Number((Math.random() * 3).toFixed(2)),
-      }))
-      setHistory((h) => [...h.slice(1), randomInt(10, 90)])
-    }, 1500)
+      setM((prev) => {
+        const next: Metrics = {
+          cpu: Math.min(100, Math.max(5, prev.cpu + randomInt(-10, 12))),
+          mem: Math.min(100, Math.max(20, prev.mem + randomInt(-4, 4))),
+          disk: Math.min(100, Math.max(40, prev.disk + randomInt(-1, 1))),
+          netIn: randomInt(5, 40),
+          netOut: randomInt(3, 30),
+          load: Number((Math.random() * 3.5).toFixed(2)),
+        }
+        setHist((h) => ({
+          cpu: [...h.cpu.slice(1), next.cpu],
+          mem: [...h.mem.slice(1), next.mem],
+          load: [...h.load.slice(1), next.load],
+        }))
+        const now = Date.now()
+        if (next.cpu >= cpuThreshold) {
+          setAlerts((a) => [{ id: `a_${now}_cpu`, at: now, metric: 'CPU', value: next.cpu, threshold: cpuThreshold }, ...a].slice(0, 30))
+        }
+        if (next.mem >= memThreshold) {
+          setAlerts((a) => [{ id: `a_${now}_mem`, at: now, metric: 'Memory', value: next.mem, threshold: memThreshold }, ...a].slice(0, 30))
+        }
+        return next
+      })
+    }, 1200)
     return () => clearInterval(id)
-  }, [])
+  }, [cpuThreshold, memThreshold])
 
-  const cards: { label: string; value: string; pct?: number }[] = [
-    { label: 'CPU', value: `${m.cpu}%`, pct: m.cpu },
-    { label: 'Memory', value: `${m.mem}%`, pct: m.mem },
-    { label: 'Disk', value: `${m.disk}%`, pct: m.disk },
-    { label: 'Load', value: String(m.load) },
-    { label: 'Net In', value: `${m.netIn} MB/s` },
-    { label: 'Net Out', value: `${m.netOut} MB/s` },
-  ]
+  const cards = useMemo(
+    () => [
+      { label: 'CPU', value: `${m.cpu}%`, pct: m.cpu, warn: m.cpu >= cpuThreshold },
+      { label: 'Memory', value: `${m.mem}%`, pct: m.mem, warn: m.mem >= memThreshold },
+      { label: 'Disk', value: `${m.disk}%`, pct: m.disk, warn: m.disk >= 90 },
+      { label: 'Load', value: String(m.load), warn: m.load >= 2.5 },
+      { label: 'Net In', value: `${m.netIn} MB/s` },
+      { label: 'Net Out', value: `${m.netOut} MB/s` },
+    ],
+    [m, cpuThreshold, memThreshold],
+  )
 
   return (
     <ProjectShell meta={meta}>
-      <div className="panel row" style={{ marginBottom: 12 }}>
-        <input className="field" value={host} onChange={(e) => setHost(e.target.value)} />
-        <span className="tag">live mock</span>
+      <div className="panel stack" style={{ marginBottom: 12 }}>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <label className="label" style={{ margin: 0 }}>
+            Hostname
+          </label>
+          <input className="field" value={host} onChange={(e) => setHost(e.target.value)} style={{ maxWidth: 220 }} />
+          <span className="tag">live mock</span>
+        </div>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <label className="label" style={{ margin: 0 }}>
+            CPU 告警 ≥ {cpuThreshold}%
+          </label>
+          <input type="range" min={50} max={95} value={cpuThreshold} onChange={(e) => setCpuThreshold(Number(e.target.value))} />
+          <label className="label" style={{ margin: 0 }}>
+            MEM 告警 ≥ {memThreshold}%
+          </label>
+          <input type="range" min={50} max={95} value={memThreshold} onChange={(e) => setMemThreshold(Number(e.target.value))} />
+        </div>
       </div>
-      <div className="grid-3">
+
+      <div className="grid-3" style={{ marginBottom: 12 }}>
         {cards.map((c) => (
           <div key={c.label} className="panel metric stack">
-            <div className="muted">{c.label}</div>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <span className="muted">{c.label}</span>
+              {c.warn && <span className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>ALERT</span>}
+            </div>
             <div style={{ fontSize: 24 }}>{c.value}</div>
             {c.pct !== undefined && (
               <div className="progress">
-                <div style={{ width: `${c.pct}%`, height: 6, borderRadius: 4, background: c.pct > 85 ? '#ef4444' : '#22c55e' }} />
+                <div
+                  style={{
+                    width: `${c.pct}%`,
+                    height: 6,
+                    borderRadius: 4,
+                    background: c.warn ? 'var(--rose)' : 'var(--teal)',
+                  }}
+                />
               </div>
             )}
           </div>
         ))}
       </div>
-      <div className="panel" style={{ marginTop: 12 }}>
-        <div className="label">CPU 歷史</div>
-        <div className="row" style={{ alignItems: 'flex-end', height: 80, gap: 4 }}>
-          {history.map((v, i) => (
-            <div key={i} style={{ flex: 1, height: `${v}%`, background: '#38bdf8', borderRadius: 2, minWidth: 6 }} />
-          ))}
+
+      <div className="grid-3" style={{ marginBottom: 12 }}>
+        <div className="panel stack">
+          <div className="label">CPU sparkline</div>
+          <Sparkline data={hist.cpu} color="var(--sky)" />
         </div>
+        <div className="panel stack">
+          <div className="label">Memory sparkline</div>
+          <Sparkline data={hist.mem} color="var(--amber)" />
+        </div>
+        <div className="panel stack">
+          <div className="label">Load sparkline</div>
+          <Sparkline data={hist.load} color="var(--teal)" />
+        </div>
+      </div>
+
+      <div className="panel stack">
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <div className="label" style={{ margin: 0 }}>
+            告警紀錄 · {host}
+          </div>
+          <button type="button" className="btn sm ghost" onClick={() => setAlerts([])}>
+            清空
+          </button>
+        </div>
+        <ul className="list">
+          {alerts.slice(0, 12).map((a) => (
+            <li key={a.id} className="list-item row" style={{ justifyContent: 'space-between' }}>
+              <span>
+                <strong>{a.metric}</strong> {a.value} ≥ {a.threshold}
+              </span>
+              <span className="muted mono">{new Date(a.at).toLocaleTimeString('zh-TW')}</span>
+            </li>
+          ))}
+          {!alerts.length && <li className="list-item muted">尚無告警</li>}
+        </ul>
       </div>
     </ProjectShell>
   )

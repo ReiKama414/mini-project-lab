@@ -77,7 +77,9 @@ export default function Page() {
 
   async function shareText() {
     const lines = ['購物清單', '────────']
-    const groups: [string, Item[]][] = byAisle.length ? [...byAisle] : [['全部', visible]]
+    const groups: [string, Item[]][] = byAisle.length
+      ? byAisle.map(([a, list]) => [a, list])
+      : [['全部', visible]]
     for (const [a, list] of groups) {
       lines.push(`【${a}】`)
       for (const i of list) {

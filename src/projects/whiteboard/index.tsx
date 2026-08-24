@@ -1,95 +1,157 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useEffect, useRef, useState } from 'react'
-import { useLocalStorage } from '../../lib/storage'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const meta = getProject('whiteboard')!
 
 export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
-  const [color, setColor] = useLocalStorage('lab:whiteboard:color', '#22d3ee')
-  const [size, setSize] = useLocalStorage('lab:whiteboard:size', 3)
-  const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
+  const [color, setColor] = useState('#1a2e28')
+  const [size, setSize] = useState(3)
+  const [history, setHistory] = useState<ImageData[]>([])
+  const colorRef = useRef(color)
+  const sizeRef = useRef(size)
+  colorRef.current = color
+  sizeRef.current = size
 
   useEffect(() => {
     const c = canvasRef.current
     if (!c) return
-    const ctx = c.getContext('2d')
-    if (!ctx) return
-    ctx.fillStyle = '#0f172a'
+    const ctx = c.getContext('2d')!
+    ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, c.width, c.height)
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+
+    const pos = (e: PointerEvent) => {
+      const r = c.getBoundingClientRect()
+      return {
+        x: ((e.clientX - r.left) / r.width) * c.width,
+        y: ((e.clientY - r.top) / r.height) * c.height,
+      }
+    }
+
+    const down = (e: PointerEvent) => {
+      drawing.current = true
+      c.setPointerCapture(e.pointerId)
+      setHistory((h) => [...h, ctx.getImageData(0, 0, c.width, c.height)].slice(-30))
+      const p = pos(e)
+      ctx.beginPath()
+      ctx.moveTo(p.x, p.y)
+    }
+    const move = (e: PointerEvent) => {
+      if (!drawing.current) return
+      const p = pos(e)
+      ctx.strokeStyle = colorRef.current
+      ctx.lineWidth = sizeRef.current
+      ctx.lineTo(p.x, p.y)
+      ctx.stroke()
+    }
+    const up = () => {
+      drawing.current = false
+    }
+
+    c.addEventListener('pointerdown', down)
+    c.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    return () => {
+      c.removeEventListener('pointerdown', down)
+      c.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
   }, [])
 
-  function pos(e: React.MouseEvent | React.TouchEvent) {
-    const c = canvasRef.current!
-    const r = c.getBoundingClientRect()
-    const src = 'touches' in e ? e.touches[0]! : e
-    return { x: ((src.clientX - r.left) / r.width) * c.width, y: ((src.clientY - r.top) / r.height) * c.height }
-  }
-
-  function start(e: React.MouseEvent | React.TouchEvent) {
-    e.preventDefault()
-    drawing.current = true
-    const ctx = canvasRef.current!.getContext('2d')!
-    const p = pos(e)
-    ctx.beginPath()
-    ctx.moveTo(p.x, p.y)
-  }
-
-  function move(e: React.MouseEvent | React.TouchEvent) {
-    if (!drawing.current) return
-    e.preventDefault()
-    const ctx = canvasRef.current!.getContext('2d')!
-    const p = pos(e)
-    ctx.lineWidth = size
-    ctx.lineCap = 'round'
-    ctx.strokeStyle = tool === 'eraser' ? '#0f172a' : color
-    ctx.lineTo(p.x, p.y)
-    ctx.stroke()
-  }
-
-  function end() {
-    drawing.current = false
+  function undo() {
+    const c = canvasRef.current
+    const ctx = c?.getContext('2d')
+    if (!c || !ctx || !history.length) return
+    const prev = history[history.length - 1]!
+    setHistory((h) => h.slice(0, -1))
+    ctx.putImageData(prev, 0, 0)
   }
 
   function clear() {
-    const c = canvasRef.current!
-    const ctx = c.getContext('2d')!
-    ctx.fillStyle = '#0f172a'
+    const c = canvasRef.current
+    const ctx = c?.getContext('2d')
+    if (!c || !ctx) return
+    setHistory((h) => [...h, ctx.getImageData(0, 0, c.width, c.height)].slice(-30))
+    ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, c.width, c.height)
   }
 
+  function download() {
+    const c = canvasRef.current
+    if (!c) return
+    const a = document.createElement('a')
+    a.href = c.toDataURL('image/png')
+    a.download = 'whiteboard.png'
+    a.click()
+  }
+
+  const colors = useMemo(() => ['#1a2e28', '#f0734a', '#2a9d8f', '#d6406a', '#3b82a0', '#ffffff'], [])
+
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-        <label className="label">粗細 {size}</label>
-        <input type="range" min={1} max={24} value={size} onChange={(e) => setSize(Number(e.target.value))} />
-        <button type="button" className={`btn sm ${tool === 'pen' ? 'accent' : 'ghost'}`} onClick={() => setTool('pen')}>
-          筆
-        </button>
-        <button type="button" className={`btn sm ${tool === 'eraser' ? 'accent' : 'ghost'}`} onClick={() => setTool('eraser')}>
-          擦布
-        </button>
-        <button type="button" className="btn sm danger" onClick={clear}>
-          清空
-        </button>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row">
+          <button type="button" className="btn ghost sm" onClick={undo}>
+            復原
+          </button>
+          <button type="button" className="btn ghost sm" onClick={clear}>
+            清除
+          </button>
+          <button type="button" className="btn accent sm" onClick={download}>
+            下載 PNG
+          </button>
+        </div>
+      }
+    >
+      <div className="panel stack">
+        <div className="row">
+          {colors.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className="btn sm"
+              style={{
+                background: c,
+                width: 36,
+                height: 36,
+                border: color === c ? '2px solid var(--ink)' : '1px solid var(--line)',
+              }}
+              onClick={() => setColor(c)}
+            />
+          ))}
+          <label className="label" style={{ margin: 0 }}>
+            粗細 {size}
+          </label>
+          <input
+            className="field"
+            type="range"
+            min={1}
+            max={24}
+            value={size}
+            onChange={(e) => setSize(+e.target.value)}
+            style={{ width: 140 }}
+          />
+        </div>
+        <canvas
+          ref={canvasRef}
+          width={1000}
+          height={560}
+          style={{
+            width: '100%',
+            touchAction: 'none',
+            cursor: 'crosshair',
+            borderRadius: 12,
+            border: '1px solid var(--line)',
+            background: '#fff',
+          }}
+        />
+        <p className="muted">本機畫布；可復原、調整筆刷與匯出 PNG。</p>
       </div>
-      <canvas
-        ref={canvasRef}
-        width={900}
-        height={480}
-        className="panel"
-        style={{ width: '100%', touchAction: 'none', cursor: 'crosshair' }}
-        onMouseDown={start}
-        onMouseMove={move}
-        onMouseUp={end}
-        onMouseLeave={end}
-        onTouchStart={start}
-        onTouchMove={move}
-        onTouchEnd={end}
-      />
     </ProjectShell>
   )
 }

@@ -10,7 +10,7 @@ type Recipe = {
   id: string
   title: string
   category: string
-  ingredients: string[]
+  ingredients: string[] | string
   steps: string
   time: number
   baseServings: number
@@ -41,12 +41,13 @@ export default function Page() {
 
   const filtered = useMemo(() => {
     return recipes.filter((r) => {
-      if (catFilter !== 'all' && r.category !== catFilter) return false
+      if (catFilter !== 'all' && (r.category || '其他') !== catFilter) return false
+      const ings = Array.isArray(r.ingredients) ? r.ingredients : parseIngredients(String(r.ingredients ?? ''))
       const q = search.trim().toLowerCase()
       if (
         q &&
         !r.title.toLowerCase().includes(q) &&
-        !r.ingredients.some((i) => i.toLowerCase().includes(q)) &&
+        !ings.some((i) => i.toLowerCase().includes(q)) &&
         !r.steps.toLowerCase().includes(q)
       )
         return false
@@ -55,6 +56,11 @@ export default function Page() {
   }, [recipes, catFilter, search])
 
   const current = recipes.find((r) => r.id === active)
+  const currentIngredients = current
+    ? Array.isArray(current.ingredients)
+      ? current.ingredients
+      : parseIngredients(String(current.ingredients ?? ''))
+    : []
 
   function scaleLine(line: string, factor: number) {
     return line.replace(/(\d+(?:\.\d+)?)/, (m) => {
@@ -85,13 +91,21 @@ export default function Page() {
 
   function openRecipe(id: string) {
     const r = recipes.find((x) => x.id === id)
+    if (!r) return
+    // 舊資料 ingredients 可能是字串
+    const ingredients = Array.isArray(r.ingredients)
+      ? r.ingredients
+      : parseIngredients(String(r.ingredients ?? ''))
+    if (!Array.isArray(r.ingredients)) {
+      setRecipes(recipes.map((x) => (x.id === id ? { ...x, ingredients, baseServings: x.baseServings || 2 } : x)))
+    }
     setActive(id)
-    setServings(r?.baseServings ?? 2)
+    setServings(r.baseServings || 2)
     setChecked({})
   }
 
-  const factor = current ? servings / Math.max(1, current.baseServings) : 1
-  const scaled = current?.ingredients.map((line) => scaleLine(line, factor)) ?? []
+  const factor = current ? servings / Math.max(1, current.baseServings || 2) : 1
+  const scaled = currentIngredients.map((line) => scaleLine(line, factor))
 
   return (
     <ProjectShell meta={meta}>
@@ -168,7 +182,7 @@ export default function Page() {
                 <div className="stack" style={{ flex: 1, gap: 2 }}>
                   <strong>{r.title}</strong>
                   <span className="muted">
-                    {r.category} · {r.baseServings} 人份
+                    {r.category || '其他'} · {r.baseServings || 2} 人份
                   </span>
                 </div>
                 <span className="tag">{r.time} 分</span>
