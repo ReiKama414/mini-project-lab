@@ -13,44 +13,110 @@ const TABLE: Row[] = [
   { id: 3, name: 'Cara', role: 'user', score: 88 },
   { id: 4, name: 'Dan', role: 'editor', score: 64 },
   { id: 5, name: 'Eve', role: 'admin', score: 95 },
+  { id: 6, name: 'Finn', role: 'editor', score: 77 },
+  { id: 7, name: 'Gina', role: 'user', score: 55 },
 ]
+
+const EXAMPLES = [
+  "SELECT * FROM users WHERE role = 'admin'",
+  'SELECT name, score FROM users WHERE score > 80 ORDER BY score DESC',
+  "SELECT * FROM users WHERE role = 'user' ORDER BY name ASC LIMIT 2",
+  'SELECT id, name FROM users WHERE score >= 70 AND score < 90',
+]
+
+function getVal(row: Row, col: string) {
+  return (row as Record<string, string | number>)[col.toLowerCase()]
+}
 
 function runSelect(sql: string): { cols: string[]; rows: Record<string, string | number>[]; error?: string } {
   const q = sql.trim().replace(/;$/, '')
-  const m = q.match(/^select\s+(.+?)\s+from\s+users(?:\s+where\s+(.+))?$/i)
-  if (!m) return { cols: [], rows: [], error: '僅支援：SELECT <cols> FROM users [WHERE col = value | col > n]' }
+  const m = q.match(
+    /^select\s+(.+?)\s+from\s+users(?:\s+where\s+(.+?))?(?:\s+order\s+by\s+(\w+)(?:\s+(asc|desc))?)?(?:\s+limit\s+(\d+))?$/i,
+  )
+  if (!m) {
+    return {
+      cols: [],
+      rows: [],
+      error: '支援：SELECT cols FROM users [WHERE ...] [ORDER BY col ASC|DESC] [LIMIT n]',
+    }
+  }
+
   const colPart = m[1]!.trim()
   const where = m[2]?.trim()
-  let rows = [...TABLE] as Row[]
+  const orderCol = m[3]?.toLowerCase()
+  const orderDir = (m[4] || 'asc').toLowerCase()
+  const limit = m[5] ? Number(m[5]) : undefined
+
+  let rows = [...TABLE]
+
   if (where) {
-    const eq = where.match(/^(\w+)\s*=\s*'?([^']+)'?$/i)
-    const gt = where.match(/^(\w+)\s*>\s*(\d+)$/i)
-    const lt = where.match(/^(\w+)\s*<\s*(\d+)$/i)
-    if (eq) {
-      const [, col, val] = eq
-      rows = rows.filter((r) => String((r as Record<string, unknown>)[col!.toLowerCase()]).toLowerCase() === val!.toLowerCase())
-    } else if (gt) {
-      const [, col, val] = gt
-      rows = rows.filter((r) => Number((r as Record<string, unknown>)[col!.toLowerCase()]) > Number(val))
-    } else if (lt) {
-      const [, col, val] = lt
-      rows = rows.filter((r) => Number((r as Record<string, unknown>)[col!.toLowerCase()]) < Number(val))
-    } else return { cols: [], rows: [], error: 'WHERE 僅支援 = / > / <' }
+    const parts = where.split(/\s+and\s+/i)
+    for (const part of parts) {
+      const eq = part.match(/^(\w+)\s*=\s*'?([^']+)'?$/i)
+      const cmp = part.match(/^(\w+)\s*(>=|<=|>|<)\s*(\d+)$/i)
+      const like = part.match(/^(\w+)\s+like\s+'%?([^%']+)%?'$/i)
+      if (eq) {
+        const [, col, val] = eq
+        rows = rows.filter((r) => String(getVal(r, col!)).toLowerCase() === val!.toLowerCase())
+      } else if (cmp) {
+        const [, col, op, val] = cmp
+        const n = Number(val)
+        rows = rows.filter((r) => {
+          const v = Number(getVal(r, col!))
+          if (op === '>') return v > n
+          if (op === '<') return v < n
+          if (op === '>=') return v >= n
+          return v <= n
+        })
+      } else if (like) {
+        const [, col, val] = like
+        rows = rows.filter((r) => String(getVal(r, col!)).toLowerCase().includes(val!.toLowerCase()))
+      } else {
+        return { cols: [], rows: [], error: `無法解析 WHERE：${part}` }
+      }
+    }
   }
+
+  if (orderCol) {
+    rows.sort((a, b) => {
+      const av = getVal(a, orderCol)
+      const bv = getVal(b, orderCol)
+      if (typeof av === 'number' && typeof bv === 'number') return orderDir === 'desc' ? bv - av : av - bv
+      return orderDir === 'desc'
+        ? String(bv).localeCompare(String(av))
+        : String(av).localeCompare(String(bv))
+    })
+  }
+
+  if (limit !== undefined) rows = rows.slice(0, limit)
+
   const cols = colPart === '*' ? ['id', 'name', 'role', 'score'] : colPart.split(',').map((c) => c.trim().toLowerCase())
+  for (const c of cols) {
+    if (!['id', 'name', 'role', 'score'].includes(c)) {
+      return { cols: [], rows: [], error: `未知欄位：${c}` }
+    }
+  }
+
   return {
     cols,
-    rows: rows.map((r) => Object.fromEntries(cols.map((c) => [c, (r as Record<string, string | number>)[c]]))),
+    rows: rows.map((r) => Object.fromEntries(cols.map((c) => [c, getVal(r, c)!]))),
   }
 }
 
 export default function Page() {
-  const [sql, setSql] = useLocalStorage('lab:sql-playground', "SELECT * FROM users WHERE role = 'admin'")
+  const [sql, setSql] = useLocalStorage('lab:sql-playground', EXAMPLES[0]!)
   const [result, setResult] = useState<ReturnType<typeof runSelect> | null>(null)
   const preview = useMemo(() => TABLE, [])
 
   return (
     <ProjectShell meta={meta}>
+      <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+        {EXAMPLES.map((ex) => (
+          <button key={ex} type="button" className="btn sm ghost" onClick={() => setSql(ex)}>
+            {ex.slice(0, 28)}…
+          </button>
+        ))}
+      </div>
       <div className="grid-2">
         <div className="panel stack">
           <div className="label">記憶體資料表 users</div>
@@ -75,32 +141,38 @@ export default function Page() {
               ))}
             </tbody>
           </table>
+          <p className="muted" style={{ fontSize: 12 }}>
+            WHERE 支援 = / &gt; / &lt; / &gt;= / &lt;= / LIKE，以及 AND；另支援 ORDER BY、LIMIT
+          </p>
         </div>
         <div className="panel stack">
-          <textarea className="field mono" rows={4} value={sql} onChange={(e) => setSql(e.target.value)} />
+          <textarea className="field mono" rows={5} value={sql} onChange={(e) => setSql(e.target.value)} />
           <button type="button" className="btn accent" onClick={() => setResult(runSelect(sql))}>
             執行
           </button>
-          {result?.error && <p style={{ color: '#f87171' }}>{result.error}</p>}
+          {result?.error && <p style={{ color: 'var(--rose)' }}>{result.error}</p>}
           {result && !result.error && (
-            <table style={{ width: '100%', fontSize: 13 }}>
-              <thead>
-                <tr>
-                  {result.cols.map((c) => (
-                    <th key={c}>{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {result.rows.map((r, i) => (
-                  <tr key={i}>
+            <>
+              <div className="muted">{result.rows.length} rows</div>
+              <table style={{ width: '100%', fontSize: 13 }}>
+                <thead>
+                  <tr>
                     {result.cols.map((c) => (
-                      <td key={c}>{r[c]}</td>
+                      <th key={c}>{c}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {result.rows.map((r, i) => (
+                    <tr key={i}>
+                      {result.cols.map((c) => (
+                        <td key={c}>{r[c]}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
       </div>

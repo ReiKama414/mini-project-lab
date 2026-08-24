@@ -90,10 +90,12 @@ function highlight(text: string, query: string) {
     .map((t) => t.trim())
     .filter((t) => t.length > 1)
   if (!tokens.length) return text
-  const re = new RegExp(`(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi')
+  const esc = tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const re = new RegExp(`(${esc.join('|')})`, 'gi')
+  const hit = new RegExp(`^(${esc.join('|')})$`, 'i')
   const parts = text.split(re)
   return parts.map((p, i) =>
-    re.test(p) ? (
+    hit.test(p) ? (
       <mark key={i} style={{ background: '#fef08a', padding: '0 2px' }}>
         {p}
       </mark>
