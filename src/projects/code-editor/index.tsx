@@ -1,76 +1,122 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 
 const meta = getProject('code-editor')!
 
-const SAMPLES: Record<string, { html: string; css: string; js: string }> = {
+type Tab = 'html' | 'css' | 'js'
+
+const samples: Record<string, { html: string; css: string; js: string }> = {
   hello: {
-    html: '<h1 id="title">Hello Lab</h1>\n<button id="btn">點我</button>',
-    css: 'body{font-family:system-ui;padding:24px}\nh1{color:#f0734a}\nbutton{padding:8px 14px;border-radius:8px;border:0;background:#1a2e28;color:#fff}',
-    js: 'document.getElementById("btn").onclick=()=>{\n  document.getElementById("title").textContent="Clicked!"\n}',
+    html: `<div class="wrap">
+  <h1>Hello Lab</h1>
+  <button id="btn">換色</button>
+  <p id="out"></p>
+</div>`,
+    css: `body { margin: 0; font-family: Georgia, serif; background: #0f172a; color: #e2e8f0; }
+.wrap { padding: 32px; }
+button { padding: 8px 16px; border-radius: 8px; border: 0; cursor: pointer; }`,
+    js: `const btn = document.getElementById('btn')
+const out = document.getElementById('out')
+btn?.addEventListener('click', () => {
+  document.body.style.background = '#134e4a'
+  out.textContent = '已執行 · ' + new Date().toLocaleTimeString()
+})`,
   },
   card: {
-    html: '<div class="card"><h2>Card</h2><p>預覽即時更新</p></div>',
-    css: '.card{max-width:280px;padding:20px;border-radius:16px;background:linear-gradient(135deg,#d4f0eb,#ffe0d4);box-shadow:0 8px 24px rgba(0,0,0,.08)}',
-    js: '',
+    html: `<article class="card">
+  <h2>產品卡</h2>
+  <p>瀏覽器即時預覽範例</p>
+  <button>了解更多</button>
+</article>`,
+    css: `body { display:grid; place-items:center; min-height:100vh; margin:0; background:#f3f0e8; font-family:system-ui; }
+.card { background:#fff; padding:24px; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.08); width:280px; }
+button { background:#f0734a; color:#fff; border:0; padding:10px 14px; border-radius:8px; }`,
+    js: `document.querySelector('button')?.addEventListener('click', () => alert('Demo CTA'))`,
+  },
+  counter: {
+    html: `<div style="padding:24px;font-family:monospace">
+  <h1>Counter</h1>
+  <p id="n">0</p>
+  <button id="inc">+1</button>
+</div>`,
+    css: `body{background:#1a2e28;color:#fff} button{padding:8px 12px}`,
+    js: `let n=0; const el=document.getElementById('n');
+document.getElementById('inc')?.addEventListener('click',()=>{ n++; el.textContent=String(n) })`,
   },
 }
 
 export default function Page() {
-  const [tab, setTab] = useLocalStorage<'html' | 'css' | 'js'>('lab:code-editor:tab', 'html')
-  const [html, setHtml] = useLocalStorage('lab:code-editor:html', SAMPLES.hello!.html)
-  const [css, setCss] = useLocalStorage('lab:code-editor:css', SAMPLES.hello!.css)
-  const [js, setJs] = useLocalStorage('lab:code-editor:js', SAMPLES.hello!.js)
+  const [tab, setTab] = useLocalStorage<Tab>('lab:code-editor:tab', 'html')
+  const [code, setCode] = useLocalStorage('lab:code-editor:code', samples.hello)
+  const [live, setLive] = useLocalStorage('lab:code-editor:live', true)
+  const [runKey, setRunKey] = useState(0)
+  const [sample, setSample] = useState('hello')
+  const [frozenDoc, setFrozenDoc] = useState('')
 
-  const srcDoc = useMemo(
-    () => `<!doctype html><html><head><style>${css}</style></head><body>${html}<script>${js}<\\/script></body></html>`,
-    [html, css, js],
+  const liveDoc = useMemo(
+    () =>
+      `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>${code.css}</style></head><body>${code.html}<script>${code.js}<\/script></body></html>`,
+    [code],
   )
 
-  const value = tab === 'html' ? html : tab === 'css' ? css : js
-  const setValue = tab === 'html' ? setHtml : tab === 'css' ? setCss : setJs
+  const srcDoc = live ? liveDoc : frozenDoc || liveDoc
+
+  function run() {
+    setFrozenDoc(liveDoc)
+    setRunKey((k) => k + 1)
+  }
 
   return (
     <ProjectShell meta={meta}>
-      <div className="row" style={{ marginBottom: 12 }}>
-        {(['html', 'css', 'js'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            className={`btn sm ${tab === t ? 'accent' : 'ghost'}`}
-            onClick={() => setTab(t)}
-          >
+      <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+        {(['html', 'css', 'js'] as Tab[]).map((t) => (
+          <button key={t} type="button" className={`btn sm ${tab === t ? 'accent' : 'ghost'}`} onClick={() => setTab(t)}>
             {t.toUpperCase()}
           </button>
         ))}
-        {Object.entries(SAMPLES).map(([k, s]) => (
-          <button
-            key={k}
-            type="button"
-            className="btn ghost sm"
-            onClick={() => {
-              setHtml(s.html)
-              setCss(s.css)
-              setJs(s.js)
-            }}
-          >
-            範例：{k}
+        <select
+          className="field"
+          value={sample}
+          style={{ width: 140 }}
+          onChange={(e) => {
+            const key = e.target.value
+            setSample(key)
+            setCode(samples[key]!)
+            setFrozenDoc('')
+            setRunKey((k) => k + 1)
+          }}
+        >
+          <option value="hello">範例：Hello</option>
+          <option value="card">範例：Card</option>
+          <option value="counter">範例：Counter</option>
+        </select>
+        <button type="button" className={`btn sm ${live ? 'teal' : 'ghost'}`} onClick={() => setLive((v) => !v)}>
+          {live ? '即時預覽 ON' : '即時預覽 OFF'}
+        </button>
+        {!live && (
+          <button type="button" className="btn accent sm" onClick={run}>
+            Run
           </button>
-        ))}
+        )}
+        <span className="muted" style={{ fontSize: 12 }}>
+          run #{runKey}
+        </span>
       </div>
       <div className="grid-2">
         <textarea
-          className="field panel mono"
-          style={{ minHeight: 380 }}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          className="field mono panel"
+          style={{ minHeight: 360, fontSize: 13 }}
+          value={code[tab]}
+          onChange={(e) => setCode((c) => ({ ...c, [tab]: e.target.value }))}
+          spellCheck={false}
         />
         <iframe
+          key={live ? liveDoc : `${runKey}-${frozenDoc.slice(0, 20)}`}
           title="preview"
           className="panel"
-          style={{ minHeight: 380, width: '100%', background: '#fff', border: 0 }}
+          style={{ minHeight: 360, width: '100%', background: '#fff', border: 0 }}
           srcDoc={srcDoc}
           sandbox="allow-scripts"
         />

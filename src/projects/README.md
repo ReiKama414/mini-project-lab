@@ -1,4 +1,4 @@
-# Projects guide (for Cursor)
+# Projects guide
 
 ## Source of truth
 - Metadata: `registry.ts`

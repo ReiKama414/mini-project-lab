@@ -1,65 +1,129 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid } from '../../lib/utils'
 
 const meta = getProject('db-schema-viz')!
 
-type Col = { name: string; type: string; pk?: boolean }
+type Col = { id: string; name: string; type: string; pk?: boolean; fk?: string }
 type Table = { id: string; name: string; cols: Col[]; x: number; y: number }
 
 export default function Page() {
   const [tables, setTables] = useLocalStorage<Table[]>('lab:db-schema-viz', [
     {
-      id: '1',
+      id: 'users',
       name: 'users',
       x: 40,
       y: 40,
       cols: [
-        { name: 'id', type: 'uuid', pk: true },
-        { name: 'email', type: 'text' },
-        { name: 'created_at', type: 'timestamptz' },
+        { id: 'c1', name: 'id', type: 'uuid', pk: true },
+        { id: 'c2', name: 'email', type: 'text' },
+        { id: 'c3', name: 'created_at', type: 'timestamptz' },
       ],
     },
     {
-      id: '2',
+      id: 'orders',
       name: 'orders',
-      x: 320,
+      x: 340,
       y: 80,
       cols: [
-        { name: 'id', type: 'uuid', pk: true },
-        { name: 'user_id', type: 'uuid' },
-        { name: 'total', type: 'numeric' },
+        { id: 'c4', name: 'id', type: 'uuid', pk: true },
+        { id: 'c5', name: 'user_id', type: 'uuid', fk: 'users.id' },
+        { id: 'c6', name: 'total', type: 'numeric' },
+      ],
+    },
+    {
+      id: 'items',
+      name: 'order_items',
+      x: 640,
+      y: 140,
+      cols: [
+        { id: 'c7', name: 'id', type: 'uuid', pk: true },
+        { id: 'c8', name: 'order_id', type: 'uuid', fk: 'orders.id' },
+        { id: 'c9', name: 'qty', type: 'int' },
       ],
     },
   ])
 
+  const relations = useMemo(() => {
+    const lines: { from: Table; to: Table; label: string }[] = []
+    for (const t of tables) {
+      for (const c of t.cols) {
+        if (!c.fk) continue
+        const [refTable] = c.fk.split('.')
+        const target = tables.find((x) => x.name === refTable || x.id === refTable)
+        if (target) lines.push({ from: t, to: target, label: `${c.name} → ${c.fk}` })
+      }
+    }
+    return lines
+  }, [tables])
+
+  function addTable() {
+    const id = uid('t')
+    setTables((xs) => [
+      ...xs,
+      {
+        id,
+        name: `table_${xs.length + 1}`,
+        x: 60 + (xs.length % 4) * 40,
+        y: 200 + xs.length * 12,
+        cols: [{ id: uid('c'), name: 'id', type: 'int', pk: true }],
+      },
+    ])
+  }
+
+  function updateCol(tableId: string, colId: string, patch: Partial<Col>) {
+    setTables((xs) =>
+      xs.map((t) => (t.id === tableId ? { ...t, cols: t.cols.map((c) => (c.id === colId ? { ...c, ...patch } : c)) } : t)),
+    )
+  }
+
   return (
-    <ProjectShell meta={meta}>
-      <div className="row" style={{ marginBottom: 8 }}>
-        <button
-          type="button"
-          className="btn accent"
-          onClick={() =>
-            setTables((xs) => [
-              ...xs,
-              { id: uid('t'), name: `table_${xs.length + 1}`, x: 80 + xs.length * 24, y: 160, cols: [{ name: 'id', type: 'int', pk: true }] },
-            ])
-          }
-        >
+    <ProjectShell
+      meta={meta}
+      actions={
+        <button type="button" className="btn accent sm" onClick={addTable}>
           新增資料表
         </button>
-      </div>
-      <div className="panel" style={{ position: 'relative', minHeight: 420, background: 'repeating-linear-gradient(0deg,#1e293b 0,#1e293b 1px,transparent 1px,transparent 24px),repeating-linear-gradient(90deg,#1e293b 0,#1e293b 1px,transparent 1px,transparent 24px)' }}>
+      }
+    >
+      <div
+        className="panel"
+        style={{
+          position: 'relative',
+          minHeight: 480,
+          overflow: 'auto',
+          background:
+            'repeating-linear-gradient(0deg, var(--line) 0, var(--line) 1px, transparent 1px, transparent 24px), repeating-linear-gradient(90deg, var(--line) 0, var(--line) 1px, transparent 1px, transparent 24px)',
+        }}
+      >
+        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+          {relations.map((r, i) => (
+            <g key={i}>
+              <line
+                x1={r.from.x}
+                y1={r.from.y + 50}
+                x2={r.to.x + 200}
+                y2={r.to.y + 50}
+                stroke="var(--sky)"
+                strokeWidth={2}
+                strokeDasharray="6 4"
+              />
+              <title>{r.label}</title>
+            </g>
+          ))}
+        </svg>
+
         {tables.map((t) => (
           <div
             key={t.id}
             className="panel"
-            style={{ position: 'absolute', left: t.x, top: t.y, width: 200, padding: 0, overflow: 'hidden' }}
+            style={{ position: 'absolute', left: t.x, top: t.y, width: 220, padding: 0, overflow: 'hidden', zIndex: 1 }}
           >
-            <div className="row" style={{ background: '#0ea5e9', color: '#fff', padding: '8px 10px', justifyContent: 'space-between' }}>
+            <div className="row" style={{ background: 'var(--ink)', color: '#fff', padding: '8px 10px', justifyContent: 'space-between' }}>
               <input
-                style={{ background: 'transparent', border: 0, color: '#fff', fontWeight: 700, width: 120 }}
+                style={{ background: 'transparent', border: 0, color: '#fff', fontWeight: 700, width: 130 }}
                 value={t.name}
                 onChange={(e) => setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)))}
               />
@@ -67,13 +131,51 @@ export default function Page() {
                 ×
               </button>
             </div>
+            <div className="row" style={{ padding: '4px 8px', gap: 4 }}>
+              <input
+                className="field"
+                type="number"
+                title="x"
+                value={t.x}
+                onChange={(e) => setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, x: Number(e.target.value) } : x)))}
+                style={{ width: 70, padding: 4 }}
+              />
+              <input
+                className="field"
+                type="number"
+                title="y"
+                value={t.y}
+                onChange={(e) => setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, y: Number(e.target.value) } : x)))}
+                style={{ width: 70, padding: 4 }}
+              />
+            </div>
             <ul className="list" style={{ margin: 0 }}>
-              {t.cols.map((c, i) => (
-                <li key={i} className="list-item row" style={{ justifyContent: 'space-between', padding: '6px 10px' }}>
-                  <span>
-                    {c.pk && <span className="tag">PK</span>} {c.name}
-                  </span>
-                  <span className="mono muted">{c.type}</span>
+              {t.cols.map((c) => (
+                <li key={c.id} className="list-item stack" style={{ padding: '6px 10px', gap: 4 }}>
+                  <div className="row">
+                    {c.pk && <span className="tag">PK</span>}
+                    {c.fk && <span className="tag">FK</span>}
+                    <input
+                      className="field"
+                      value={c.name}
+                      onChange={(e) => updateCol(t.id, c.id, { name: e.target.value })}
+                      style={{ flex: 1, padding: 4 }}
+                    />
+                  </div>
+                  <div className="row">
+                    <select className="field" value={c.type} onChange={(e) => updateCol(t.id, c.id, { type: e.target.value })} style={{ flex: 1, padding: 4 }}>
+                      {['uuid', 'text', 'int', 'numeric', 'bool', 'timestamptz'].map((ty) => (
+                        <option key={ty}>{ty}</option>
+                      ))}
+                    </select>
+                    <input
+                      className="field mono"
+                      placeholder="fk table.col"
+                      value={c.fk || ''}
+                      onChange={(e) => updateCol(t.id, c.id, { fk: e.target.value || undefined })}
+                      style={{ flex: 1, padding: 4, fontSize: 11 }}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -83,7 +185,7 @@ export default function Page() {
               style={{ width: '100%' }}
               onClick={() =>
                 setTables((xs) =>
-                  xs.map((x) => (x.id === t.id ? { ...x, cols: [...x.cols, { name: 'col', type: 'text' }] } : x)),
+                  xs.map((x) => (x.id === t.id ? { ...x, cols: [...x.cols, { id: uid('c'), name: 'col', type: 'text' }] } : x)),
                 )
               }
             >
@@ -91,12 +193,10 @@ export default function Page() {
             </button>
           </div>
         ))}
-        <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none', width: '100%', height: '100%' }}>
-          {tables.length >= 2 && (
-            <line x1={tables[0]!.x + 200} y1={tables[0]!.y + 60} x2={tables[1]!.x} y2={tables[1]!.y + 60} stroke="#64748b" strokeWidth={2} strokeDasharray="6 4" />
-          )}
-        </svg>
       </div>
+      <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+        關聯線依欄位 FK（例如 users.id）自動繪製 · 目前 {relations.length} 條
+      </p>
     </ProjectShell>
   )
 }
