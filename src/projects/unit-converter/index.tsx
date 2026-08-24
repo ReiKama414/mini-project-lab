@@ -1,0 +1,181 @@
+import { getProject } from '../registry'
+import { ProjectShell } from '../../components/ProjectShell'
+import { useMemo, useState } from 'react'
+import { copyText } from '../../lib/utils'
+
+const meta = getProject('unit-converter')!
+
+type Category = 'length' | 'weight' | 'temp' | 'volume' | 'data'
+
+type Unit = {
+  id: string
+  label: string
+  toBase: (n: number) => number
+  fromBase: (n: number) => number
+}
+
+const UNITS: Record<Category, Unit[]> = {
+  length: [
+    { id: 'm', label: '公尺 (m)', toBase: (n) => n, fromBase: (n) => n },
+    { id: 'km', label: '公里 (km)', toBase: (n) => n * 1000, fromBase: (n) => n / 1000 },
+    { id: 'cm', label: '公分 (cm)', toBase: (n) => n / 100, fromBase: (n) => n * 100 },
+    { id: 'mm', label: '毫米 (mm)', toBase: (n) => n / 1000, fromBase: (n) => n * 1000 },
+    { id: 'mi', label: '英里 (mi)', toBase: (n) => n * 1609.344, fromBase: (n) => n / 1609.344 },
+    { id: 'yd', label: '碼 (yd)', toBase: (n) => n * 0.9144, fromBase: (n) => n / 0.9144 },
+    { id: 'ft', label: '英尺 (ft)', toBase: (n) => n * 0.3048, fromBase: (n) => n / 0.3048 },
+    { id: 'in', label: '英寸 (in)', toBase: (n) => n * 0.0254, fromBase: (n) => n / 0.0254 },
+  ],
+  weight: [
+    { id: 'kg', label: '公斤 (kg)', toBase: (n) => n, fromBase: (n) => n },
+    { id: 'g', label: '公克 (g)', toBase: (n) => n / 1000, fromBase: (n) => n * 1000 },
+    { id: 'mg', label: '毫克 (mg)', toBase: (n) => n / 1e6, fromBase: (n) => n * 1e6 },
+    { id: 'lb', label: '磅 (lb)', toBase: (n) => n * 0.45359237, fromBase: (n) => n / 0.45359237 },
+    { id: 'oz', label: '盎司 (oz)', toBase: (n) => n * 0.0283495231, fromBase: (n) => n / 0.0283495231 },
+    { id: 'st', label: '英石 (st)', toBase: (n) => n * 6.35029318, fromBase: (n) => n / 6.35029318 },
+  ],
+  temp: [
+    { id: 'c', label: '攝氏 (°C)', toBase: (n) => n, fromBase: (n) => n },
+    { id: 'f', label: '華氏 (°F)', toBase: (n) => ((n - 32) * 5) / 9, fromBase: (n) => (n * 9) / 5 + 32 },
+    { id: 'k', label: '克氏 (K)', toBase: (n) => n - 273.15, fromBase: (n) => n + 273.15 },
+  ],
+  volume: [
+    { id: 'l', label: '公升 (L)', toBase: (n) => n, fromBase: (n) => n },
+    { id: 'ml', label: '毫升 (mL)', toBase: (n) => n / 1000, fromBase: (n) => n * 1000 },
+    { id: 'gal', label: '美制加侖', toBase: (n) => n * 3.785411784, fromBase: (n) => n / 3.785411784 },
+    { id: 'cup', label: '美制杯', toBase: (n) => n * 0.2365882365, fromBase: (n) => n / 0.2365882365 },
+    { id: 'tbsp', label: '湯匙', toBase: (n) => n * 0.0147867648, fromBase: (n) => n / 0.0147867648 },
+  ],
+  data: [
+    { id: 'b', label: 'Byte', toBase: (n) => n, fromBase: (n) => n },
+    { id: 'kb', label: 'KB (10³)', toBase: (n) => n * 1e3, fromBase: (n) => n / 1e3 },
+    { id: 'mb', label: 'MB (10⁶)', toBase: (n) => n * 1e6, fromBase: (n) => n / 1e6 },
+    { id: 'gb', label: 'GB (10⁹)', toBase: (n) => n * 1e9, fromBase: (n) => n / 1e9 },
+    { id: 'kib', label: 'KiB (2¹⁰)', toBase: (n) => n * 1024, fromBase: (n) => n / 1024 },
+    { id: 'mib', label: 'MiB (2²⁰)', toBase: (n) => n * 1024 ** 2, fromBase: (n) => n / 1024 ** 2 },
+    { id: 'gib', label: 'GiB (2³⁰)', toBase: (n) => n * 1024 ** 3, fromBase: (n) => n / 1024 ** 3 },
+  ],
+}
+
+const CAT_LABEL: Record<Category, string> = {
+  length: '長度',
+  weight: '重量',
+  temp: '溫度',
+  volume: '容量',
+  data: '資料量',
+}
+
+export default function Page() {
+  const [cat, setCat] = useState<Category>('length')
+  const [from, setFrom] = useState('m')
+  const [to, setTo] = useState('km')
+  const [value, setValue] = useState(1)
+
+  const units = UNITS[cat]
+  const result = useMemo(() => {
+    const a = units.find((u) => u.id === from)
+    const b = units.find((u) => u.id === to)
+    if (!a || !b) return 0
+    return b.fromBase(a.toBase(value))
+  }, [units, from, to, value])
+
+  const allResults = useMemo(() => {
+    const a = units.find((u) => u.id === from)
+    if (!a) return []
+    const base = a.toBase(value)
+    return units.map((u) => ({ id: u.id, label: u.label, value: u.fromBase(base) }))
+  }, [units, from, value])
+
+  function changeCat(c: Category) {
+    setCat(c)
+    setFrom(UNITS[c][0]!.id)
+    setTo(UNITS[c][1]!.id)
+  }
+
+  return (
+    <ProjectShell meta={meta}>
+      <div className="grid-2">
+        <div className="panel stack">
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {(Object.keys(CAT_LABEL) as Category[]).map((id) => (
+              <button
+                key={id}
+                className={`btn sm ${cat === id ? 'accent' : 'ghost'}`}
+                onClick={() => changeCat(id)}
+              >
+                {CAT_LABEL[id]}
+              </button>
+            ))}
+          </div>
+          <label className="stack">
+            <span className="label">數值</span>
+            <input
+              className="field"
+              type="number"
+              value={value}
+              onChange={(e) => setValue(Number(e.target.value))}
+            />
+          </label>
+          <div className="grid-2">
+            <label className="stack">
+              <span className="label">從</span>
+              <select className="field" value={from} onChange={(e) => setFrom(e.target.value)}>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="stack">
+              <span className="label">到</span>
+              <select className="field" value={to} onChange={(e) => setTo(e.target.value)}>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <button
+            className="btn ghost sm"
+            onClick={() => {
+              setFrom(to)
+              setTo(from)
+            }}
+          >
+            ⇄ 交換單位
+          </button>
+          <div className="metric" style={{ fontSize: 28 }}>
+            {Number.isFinite(result)
+              ? result.toLocaleString(undefined, { maximumFractionDigits: 8 })
+              : '—'}
+          </div>
+          <button
+            className="btn ghost"
+            onClick={() =>
+              void copyText(
+                `${value} ${from} = ${result.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${to}`,
+              )
+            }
+          >
+            複製結果
+          </button>
+        </div>
+        <div className="panel stack">
+          <h3>同分類一覽</h3>
+          <ul className="list">
+            {allResults.map((r) => (
+              <li key={r.id} className="list-item">
+                <span style={{ flex: 1 }}>{r.label}</span>
+                <strong className="mono">
+                  {r.value.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </ProjectShell>
+  )
+}

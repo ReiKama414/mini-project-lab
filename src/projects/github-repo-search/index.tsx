@@ -1,0 +1,189 @@
+import { getProject } from '../registry'
+import { ProjectShell } from '../../components/ProjectShell'
+import { useState } from 'react'
+import { useLocalStorage } from '../../lib/storage'
+
+const meta = getProject('github-repo-search')!
+
+type Repo = {
+  id: number
+  full_name: string
+  html_url: string
+  description: string | null
+  stargazers_count: number
+  language: string | null
+  forks_count: number
+  open_issues_count: number
+  updated_at: string
+  license: { spdx_id: string } | null
+}
+
+const LANGS = ['', 'TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'Swift']
+const PER_PAGE = 10
+
+export default function Page() {
+  const [q, setQ] = useLocalStorage('lab:github-repo-search:q', 'react typescript')
+  const [language, setLanguage] = useLocalStorage('lab:github-repo-search:lang', '')
+  const [minStars, setMinStars] = useLocalStorage('lab:github-repo-search:stars', 100)
+  const [sort, setSort] = useLocalStorage<'stars' | 'updated' | 'forks'>(
+    'lab:github-repo-search:sort',
+    'stars',
+  )
+  const [repos, setRepos] = useState<Repo[]>([])
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  function buildQuery() {
+    const parts = [q.trim()]
+    if (language) parts.push(`language:${language}`)
+    if (minStars > 0) parts.push(`stars:>=${minStars}`)
+    return parts.filter(Boolean).join(' ')
+  }
+
+  async function search(nextPage = 1, append = false) {
+    const query = buildQuery()
+    if (!q.trim()) return
+    setLoading(true)
+    setError('')
+    try {
+      const url =
+        `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}` +
+        `&sort=${sort}&order=desc&per_page=${PER_PAGE}&page=${nextPage}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        if (res.status === 403) throw new Error('API 速率限制，請稍後再試')
+        throw new Error(`API 錯誤 ${res.status}`)
+      }
+      const data = (await res.json()) as { items: Repo[]; total_count: number }
+      setRepos((prev) => (append ? [...prev, ...data.items] : data.items))
+      setTotal(data.total_count)
+      setPage(nextPage)
+    } catch (e) {
+      if (!append) setRepos([])
+      setError(e instanceof Error ? e.message : '搜尋失敗')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const canLoadMore = repos.length < total && repos.length > 0
+
+  return (
+    <ProjectShell meta={meta}>
+      <div className="panel stack">
+        <div className="row">
+          <input
+            className="field"
+            style={{ flex: 1 }}
+            placeholder="搜尋關鍵字…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && search(1, false)}
+          />
+          <button className="btn accent" onClick={() => search(1, false)} disabled={loading}>
+            {loading && page === 1 ? '搜尋中…' : '搜尋'}
+          </button>
+        </div>
+
+        <div className="grid-3">
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="label">語言</span>
+            <select
+              className="field"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
+              {LANGS.map((l) => (
+                <option key={l || 'any'} value={l}>
+                  {l || '不限'}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="label">最少 ★</span>
+            <input
+              className="field"
+              type="number"
+              min={0}
+              value={minStars}
+              onChange={(e) => setMinStars(Number(e.target.value) || 0)}
+            />
+          </label>
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="label">排序</span>
+            <select
+              className="field"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as typeof sort)}
+            >
+              <option value="stars">Stars</option>
+              <option value="updated">最近更新</option>
+              <option value="forks">Forks</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="row">
+          <span className="muted">
+            查詢：<span className="mono">{buildQuery() || '—'}</span>
+          </span>
+          {total > 0 && (
+            <span className="tag" style={{ marginLeft: 'auto' }}>
+              約 {total.toLocaleString()} 筆 · 已顯示 {repos.length}
+            </span>
+          )}
+        </div>
+
+        {error && (
+          <p className="tag" style={{ background: '#d6406a', color: '#fff' }}>
+            {error}
+          </p>
+        )}
+
+        <ul className="list">
+          {repos.map((r) => (
+            <li
+              key={r.id}
+              className="list-item"
+              style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}
+            >
+              <div className="row">
+                <a href={r.html_url} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>
+                  {r.full_name}
+                </a>
+                <span className="tag">★ {r.stargazers_count.toLocaleString()}</span>
+              </div>
+              <p className="muted" style={{ margin: 0 }}>
+                {r.description || '（無描述）'}
+              </p>
+              <div className="row muted" style={{ fontSize: 13, flexWrap: 'wrap' }}>
+                <span>{r.language || '—'}</span>
+                <span>forks {r.forks_count}</span>
+                <span>issues {r.open_issues_count}</span>
+                {r.license && <span>{r.license.spdx_id}</span>}
+                <span>更新 {new Date(r.updated_at).toLocaleDateString('zh-TW')}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        {canLoadMore && (
+          <button
+            className="btn teal"
+            disabled={loading}
+            onClick={() => search(page + 1, true)}
+          >
+            {loading ? '載入中…' : '載入更多'}
+          </button>
+        )}
+
+        {!loading && !repos.length && !error && (
+          <p className="muted">輸入關鍵字並套用篩選後開始搜尋公開儲存庫</p>
+        )}
+      </div>
+    </ProjectShell>
+  )
+}
