@@ -6,6 +6,13 @@ import { useLocalStorage } from '../../lib/storage'
 const meta = getProject('website-screenshot')!
 
 type Device = 'desktop' | 'tablet' | 'mobile'
+type HistoryItem = { url: string; title: string; at: number }
+
+const DEVICE_LABEL: Record<Device, string> = {
+  desktop: '桌面',
+  tablet: '平板',
+  mobile: '手機',
+}
 
 function hashHue(s: string) {
   let h = 0
@@ -22,10 +29,12 @@ function normalizeUrl(raw: string) {
 export default function Page() {
   const [url, setUrl] = useLocalStorage('lab:website-screenshot:url', 'https://example.com')
   const [device, setDevice] = useLocalStorage<Device>('lab:website-screenshot:device', 'desktop')
-  const [shot, setShot] = useState(true)
+  const [history, setHistory] = useLocalStorage<HistoryItem[]>('lab:website-screenshot:history', [])
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
+  const [ogImage, setOgImage] = useState('')
   const [loadingMeta, setLoadingMeta] = useState(false)
+  const [shot, setShot] = useState(true)
 
   const fullUrl = useMemo(() => normalizeUrl(url), [url])
   const host = useMemo(() => {
@@ -39,6 +48,12 @@ export default function Page() {
   const w = device === 'desktop' ? '100%' : device === 'tablet' ? 480 : 320
   const h = device === 'mobile' ? 520 : device === 'tablet' ? 360 : 300
 
+  function pushHistory(u: string, t: string) {
+    const key = normalizeUrl(u)
+    if (!key) return
+    setHistory((xs) => [{ url: key, title: t || key, at: Date.now() }, ...xs.filter((x) => x.url !== key)].slice(0, 12))
+  }
+
   async function fetchMeta() {
     if (!fullUrl || host === 'invalid') return
     setLoadingMeta(true)
@@ -48,15 +63,28 @@ export default function Page() {
       if (!res.ok) throw new Error('proxy fail')
       const data = (await res.json()) as { contents?: string }
       const html = data.contents || ''
-      const t = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim()
+      const t =
+        html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']*)["']/i)?.[1] ||
+        html.match(/<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:title["']/i)?.[1] ||
+        html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim()
       const d =
+        html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']/i)?.[1] ||
         html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i)?.[1] ||
         html.match(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']/i)?.[1]
-      setTitle(t || host)
+      const img =
+        html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']*)["']/i)?.[1] ||
+        html.match(/<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:image["']/i)?.[1] ||
+        ''
+      const finalTitle = t || host
+      setTitle(finalTitle)
       setDesc(d || `無法解析 description · ${host}`)
+      setOgImage(img)
+      pushHistory(fullUrl, finalTitle)
     } catch {
       setTitle(host)
       setDesc('無法取得 meta（CORS／代理限制），改用佔位資訊')
+      setOgImage('')
+      pushHistory(fullUrl, host)
     } finally {
       setLoadingMeta(false)
       setShot(true)
@@ -65,6 +93,7 @@ export default function Page() {
 
   function openUrl() {
     if (!fullUrl || host === 'invalid') return
+    pushHistory(fullUrl, title || host)
     window.open(fullUrl, '_blank', 'noopener,noreferrer')
   }
 
@@ -72,7 +101,14 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <input className="field" style={{ flex: 1, minWidth: 200 }} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />
+          <input
+            className="field"
+            style={{ flex: 1, minWidth: 200 }}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && void fetchMeta()}
+            placeholder="example.com 或 https://"
+          />
           <button type="button" className="btn accent" onClick={() => void fetchMeta()} disabled={loadingMeta}>
             {loadingMeta ? '讀取 meta…' : '產生預覽卡'}
           </button>
@@ -80,13 +116,49 @@ export default function Page() {
             開啟網址
           </button>
         </div>
-        <div className="row">
+        <div className="row" style={{ flexWrap: 'wrap' }}>
           {(['desktop', 'tablet', 'mobile'] as Device[]).map((d) => (
             <button key={d} type="button" className={`btn sm ${device === d ? 'accent' : 'ghost'}`} onClick={() => setDevice(d)}>
-              {d}
+              {DEVICE_LABEL[d]}
             </button>
           ))}
+          <span className="muted mono" style={{ fontSize: 12 }}>
+            正規化：{fullUrl || '—'}
+          </span>
         </div>
+
+        {history.length > 0 && (
+          <div className="stack" style={{ gap: 6 }}>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <div className="label" style={{ margin: 0 }}>
+                最近網址
+              </div>
+              <button type="button" className="btn sm ghost" onClick={() => setHistory([])}>
+                清空
+              </button>
+            </div>
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              {history.map((h) => (
+                <button
+                  key={h.url + h.at}
+                  type="button"
+                  className="btn sm ghost"
+                  title={h.url}
+                  onClick={() => {
+                    setUrl(h.url)
+                    setTitle(h.title)
+                    setDesc('')
+                    setOgImage('')
+                    setShot(true)
+                  }}
+                >
+                  {h.title.slice(0, 28)}
+                  {h.title.length > 28 ? '…' : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {shot && (
           <div style={{ display: 'grid', gridTemplateColumns: device === 'desktop' ? '1fr 280px' : '1fr', gap: 16 }}>
@@ -107,11 +179,14 @@ export default function Page() {
                 <span className="mono muted" style={{ flex: 1, textAlign: 'center', fontSize: 12 }}>
                   {host}
                 </span>
+                <span className="tag">{DEVICE_LABEL[device]}</span>
               </div>
               <div
                 style={{
                   height: h,
-                  background: `linear-gradient(145deg, hsl(${hue} 55% 42%), hsl(${(hue + 48) % 360} 45% 28%))`,
+                  background: ogImage
+                    ? `center/cover no-repeat url(${ogImage}), linear-gradient(145deg, hsl(${hue} 55% 42%), hsl(${(hue + 48) % 360} 45% 28%))`
+                    : `linear-gradient(145deg, hsl(${hue} 55% 42%), hsl(${(hue + 48) % 360} 45% 28%))`,
                   display: 'grid',
                   placeItems: 'center',
                   color: '#fff',
@@ -119,9 +194,9 @@ export default function Page() {
                   textAlign: 'center',
                 }}
               >
-                <div>
-                  <div style={{ fontSize: device === 'mobile' ? 22 : 28, fontWeight: 700 }}>{title || host}</div>
-                  <p style={{ color: '#ffffffcc', marginTop: 8 }}>{desc || '截圖佔位預覽'}</p>
+                <div style={{ background: 'rgba(0,0,0,.35)', borderRadius: 12, padding: 16, maxWidth: '100%' }}>
+                  <div style={{ fontSize: device === 'mobile' ? 20 : 26, fontWeight: 700 }}>{title || host}</div>
+                  <p style={{ color: '#ffffffcc', marginTop: 8, fontSize: 13 }}>{desc || '截圖佔位預覽'}</p>
                   <span className="tag" style={{ marginTop: 8, display: 'inline-block' }}>
                     {device} · {new Date().toLocaleString('zh-TW')}
                   </span>
@@ -130,10 +205,28 @@ export default function Page() {
             </div>
 
             <div className="panel stack">
-              <div className="label">URL Meta Card</div>
+              <div className="label">Open Graph 預覽卡</div>
+              {ogImage ? (
+                <div
+                  style={{
+                    height: 100,
+                    borderRadius: 10,
+                    background: `center/cover no-repeat url(${ogImage})`,
+                    border: '1px solid var(--line)',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    height: 72,
+                    borderRadius: 10,
+                    background: `linear-gradient(135deg, hsl(${hue} 50% 55%), hsl(${(hue + 60) % 360} 40% 40%))`,
+                  }}
+                />
+              )}
               <strong>{title || host}</strong>
               <p className="muted" style={{ fontSize: 13 }}>
-                {desc || '按「產生預覽卡」嘗試抓取 title / description'}
+                {desc || '按「產生預覽卡」嘗試抓取 og:title / description / image'}
               </p>
               <a className="mono" href={fullUrl || '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--sky)', wordBreak: 'break-all' }}>
                 {fullUrl || '—'}

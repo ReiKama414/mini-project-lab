@@ -1,13 +1,16 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { pick, randomInt, uid } from '../../lib/utils'
 
 const meta = getProject('personal-dashboard')!
 
 type Todo = { id: string; text: string; done: boolean }
 type Link = { id: string; label: string; url: string }
+type Weather = { city: string; temp: number; condition: string; humidity: number; wind: number }
+
+const CONDITIONS = ['晴朗', '多雲', '陰天', '小雨', '陣雨', '微風']
 
 export default function Page() {
   const [todos, setTodos] = useLocalStorage<Todo[]>('lab:personal-dashboard:todos', [
@@ -21,6 +24,13 @@ export default function Page() {
     { id: '2', label: 'Calendar', url: 'https://calendar.google.com' },
     { id: '3', label: 'Docs', url: 'https://docs.google.com' },
   ])
+  const [weather, setWeather] = useLocalStorage<Weather>('lab:personal-dashboard:weather', {
+    city: '台北',
+    temp: 28,
+    condition: '多雲',
+    humidity: 72,
+    wind: 12,
+  })
   const [now, setNow] = useState(new Date())
   const [draft, setDraft] = useState('')
   const [linkLabel, setLinkLabel] = useState('')
@@ -35,6 +45,12 @@ export default function Page() {
 
   const done = todos.filter((t) => t.done).length
   const pct = todos.length ? Math.round((done / todos.length) * 100) : 0
+  const greeting = useMemo(() => {
+    const h = now.getHours()
+    if (h < 12) return '早安'
+    if (h < 18) return '午安'
+    return '晚安'
+  }, [now])
 
   function addTodo() {
     if (!draft.trim()) return
@@ -42,29 +58,54 @@ export default function Page() {
     setDraft('')
   }
 
+  function refreshWeather() {
+    setWeather((w) => ({
+      ...w,
+      temp: randomInt(18, 34),
+      condition: pick(CONDITIONS),
+      humidity: randomInt(40, 95),
+      wind: randomInt(3, 28),
+    }))
+  }
+
   return (
     <ProjectShell meta={meta}>
       <div className="grid-3">
         <div className="panel metric stack">
-          <div className="muted">現在時間</div>
+          <div className="muted">
+            {greeting} · 現在時間
+          </div>
           <div className="mono" style={{ fontSize: 28 }}>
             {now.toLocaleTimeString('zh-TW')}
           </div>
           <div className="muted">{now.toLocaleDateString('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
         </div>
         <div className="panel stack">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <div className="label" style={{ margin: 0 }}>
+              天氣（模擬）
+            </div>
+            <button type="button" className="btn sm ghost" onClick={refreshWeather}>
+              刷新
+            </button>
+          </div>
+          <input className="field" value={weather.city} onChange={(e) => setWeather((w) => ({ ...w, city: e.target.value }))} />
+          <div className="metric">
+            {weather.temp}°C · {weather.condition}
+          </div>
+          <div className="muted">
+            濕度 {weather.humidity}% · 風速 {weather.wind} km/h
+          </div>
+        </div>
+        <div className="panel stack">
           <div className="label">今日焦點</div>
           <input className="field" value={focus} onChange={(e) => setFocus(e.target.value)} />
           <div className="progress">
-            <div style={{ width: `${pct}%`, height: 8, borderRadius: 4, background: '#22c55e' }} />
+            <div style={{ width: `${pct}%`, height: 8, borderRadius: 4, background: 'var(--teal)' }} />
           </div>
           <span className="muted">
             待辦進度 {done}/{todos.length}（{pct}%）
           </span>
-        </div>
-        <div className="panel stack">
-          <div className="label">快速筆記</div>
-          <textarea className="field" rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="隨手記…" />
         </div>
       </div>
 
@@ -131,6 +172,8 @@ export default function Page() {
           </ul>
         </div>
         <div className="panel stack">
+          <div className="label">快速筆記</div>
+          <textarea className="field" rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="隨手記…" />
           <div className="label">快速連結</div>
           <div className="row">
             <input className="field" placeholder="名稱" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} />

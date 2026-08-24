@@ -7,6 +7,7 @@ import { uid } from '../../lib/utils'
 const meta = getProject('api-monitor')!
 
 type Probe = { at: number; ok: boolean; latency: number; note: string }
+type HistRow = { id: string; targetId: string; name: string; url: string; at: number; ok: boolean; latency: number; note: string }
 type Target = {
   id: string
   name: string
@@ -24,14 +25,12 @@ async function probeUrl(url: string): Promise<Probe> {
   const timer = setTimeout(() => controller.abort(), 10000)
   try {
     const t0 = performance.now()
-    // Direct fetch first (works for CORS-friendly endpoints like httpbin)
     let res: Response | null = null
     let note = ''
     try {
       res = await fetch(url, { signal: controller.signal, mode: 'cors', cache: 'no-store' })
       note = `HTTP ${res.status}`
     } catch {
-      // Fallback via allorigins proxy for demos
       const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&t=${at}`
       res = await fetch(proxy, { signal: controller.signal, cache: 'no-store' })
       note = res.ok ? 'proxy OK' : `proxy ${res.status}`
@@ -75,13 +74,14 @@ export default function Page() {
       lastNote: '尚未探測',
     },
   ])
+  const [table, setTable] = useLocalStorage<HistRow[]>('lab:api-monitor:table', [])
   const [url, setUrl] = useState('https://httpbin.org/get')
   const [name, setName] = useState('custom')
   const [auto, setAuto] = useLocalStorage('lab:api-monitor:auto', true)
   const [busy, setBusy] = useState(false)
 
   const checkOne = useCallback(
-    async (id: string, targetUrl: string) => {
+    async (id: string, targetUrl: string, targetName: string) => {
       setTargets((xs) => xs.map((t) => (t.id === id ? { ...t, checking: true } : t)))
       const result = await probeUrl(targetUrl)
       setTargets((xs) =>
@@ -98,13 +98,28 @@ export default function Page() {
             : t,
         ),
       )
+      setTable((rows) =>
+        [
+          {
+            id: uid('h'),
+            targetId: id,
+            name: targetName,
+            url: targetUrl,
+            at: result.at,
+            ok: result.ok,
+            latency: result.latency,
+            note: result.note,
+          },
+          ...rows,
+        ].slice(0, 80),
+      )
     },
-    [setTargets],
+    [setTargets, setTable],
   )
 
   const checkAll = useCallback(async () => {
     setBusy(true)
-    await Promise.all(targets.map((t) => checkOne(t.id, t.url)))
+    await Promise.all(targets.map((t) => checkOne(t.id, t.url, t.name)))
     setBusy(false)
   }, [targets, checkOne])
 
@@ -156,7 +171,7 @@ export default function Page() {
         </button>
       </div>
 
-      <div className="panel">
+      <div className="panel" style={{ marginBottom: 12 }}>
         <ul className="list">
           {targets.map((t) => {
             const max = Math.max(1, ...t.history, t.latency)
@@ -173,8 +188,10 @@ export default function Page() {
                     </div>
                   </div>
                   <div className="row">
-                    <span className="muted">{t.latency}ms · {t.lastNote}</span>
-                    <button type="button" className="btn sm ghost" onClick={() => void checkOne(t.id, t.url)}>
+                    <span className="muted">
+                      {t.latency}ms · {t.lastNote}
+                    </span>
+                    <button type="button" className="btn sm ghost" onClick={() => void checkOne(t.id, t.url, t.name)}>
                       Probe
                     </button>
                     <button type="button" className="btn sm danger" onClick={() => setTargets((xs) => xs.filter((x) => x.id !== t.id))}>
@@ -202,6 +219,58 @@ export default function Page() {
             )
           })}
         </ul>
+      </div>
+
+      <div className="panel stack">
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <div className="label" style={{ margin: 0 }}>
+            探測歷史表
+          </div>
+          <button type="button" className="btn sm ghost" onClick={() => setTable([])}>
+            清空
+          </button>
+        </div>
+        <div style={{ overflow: 'auto', maxHeight: 280 }}>
+          <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {['時間', '名稱', '狀態', '延遲', '備註'].map((h) => (
+                  <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line)' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {table.slice(0, 40).map((r) => (
+                <tr key={r.id}>
+                  <td className="mono muted" style={{ padding: '6px 8px' }}>
+                    {new Date(r.at).toLocaleTimeString('zh-TW')}
+                  </td>
+                  <td style={{ padding: '6px 8px' }}>{r.name}</td>
+                  <td style={{ padding: '6px 8px' }}>
+                    <span className="tag" style={{ background: r.ok ? 'var(--teal)' : 'var(--rose)', color: '#fff' }}>
+                      {r.ok ? 'OK' : 'FAIL'}
+                    </span>
+                  </td>
+                  <td className="mono" style={{ padding: '6px 8px' }}>
+                    {r.latency}ms
+                  </td>
+                  <td className="muted" style={{ padding: '6px 8px' }}>
+                    {r.note}
+                  </td>
+                </tr>
+              ))}
+              {!table.length && (
+                <tr>
+                  <td colSpan={5} className="muted" style={{ padding: 12 }}>
+                    尚無紀錄
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </ProjectShell>
   )

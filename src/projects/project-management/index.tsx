@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { downloadText, uid } from '../../lib/utils'
 
 const meta = getProject('project-management')!
 
@@ -19,6 +19,13 @@ const cols: { key: Status; label: string }[] = [
 
 const PRIO: Priority[] = ['低', '中', '高']
 
+const TASK_PRESETS = [
+  { title: '撰寫需求文件', priority: '中' as Priority, status: 'todo' as Status },
+  { title: '程式碼審查', priority: '高' as Priority, status: 'doing' as Status },
+  { title: '上線檢查清單', priority: '高' as Priority, status: 'todo' as Status },
+  { title: '週會簡報', priority: '低' as Priority, status: 'todo' as Status },
+]
+
 export default function Page() {
   const [projects, setProjects] = useLocalStorage<Project[]>('lab:project-management:projects', [
     { id: 'p1', name: 'Lab App' },
@@ -34,18 +41,39 @@ export default function Page() {
   const [projectId, setProjectId] = useLocalStorage('lab:project-management:sel', 'p1')
   const [priority, setPriority] = useState<Priority>('中')
   const [due, setDue] = useState(() => new Date().toISOString().slice(0, 10))
-  const [filterProject, setFilterProject] = useState<string>('全部')
+  const [filterProject, setFilterProject] = useLocalStorage('lab:project-management:filterProj', '全部')
+  const [filterPrio, setFilterPrio] = useLocalStorage<Priority | '全部'>('lab:project-management:filterPrio', '全部')
+  const [filterStatus, setFilterStatus] = useLocalStorage<Status | '全部'>('lab:project-management:filterStatus', '全部')
+  const [q, setQ] = useState('')
   const [newProject, setNewProject] = useState('')
+  const today = new Date().toISOString().slice(0, 10)
 
-  const visible = useMemo(
-    () => tasks.filter((t) => filterProject === '全部' || t.projectId === filterProject),
-    [tasks, filterProject],
-  )
+  const visible = useMemo(() => {
+    const qq = q.trim().toLowerCase()
+    return tasks.filter((t) => {
+      if (filterProject !== '全部' && t.projectId !== filterProject) return false
+      if (filterPrio !== '全部' && t.priority !== filterPrio) return false
+      if (filterStatus !== '全部' && t.status !== filterStatus) return false
+      if (qq && !t.title.toLowerCase().includes(qq)) return false
+      return true
+    })
+  }, [tasks, filterProject, filterPrio, filterStatus, q])
 
   const progress = useMemo(() => {
     if (!visible.length) return 0
     return Math.round((visible.filter((t) => t.status === 'done').length / visible.length) * 100)
   }, [visible])
+
+  const stats = useMemo(() => {
+    const overdue = tasks.filter((t) => t.status !== 'done' && t.due && t.due < today).length
+    const high = tasks.filter((t) => t.priority === '高' && t.status !== 'done').length
+    const byStatus = {
+      todo: tasks.filter((t) => t.status === 'todo').length,
+      doing: tasks.filter((t) => t.status === 'doing').length,
+      done: tasks.filter((t) => t.status === 'done').length,
+    }
+    return { overdue, high, byStatus, total: tasks.length }
+  }, [tasks, today])
 
   function projectName(id: string) {
     return projects.find((p) => p.id === id)?.name || '—'
@@ -55,8 +83,51 @@ export default function Page() {
     setTasks((xs) => xs.map((t) => (t.id === id ? { ...t, status } : t)))
   }
 
+  function exportCsv() {
+    const lines = [
+      '標題,專案,狀態,優先,期限',
+      ...tasks.map((t) =>
+        [t.title, projectName(t.projectId), t.status, t.priority, t.due].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','),
+      ),
+    ]
+    downloadText('projects-tasks.csv', lines.join('\n'), 'text/csv;charset=utf-8')
+  }
+
+  function addPreset(p: (typeof TASK_PRESETS)[number]) {
+    setTasks((xs) => [
+      ...xs,
+      {
+        id: uid('t'),
+        title: p.title,
+        projectId,
+        status: p.status,
+        priority: p.priority,
+        due,
+      },
+    ])
+  }
+
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <button type="button" className="btn ghost sm" onClick={exportCsv}>
+          匯出 CSV
+        </button>
+      }
+    >
+      <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+        <span className="metric">任務 {stats.total}</span>
+        <span className="tag">待辦 {stats.byStatus.todo}</span>
+        <span className="tag">進行 {stats.byStatus.doing}</span>
+        <span className="tag">完成 {stats.byStatus.done}</span>
+        <span className="tag" style={stats.overdue ? { background: 'var(--rose-soft)', color: 'var(--rose)' } : undefined}>
+          逾期 {stats.overdue}
+        </span>
+        <span className="tag">高優先未完 {stats.high}</span>
+        <span className="metric">進度 {progress}%</span>
+      </div>
+
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <select className="field" style={{ width: 140 }} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
@@ -66,7 +137,7 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <input className="field" style={{ flex: 1 }} placeholder="任務標題" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input className="field" style={{ flex: 1, minWidth: 140 }} placeholder="任務標題" value={title} onChange={(e) => setTitle(e.target.value)} />
           <select className="field" style={{ width: 90 }} value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
             {PRIO.map((p) => (
               <option key={p} value={p}>
@@ -90,7 +161,19 @@ export default function Page() {
             新增任務
           </button>
         </div>
-        <div className="row">
+
+        <div>
+          <div className="label">快速預設任務</div>
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {TASK_PRESETS.map((p) => (
+              <button key={p.title} type="button" className="btn sm ghost" onClick={() => addPreset(p)}>
+                + {p.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="row" style={{ flexWrap: 'wrap' }}>
           <input className="field" placeholder="新專案名稱" value={newProject} onChange={(e) => setNewProject(e.target.value)} />
           <button
             type="button"
@@ -105,8 +188,12 @@ export default function Page() {
           >
             新增專案
           </button>
-          <span className="muted">篩選專案</span>
-          <select className="field" style={{ width: 140 }} value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
+          <input className="field" style={{ flex: 1, minWidth: 120 }} placeholder="搜尋任務…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <span className="muted">專案</span>
+          <select className="field" style={{ width: 120 }} value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
             <option value="全部">全部</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
@@ -114,12 +201,53 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <span className="metric">進度 {progress}%</span>
+          <span className="muted">優先</span>
+          <select
+            className="field"
+            style={{ width: 90 }}
+            value={filterPrio}
+            onChange={(e) => setFilterPrio(e.target.value as Priority | '全部')}
+          >
+            <option value="全部">全部</option>
+            {PRIO.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <span className="muted">狀態</span>
+          <select
+            className="field"
+            style={{ width: 110 }}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as Status | '全部')}
+          >
+            <option value="全部">全部</option>
+            {cols.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn sm ghost"
+            onClick={() => {
+              setFilterProject('全部')
+              setFilterPrio('全部')
+              setFilterStatus('全部')
+              setQ('')
+            }}
+          >
+            清除篩選
+          </button>
         </div>
+
         <div className="progress">
-          <div style={{ width: `${progress}%`, height: 8, borderRadius: 4, background: '#3b82f6' }} />
+          <span style={{ width: `${progress}%` }} />
         </div>
       </div>
+
       <div className="kanban">
         {cols.map((col) => (
           <div key={col.key} className="kanban-col panel">
@@ -131,28 +259,34 @@ export default function Page() {
               {visible
                 .filter((t) => t.status === col.key)
                 .sort((a, b) => (a.due || '').localeCompare(b.due || '') || PRIO.indexOf(b.priority) - PRIO.indexOf(a.priority))
-                .map((t) => (
-                  <li key={t.id} className="list-item stack">
-                    <div>{t.title}</div>
-                    <div className="row" style={{ flexWrap: 'wrap' }}>
-                      <span className="tag">{projectName(t.projectId)}</span>
-                      <span className="tag">優先 {t.priority}</span>
-                      <span className="mono muted">{t.due || '無期限'}</span>
-                    </div>
-                    <div className="row" style={{ flexWrap: 'wrap' }}>
-                      {cols
-                        .filter((c) => c.key !== t.status)
-                        .map((c) => (
-                          <button key={c.key} type="button" className="btn sm ghost" onClick={() => move(t.id, c.key)}>
-                            → {c.label}
-                          </button>
-                        ))}
-                      <button type="button" className="btn sm danger" onClick={() => setTasks((xs) => xs.filter((x) => x.id !== t.id))}>
-                        刪
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                .map((t) => {
+                  const overdue = t.status !== 'done' && t.due && t.due < today
+                  return (
+                    <li key={t.id} className="list-item stack">
+                      <div>{t.title}</div>
+                      <div className="row" style={{ flexWrap: 'wrap' }}>
+                        <span className="tag">{projectName(t.projectId)}</span>
+                        <span className="tag">優先 {t.priority}</span>
+                        <span className="mono muted" style={overdue ? { color: 'var(--rose)' } : undefined}>
+                          {t.due || '無期限'}
+                          {overdue ? ' · 逾期' : ''}
+                        </span>
+                      </div>
+                      <div className="row" style={{ flexWrap: 'wrap' }}>
+                        {cols
+                          .filter((c) => c.key !== t.status)
+                          .map((c) => (
+                            <button key={c.key} type="button" className="btn sm ghost" onClick={() => move(t.id, c.key)}>
+                              → {c.label}
+                            </button>
+                          ))}
+                        <button type="button" className="btn sm danger" onClick={() => setTasks((xs) => xs.filter((x) => x.id !== t.id))}>
+                          刪
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
             </ul>
           </div>
         ))}

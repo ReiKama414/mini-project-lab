@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { tiers, type ProjectMeta } from '../projects/registry'
+import { IconArrowLeft } from './icons'
 
 export function ProjectShell({
   meta,
@@ -17,9 +18,10 @@ export function ProjectShell({
     <div className="project-shell">
       <div className="project-shell-header">
         <div>
-          <div className="row" style={{ marginBottom: 8 }}>
-            <Link to="/" className="btn ghost sm">
-              ← 導覽
+          <div className="row" style={{ marginBottom: 12 }}>
+            <Link to="/" className="btn ghost sm btn-back">
+              <IconArrowLeft size={16} strokeWidth={2.25} />
+              導覽
             </Link>
             {tier && <span className={`badge ${meta.tier}`}>{tier.label}</span>}
           </div>

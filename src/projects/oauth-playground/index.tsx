@@ -2,13 +2,24 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { copyText, downloadText, uid } from '../../lib/utils'
 
 const meta = getProject('oauth-playground')!
 
 type Provider = 'GitHub' | 'Google' | 'Discord'
 type Step = 1 | 2 | 3 | 4
-type Token = { provider: Provider; access: string; idToken: string; scope: string; at: number }
+type Token = {
+  id: string
+  provider: Provider
+  access: string
+  idToken: string
+  scope: string
+  at: number
+  revoked?: boolean
+  state: string
+  nonce: string
+  pkce: boolean
+}
 
 const defaultScopes: Record<Provider, string[]> = {
   GitHub: ['read:user', 'repo', 'gist'],
@@ -31,25 +42,44 @@ function decodeJwtPayload(token: string) {
   try {
     const part = token.split('.')[1]
     if (!part) return null
-    const json = decodeURIComponent(
-      escape(atob(part.replace(/-/g, '+').replace(/_/g, '/'))),
-    )
+    const json = decodeURIComponent(escape(atob(part.replace(/-/g, '+').replace(/_/g, '/'))))
     return JSON.parse(json) as Record<string, unknown>
   } catch {
     return null
   }
 }
 
+function randomCode(n = 32) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+  let s = ''
+  for (let i = 0; i < n; i++) s += chars[Math.floor(Math.random() * chars.length)]
+  return s
+}
+
+function mockCodeChallenge(verifier: string) {
+  // 簡易 demo：非真實 SHA-256，僅展示 PKCE 流程字串
+  let h = 0
+  for (let i = 0; i < verifier.length; i++) h = (h * 31 + verifier.charCodeAt(i)) >>> 0
+  return `chal_${h.toString(16)}_${verifier.slice(0, 8)}`
+}
+
 export default function Page() {
   const [provider, setProvider] = useState<Provider>('GitHub')
   const [clientId, setClientId] = useLocalStorage('lab:oauth-playground:client', 'lab_demo_client_id')
+  const [redirect, setRedirect] = useLocalStorage('lab:oauth-playground:redirect', 'https://app.lab.local/oauth/callback')
   const [selected, setSelected] = useLocalStorage<string[]>('lab:oauth-playground:scopes', ['read:user'])
   const [customScope, setCustomScope] = useState('')
+  const [usePkce, setUsePkce] = useLocalStorage('lab:oauth-playground:pkce', true)
   const [step, setStep] = useState<Step>(1)
   const [code, setCode] = useState('')
-  const [tokens, setTokens] = useLocalStorage<Token[]>('lab:oauth-playground', [])
-  const [log, setLog] = useState<string[]>([])
+  const [state, setState] = useState('')
+  const [nonce, setNonce] = useState('')
+  const [verifier, setVerifier] = useState('')
+  const [challenge, setChallenge] = useState('')
+  const [tokens, setTokens] = useLocalStorage<Token[]>('lab:oauth-playground:tokens-v2', [])
+  const [log, setLog] = useLocalStorage<string[]>('lab:oauth-playground:log', [])
   const [viewToken, setViewToken] = useState<Token | null>(null)
+  const [manualJwt, setManualJwt] = useState('')
 
   const scopes = useMemo(() => {
     const base = defaultScopes[provider]
@@ -57,22 +87,59 @@ export default function Page() {
     return [...base, ...extra]
   }, [provider, selected])
 
-  const decoded = viewToken ? decodeJwtPayload(viewToken.idToken) : null
+  const decoded = viewToken ? decodeJwtPayload(viewToken.idToken) : manualJwt ? decodeJwtPayload(manualJwt) : null
 
   function goAuthorize() {
-    const authUrl = `https://auth.example/${provider.toLowerCase()}/authorize?client_id=${encodeURIComponent(clientId)}&scope=${encodeURIComponent(selected.join(' '))}&response_type=code`
-    setLog([`1. Redirect → ${authUrl}`, '2. 使用者同意授權…'])
+    const st = `st_${uid('').slice(0, 10)}`
+    const nn = `n_${uid('').slice(0, 10)}`
+    setState(st)
+    setNonce(nn)
+    let v = ''
+    let ch = ''
+    if (usePkce) {
+      v = randomCode(43)
+      ch = mockCodeChallenge(v)
+      setVerifier(v)
+      setChallenge(ch)
+    } else {
+      setVerifier('')
+      setChallenge('')
+    }
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirect,
+      scope: selected.join(' '),
+      response_type: 'code',
+      state: st,
+      nonce: nn,
+    })
+    if (usePkce) {
+      params.set('code_challenge', ch)
+      params.set('code_challenge_method', 'S256')
+    }
+    const authUrl = `https://auth.example/${provider.toLowerCase()}/authorize?${params.toString()}`
+    const lines = [
+      `1. Redirect → ${authUrl}`,
+      `   state=${st}`,
+      `   nonce=${nn}`,
+      usePkce ? `   PKCE code_challenge=${ch}` : '   PKCE 關閉',
+      '2. 使用者同意授權…',
+    ]
+    setLog(lines)
     setStep(2)
   }
 
   function receiveCallback() {
     const c = `code_${uid('').slice(0, 8)}`
     setCode(c)
-    setLog((l) => [...l, `3. Callback ?code=${c}`])
+    setLog((l) => [...l, `3. Callback ${redirect}?code=${c}&state=${state}`, '   ✓ state 比對通過'])
     setStep(3)
   }
 
   function exchange() {
+    if (usePkce) {
+      setLog((l) => [...l, `3.5 驗證 PKCE：code_verifier=${verifier.slice(0, 12)}… ↔ challenge`])
+    }
     const access = `atk_${uid('').slice(0, 12)}`
     const idToken = mockJwt({
       sub: 'user_42',
@@ -80,25 +147,71 @@ export default function Page() {
       name: 'Lab Demo',
       provider,
       scope: selected.join(' '),
+      nonce,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 3600,
       client_id: clientId,
+      aud: clientId,
     })
-    const tok: Token = { provider, access, idToken, scope: selected.join(' '), at: Date.now() }
+    const tok: Token = {
+      id: uid('tok'),
+      provider,
+      access,
+      idToken,
+      scope: selected.join(' '),
+      at: Date.now(),
+      state,
+      nonce,
+      pkce: usePkce,
+    }
     setTokens((xs) => [tok, ...xs].slice(0, 20))
     setViewToken(tok)
-    setLog((l) => [...l, `4. POST /oauth/token → access_token=${access}`, `   id_token=${idToken.slice(0, 40)}…`])
+    setLog((l) => [
+      ...l,
+      `4. POST /oauth/token → access_token=${access}`,
+      `   id_token=${idToken.slice(0, 48)}…`,
+      `   nonce 寫入 JWT payload`,
+    ])
     setStep(4)
+  }
+
+  function revoke(id: string) {
+    setTokens((xs) => xs.map((t) => (t.id === id ? { ...t, revoked: true } : t)))
+    const t = tokens.find((x) => x.id === id)
+    if (t) setLog((l) => [...l, `REVOKE ${t.access} @ ${new Date().toLocaleTimeString('zh-TW')}`])
+    if (viewToken?.id === id) setViewToken((vt) => (vt ? { ...vt, revoked: true } : vt))
   }
 
   function resetFlow() {
     setStep(1)
     setCode('')
-    setLog([])
+    setState('')
+    setNonce('')
+    setVerifier('')
+    setChallenge('')
+  }
+
+  function exportLog() {
+    downloadText(
+      'oauth-flow-log.txt',
+      [`# OAuth Playground Log`, `exported: ${new Date().toISOString()}`, '', ...log].join('\n'),
+    )
   }
 
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row">
+          <button type="button" className="btn sm ghost" onClick={exportLog} disabled={!log.length}>
+            匯出日誌
+          </button>
+          <button type="button" className="btn sm ghost" onClick={() => setLog([])}>
+            清空日誌
+          </button>
+        </div>
+      }
+    >
       <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         {(['GitHub', 'Google', 'Discord'] as Provider[]).map((p) => (
           <button
@@ -114,6 +227,10 @@ export default function Page() {
             {p}
           </button>
         ))}
+        <label className="row" style={{ marginLeft: 8 }}>
+          <input type="checkbox" checked={usePkce} onChange={(e) => setUsePkce(e.target.checked)} />
+          PKCE
+        </label>
         <span className="tag">步驟 {step}/4</span>
       </div>
 
@@ -121,6 +238,8 @@ export default function Page() {
         <div className="panel stack">
           <label className="label">client_id</label>
           <input className="field mono" value={clientId} onChange={(e) => setClientId(e.target.value)} />
+          <label className="label">redirect_uri</label>
+          <input className="field mono" value={redirect} onChange={(e) => setRedirect(e.target.value)} />
 
           <label className="label">Scopes</label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -151,6 +270,31 @@ export default function Page() {
             </button>
           </div>
 
+          {(state || nonce || challenge) && (
+            <div className="list-item stack" style={{ gap: 4, fontSize: 12 }}>
+              {state && (
+                <div>
+                  <span className="muted">state</span> <span className="mono">{state}</span>
+                </div>
+              )}
+              {nonce && (
+                <div>
+                  <span className="muted">nonce</span> <span className="mono">{nonce}</span>
+                </div>
+              )}
+              {usePkce && challenge && (
+                <div>
+                  <span className="muted">code_challenge</span> <span className="mono">{challenge}</span>
+                </div>
+              )}
+              {usePkce && verifier && (
+                <div>
+                  <span className="muted">code_verifier</span> <span className="mono">{verifier.slice(0, 24)}…</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {step === 1 && (
               <button type="button" className="btn accent" onClick={goAuthorize}>
@@ -175,37 +319,63 @@ export default function Page() {
             {code && <span className="mono muted">code={code}</span>}
           </div>
 
-          <pre className="mono" style={{ whiteSpace: 'pre-wrap', margin: 0, background: 'var(--bg-muted)', padding: 12, borderRadius: 8 }}>
+          <pre className="mono" style={{ whiteSpace: 'pre-wrap', margin: 0, background: 'var(--bg-muted)', padding: 12, borderRadius: 8, maxHeight: 220, overflow: 'auto' }}>
             {log.join('\n') || '流程日誌…'}
           </pre>
         </div>
 
         <div className="panel stack">
-          <div className="label">Token / JWT Payload</div>
+          <div className="label">Token / JWT Payload Viewer</div>
           <ul className="list">
-            {tokens.map((t, i) => (
-              <li key={i} className="list-item stack" style={{ cursor: 'pointer' }} onClick={() => setViewToken(t)}>
-                <strong>{t.provider}</strong>
+            {tokens.map((t) => (
+              <li key={t.id} className="list-item stack" style={{ cursor: 'pointer', opacity: t.revoked ? 0.55 : 1 }} onClick={() => setViewToken(t)}>
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <strong>{t.provider}</strong>
+                  <div className="row">
+                    {t.pkce && <span className="tag">PKCE</span>}
+                    {t.revoked ? <span className="tag">已撤銷</span> : <span className="tag">有效</span>}
+                  </div>
+                </div>
                 <span className="mono muted" style={{ fontSize: 12 }}>
                   {t.access}
                 </span>
                 <span className="tag">{t.scope}</span>
+                {!t.revoked && (
+                  <button
+                    type="button"
+                    className="btn sm danger"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      revoke(t.id)
+                    }}
+                  >
+                    撤銷 Token
+                  </button>
+                )}
               </li>
             ))}
             {!tokens.length && <li className="list-item muted">尚無 token</li>}
           </ul>
+          <label className="label">貼上 JWT 解碼</label>
+          <textarea className="field mono" rows={2} value={manualJwt} onChange={(e) => setManualJwt(e.target.value)} placeholder="header.payload.sig" />
           {viewToken && (
-            <div className="stack">
-              <div className="row">
-                <button type="button" className="btn sm ghost" onClick={() => copyText(viewToken.idToken)}>
-                  複製 id_token
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <button type="button" className="btn sm ghost" onClick={() => void copyText(viewToken.idToken)}>
+                複製 id_token
+              </button>
+              <button type="button" className="btn sm ghost" onClick={() => void copyText(viewToken.access)}>
+                複製 access_token
+              </button>
+              {!viewToken.revoked && (
+                <button type="button" className="btn sm danger" onClick={() => revoke(viewToken.id)}>
+                  撤銷
                 </button>
-              </div>
-              <pre className="mono" style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 12, maxHeight: 280, overflow: 'auto' }}>
-                {JSON.stringify(decoded, null, 2) || '無法解碼'}
-              </pre>
+              )}
             </div>
           )}
+          <pre className="mono" style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 12, maxHeight: 280, overflow: 'auto' }}>
+            {JSON.stringify(decoded, null, 2) || '尚無可解碼內容'}
+          </pre>
         </div>
       </div>
     </ProjectShell>

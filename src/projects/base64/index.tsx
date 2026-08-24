@@ -9,24 +9,24 @@ const meta = getProject('base64')!
 function utf8ToBase64(str: string) {
   const bytes = new TextEncoder().encode(str)
   let binary = ''
-  bytes.forEach((b) => {
-    binary += String.fromCharCode(b)
-  })
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!)
   return btoa(binary)
 }
 
 function base64ToUtf8(b64: string) {
   const cleaned = b64.replace(/\s/g, '')
   const binary = atob(cleaned)
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
   return new TextDecoder().decode(bytes)
 }
 
 function bytesToBase64(bytes: Uint8Array) {
+  const chunk = 0x8000
   let binary = ''
-  bytes.forEach((b) => {
-    binary += String.fromCharCode(b)
-  })
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
   return btoa(binary)
 }
 
@@ -35,11 +35,14 @@ export default function Page() {
   const [encoded, setEncoded] = useLocalStorage('lab:base64:encoded', '')
   const [error, setError] = useState('')
   const [fileInfo, setFileInfo] = useState('')
-  const [copied, setCopied] = useState<'plain' | 'b64' | null>(null)
+  const [dataUrl, setDataUrl] = useState('')
+  const [copied, setCopied] = useState<'plain' | 'b64' | 'data' | null>(null)
 
   function encode() {
     try {
-      setEncoded(utf8ToBase64(plain))
+      const b64 = utf8ToBase64(plain)
+      setEncoded(b64)
+      setDataUrl(`data:text/plain;charset=utf-8;base64,${b64}`)
       setError('')
       setFileInfo('')
     } catch {
@@ -62,6 +65,7 @@ export default function Page() {
       const buf = await file.arrayBuffer()
       const b64 = bytesToBase64(new Uint8Array(buf))
       setEncoded(b64)
+      setDataUrl(`data:${file.type || 'application/octet-stream'};base64,${b64}`)
       setFileInfo(`${file.name} · ${formatBytes(file.size)} · MIME: ${file.type || 'unknown'}`)
       setError('')
       setPlain('')
@@ -78,13 +82,14 @@ export default function Page() {
           <textarea className="field" rows={5} value={plain} onChange={(e) => setPlain(e.target.value)} />
         </label>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button className="btn accent" onClick={encode}>
+          <button type="button" className="btn accent" onClick={encode}>
             編碼 →
           </button>
-          <button className="btn teal" onClick={decode}>
+          <button type="button" className="btn teal" onClick={decode}>
             ← 解碼
           </button>
           <button
+            type="button"
             className="btn ghost sm"
             onClick={async () => {
               await copyText(plain)
@@ -94,7 +99,9 @@ export default function Page() {
             {copied === 'plain' ? '已複製文字' : '複製文字'}
           </button>
           <button
+            type="button"
             className="btn ghost sm"
+            disabled={!encoded}
             onClick={async () => {
               await copyText(encoded)
               setCopied('b64')
@@ -102,15 +109,26 @@ export default function Page() {
           >
             {copied === 'b64' ? '已複製 Base64' : '複製 Base64'}
           </button>
+          <button
+            type="button"
+            className="btn ghost sm"
+            disabled={!dataUrl}
+            onClick={async () => {
+              await copyText(dataUrl)
+              setCopied('data')
+            }}
+          >
+            {copied === 'data' ? '已複製 Data URL' : '複製 Data URL'}
+          </button>
         </div>
         <label className="stack">
-          <span className="label">檔案 → Base64（選用）</span>
-          <input
-            className="field"
-            type="file"
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-          {fileInfo && <p className="muted" style={{ fontSize: 12 }}>{fileInfo}</p>}
+          <span className="label">檔案上傳 → Base64</span>
+          <input className="field" type="file" onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
+          {fileInfo && (
+            <p className="muted" style={{ fontSize: 12 }}>
+              {fileInfo}
+            </p>
+          )}
         </label>
         <label className="stack">
           <span className="label">Base64</span>
@@ -118,7 +136,10 @@ export default function Page() {
             className="field mono"
             rows={6}
             value={encoded}
-            onChange={(e) => setEncoded(e.target.value)}
+            onChange={(e) => {
+              setEncoded(e.target.value)
+              setDataUrl('')
+            }}
           />
         </label>
         {error && (
@@ -127,7 +148,7 @@ export default function Page() {
           </p>
         )}
         <p className="muted" style={{ fontSize: 12 }}>
-          使用 TextEncoder / TextDecoder 正確處理中文等多位元組字元。
+          使用 TextEncoder／TextDecoder 處理 UTF-8；大檔案以分塊轉成 Base64，避免呼叫堆疊溢出。
         </p>
       </div>
     </ProjectShell>

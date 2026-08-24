@@ -18,7 +18,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'bmi-calculator', title: 'BMI Calculator', description: '依身高體重計算 BMI 與分類。', tier: 'quick', effort: '幾小時～1 天', tags: ['health'] },
   { slug: 'currency-converter', title: '貨幣轉換器', description: '常用貨幣即時換算（示範匯率）。', tier: 'quick', effort: '幾小時～1 天', tags: ['finance'] },
   { slug: 'unit-converter', title: '單位轉換器', description: '長度、重量、溫度快速轉換。', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
-  { slug: 'age-calculator', title: '年齡計算器', description: '從生日推算歲數與下一個生日。', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
+  { slug: 'age-calculator', title: '年齡計算器', description: '國曆歲數、農曆對照、生肖星座與下次生日倒數。', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'tip-calculator', title: 'Tip Calculator', description: '小費、分帳與每人應付金額。', tier: 'quick', effort: '幾小時～1 天', tags: ['finance'] },
   { slug: 'password-generator', title: '隨機密碼產生器', description: '可調長度與字元集的安全密碼。', tier: 'quick', effort: '幾小時～1 天', tags: ['security'] },
   { slug: 'qr-generator', title: 'QR Code Generator', description: '文字／URL 一鍵產生 QR Code。', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },

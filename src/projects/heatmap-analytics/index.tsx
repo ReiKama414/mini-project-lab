@@ -6,38 +6,80 @@ import { downloadText } from '../../lib/utils'
 
 const meta = getProject('heatmap-analytics')!
 
-type Point = { x: number; y: number; device: Device; at: number }
+type Point = { x: number; y: number; device: Device; page: PageId; at: number; label?: string }
 type Device = 'desktop' | 'tablet' | 'mobile'
+type PageId = 'home' | 'pricing' | 'docs'
+
+const PAGES: { id: PageId; title: string; blurb: string }[] = [
+  { id: 'home', title: '首頁', blurb: '品牌與主要 CTA。' },
+  { id: 'pricing', title: '方案', blurb: '價格與升級按鈕。' },
+  { id: 'docs', title: '文件', blurb: '導覽與搜尋欄。' },
+]
+
+const COLS = 24
+const ROWS = 18
 
 export default function Page() {
-  const [clicks, setClicks] = useLocalStorage<Point[]>('lab:heatmap-analytics', [])
+  const [clicks, setClicks] = useLocalStorage<Point[]>('lab:heatmap-analytics:v2', [])
   const [mode, setMode] = useState<'collect' | 'heat'>('collect')
   const [device, setDevice] = useLocalStorage<Device>('lab:heatmap-analytics:device', 'desktop')
+  const [page, setPage] = useLocalStorage<PageId>('lab:heatmap-analytics:page', 'home')
   const [intensity, setIntensity] = useLocalStorage('lab:heatmap-analytics:intensity', 70)
 
-  const filtered = useMemo(() => clicks.filter((c) => c.device === device), [clicks, device])
+  const filtered = useMemo(
+    () => clicks.filter((c) => c.device === device && c.page === page),
+    [clicks, device, page],
+  )
 
   const cells = useMemo(() => {
-    const cols = 16
-    const rows = 12
-    const grid: number[][] = Array.from({ length: rows }, () => Array.from({ length: cols }, () => 0))
+    const grid: number[][] = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => 0))
     filtered.forEach((c) => {
-      const gx = Math.min(cols - 1, Math.floor(c.x * cols))
-      const gy = Math.min(rows - 1, Math.floor(c.y * rows))
+      const gx = Math.min(COLS - 1, Math.floor(c.x * COLS))
+      const gy = Math.min(ROWS - 1, Math.floor(c.y * ROWS))
       grid[gy]![gx]!++
     })
     const max = Math.max(1, ...grid.flat())
-    return { grid, max, cols, rows }
+    return { grid, max }
   }, [filtered])
 
+  const hotspots = useMemo(() => {
+    const buckets = new Map<string, number>()
+    filtered.forEach((c) => {
+      const key = `${Math.floor(c.x * 12)},${Math.floor(c.y * 9)}`
+      buckets.set(key, (buckets.get(key) || 0) + 1)
+    })
+    return [...buckets.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
+  }, [filtered])
+
+  const pageMeta = PAGES.find((p) => p.id === page)!
   const frameW = device === 'desktop' ? '100%' : device === 'tablet' ? 520 : 340
+
+  function addPoint(x: number, y: number, label?: string) {
+    setClicks((xs) => [...xs, { x, y, device, page, at: Date.now(), label }])
+  }
 
   function exportPoints() {
     downloadText(
-      `heatmap-${device}.json`,
-      JSON.stringify(filtered, null, 2),
+      `heatmap-${page}-${device}.json`,
+      JSON.stringify(
+        {
+          page,
+          device,
+          intensity,
+          grid: `${COLS}x${ROWS}`,
+          count: filtered.length,
+          exportedAt: new Date().toISOString(),
+          points: filtered,
+        },
+        null,
+        2,
+      ),
       'application/json;charset=utf-8',
     )
+  }
+
+  function clearPageDevice() {
+    setClicks((xs) => xs.filter((c) => !(c.device === device && c.page === page)))
   }
 
   return (
@@ -46,7 +88,10 @@ export default function Page() {
       actions={
         <div className="row">
           <button type="button" className="btn sm ghost" onClick={exportPoints}>
-            匯出點位
+            匯出 JSON
+          </button>
+          <button type="button" className="btn sm ghost" onClick={clearPageDevice}>
+            清空此頁/裝置
           </button>
           <button type="button" className="btn sm danger" onClick={() => setClicks([])}>
             清空全部
@@ -61,8 +106,13 @@ export default function Page() {
         <button type="button" className={`btn sm ${mode === 'heat' ? 'accent' : 'ghost'}`} onClick={() => setMode('heat')}>
           熱力圖
         </button>
+        {PAGES.map((p) => (
+          <button key={p.id} type="button" className={`btn sm ${page === p.id ? 'teal' : 'ghost'}`} onClick={() => setPage(p.id)}>
+            {p.title}
+          </button>
+        ))}
         {(['desktop', 'tablet', 'mobile'] as Device[]).map((d) => (
-          <button key={d} type="button" className={`btn sm ${device === d ? 'teal' : 'ghost'}`} onClick={() => setDevice(d)}>
+          <button key={d} type="button" className={`btn sm ${device === d ? 'accent' : 'ghost'}`} onClick={() => setDevice(d)}>
             {d}
           </button>
         ))}
@@ -73,92 +123,130 @@ export default function Page() {
         <input type="range" min={20} max={100} value={intensity} onChange={(e) => setIntensity(Number(e.target.value))} />
       </div>
 
-      <div style={{ width: frameW, maxWidth: '100%', margin: '0 auto' }}>
-        <div className="panel row" style={{ padding: '6px 12px', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
-          <span className="tag">● ● ●</span>
-          <span className="mono muted" style={{ flex: 1, textAlign: 'center' }}>
-            {device} preview
-          </span>
-        </div>
-        <div
-          className="panel"
-          style={{
-            position: 'relative',
-            height: device === 'mobile' ? 480 : 360,
-            cursor: mode === 'collect' ? 'crosshair' : 'default',
-            overflow: 'hidden',
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-            marginTop: 0,
-          }}
-          onClick={(e) => {
-            if (mode !== 'collect') return
-            const rect = e.currentTarget.getBoundingClientRect()
-            setClicks((xs) => [
-              ...xs,
-              {
-                x: (e.clientX - rect.left) / rect.width,
-                y: (e.clientY - rect.top) / rect.height,
-                device,
-                at: Date.now(),
-              },
-            ])
-          }}
-        >
-          <div style={{ padding: 24 }}>
-            <h3 style={{ marginTop: 0 }}>示範頁面</h3>
-            <p className="muted">在收集模式下點擊；切換裝置會分開累積熱區。</p>
-            <div className="row">
-              <button type="button" className="btn accent">
-                主要 CTA
-              </button>
-              <button type="button" className="btn ghost">
-                次要
-              </button>
-            </div>
+      <div className="grid-2" style={{ alignItems: 'start' }}>
+        <div style={{ width: frameW, maxWidth: '100%', margin: '0 auto' }}>
+          <div className="panel row" style={{ padding: '6px 12px', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+            <span className="tag">● ● ●</span>
+            <span className="mono muted" style={{ flex: 1, textAlign: 'center' }}>
+              {pageMeta.title} · {device} · {COLS}×{ROWS}
+            </span>
           </div>
-          {mode === 'heat' && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'grid',
-                gridTemplateColumns: `repeat(${cells.cols}, 1fr)`,
-                gridTemplateRows: `repeat(${cells.rows}, 1fr)`,
-                pointerEvents: 'none',
-              }}
-            >
-              {cells.grid.flatMap((row, yi) =>
-                row.map((v, xi) => {
-                  const alpha = v ? (0.12 + (v / cells.max) * 0.7) * (intensity / 100) : 0
-                  return (
-                    <div
-                      key={`${yi}-${xi}`}
-                      style={{ background: v ? `rgba(214, 64, 106, ${alpha})` : 'transparent' }}
-                    />
-                  )
-                }),
+          <div
+            className="panel"
+            style={{
+              position: 'relative',
+              height: device === 'mobile' ? 480 : 360,
+              cursor: 'crosshair',
+              overflow: 'hidden',
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0,
+              marginTop: 0,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+            onMouseDown={(e) => {
+              // 避免連點／拖曳時選取到示範文案
+              e.preventDefault()
+            }}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const target = (e.target as HTMLElement).closest('[data-hot]') as HTMLElement | null
+              addPoint((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height, target?.dataset.hot)
+            }}
+          >
+            <div style={{ padding: 24 }}>
+              <h3 style={{ marginTop: 0 }}>{pageMeta.title}</h3>
+              <p className="muted">{pageMeta.blurb} 點擊可新增熱點（收集與熱力模式皆可）。</p>
+              {page === 'home' && (
+                <div className="row">
+                  <span className="btn accent" data-hot="cta-primary">
+                    開始使用
+                  </span>
+                  <span className="btn ghost" data-hot="cta-secondary">
+                    瞭解更多
+                  </span>
+                </div>
+              )}
+              {page === 'pricing' && (
+                <div className="row" style={{ flexWrap: 'wrap' }}>
+                  {['Free', 'Pro', 'Business'].map((plan) => (
+                    <div key={plan} className="list-item" data-hot={`plan-${plan}`} style={{ minWidth: 100 }}>
+                      {plan}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {page === 'docs' && (
+                <>
+                  <div className="field" data-hot="search" style={{ color: 'var(--ink-muted)' }}>
+                    搜尋文件…
+                  </div>
+                  <div className="list-item" style={{ marginTop: 12 }} data-hot="nav-quickstart">
+                    快速入門
+                  </div>
+                </>
               )}
             </div>
-          )}
-          {mode === 'collect' &&
-            filtered.slice(-50).map((c, i) => (
+            {mode === 'heat' && (
               <div
-                key={i}
                 style={{
                   position: 'absolute',
-                  left: `${c.x * 100}%`,
-                  top: `${c.y * 100}%`,
-                  width: 8,
-                  height: 8,
-                  margin: -4,
-                  borderRadius: '50%',
-                  background: 'var(--accent)',
-                  opacity: 0.75,
+                  inset: 0,
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${COLS}, 1fr)`,
+                  gridTemplateRows: `repeat(${ROWS}, 1fr)`,
                   pointerEvents: 'none',
                 }}
-              />
+              >
+                {cells.grid.flatMap((row, yi) =>
+                  row.map((v, xi) => {
+                    const alpha = v ? (0.1 + (v / cells.max) * 0.75) * (intensity / 100) : 0
+                    return (
+                      <div
+                        key={`${yi}-${xi}`}
+                        style={{ background: v ? `rgba(214, 64, 106, ${alpha})` : 'transparent' }}
+                      />
+                    )
+                  }),
+                )}
+              </div>
+            )}
+            {mode === 'collect' &&
+              filtered.slice(-80).map((c, i) => (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    left: `${c.x * 100}%`,
+                    top: `${c.y * 100}%`,
+                    width: 8,
+                    height: 8,
+                    margin: -4,
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                    opacity: 0.75,
+                    pointerEvents: 'none',
+                  }}
+                />
+              ))}
+          </div>
+        </div>
+
+        <div className="panel stack">
+          <div className="label">熱點摘要 · {pageMeta.title}</div>
+          <div className="metric">最大格密度 {cells.max}</div>
+          <ul className="list">
+            {hotspots.map(([key, n]) => (
+              <li key={key} className="list-item row" style={{ justifyContent: 'space-between' }}>
+                <span className="mono muted">cell {key}</span>
+                <strong>{n}</strong>
+              </li>
             ))}
+            {!hotspots.length && <li className="list-item muted">尚無點擊 — 點畫面新增熱點</li>}
+          </ul>
+          <p className="muted" style={{ fontSize: 12 }}>
+            網格 {COLS}×{ROWS}；依頁面與裝置分開累積。
+          </p>
         </div>
       </div>
     </ProjectShell>

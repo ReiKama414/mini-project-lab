@@ -19,7 +19,7 @@ type Item = {
 }
 
 const seedSources: FeedSource[] = [
-  { id: 's1', name: 'Dev Weekly', url: '' },
+  { id: 's1', name: 'HN Front', url: 'https://hnrss.org/frontpage' },
   { id: 's2', name: 'Frontend Lab', url: '' },
 ]
 
@@ -28,7 +28,7 @@ const seedItems: Item[] = [
     id: '1',
     title: 'Vite 6 發佈重點整理',
     sourceId: 's1',
-    source: 'Dev Weekly',
+    source: 'HN Front',
     summary: '更快的 HMR、改善 CSS 管線與實驗性功能。',
     link: 'https://example.com/vite6',
     read: false,
@@ -48,7 +48,7 @@ const seedItems: Item[] = [
     id: '3',
     title: '本機優先的 SaaS 架構',
     sourceId: 's1',
-    source: 'Dev Weekly',
+    source: 'HN Front',
     summary: '先 offline-capable，再逐步接雲端。',
     link: 'https://example.com/local-first',
     read: true,
@@ -76,11 +76,11 @@ function parseRss(xml: string, source: FeedSource): Item[] {
       .replace(/<[^>]+>/g, '')
       .trim()
       .slice(0, 200)
-    const at =
-      (block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)?.[1] ||
-        block.match(/<updated[^>]*>([\s\S]*?)<\/updated>/i)?.[1] ||
-        new Date().toISOString()
-      ).slice(0, 10)
+    const at = (
+      block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i)?.[1] ||
+      block.match(/<updated[^>]*>([\s\S]*?)<\/updated>/i)?.[1] ||
+      new Date().toISOString()
+    ).slice(0, 10)
     if (title) {
       items.push({
         id: uid('f'),
@@ -102,21 +102,22 @@ export default function Page() {
   const [items, setItems] = useLocalStorage<Item[]>('lab:rss-reader', seedItems)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [sourceFilter, setSourceFilter] = useState('全部')
+  const [q, setQ] = useState('')
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
   const [feedName, setFeedName] = useState('')
-  const [feedUrl, setFeedUrl] = useState('')
+  const [feedUrl, setFeedUrl] = useState('https://')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
-  const shown = useMemo(
-    () =>
-      items
-        .filter((i) => (filter === 'all' ? true : !i.read))
-        .filter((i) => sourceFilter === '全部' || i.sourceId === sourceFilter || i.source === sourceFilter)
-        .sort((a, b) => b.at.localeCompare(a.at)),
-    [items, filter, sourceFilter],
-  )
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    return items
+      .filter((i) => (filter === 'all' ? true : !i.read))
+      .filter((i) => sourceFilter === '全部' || i.sourceId === sourceFilter || i.source === sourceFilter)
+      .filter((i) => !needle || i.title.toLowerCase().includes(needle) || i.summary.toLowerCase().includes(needle))
+      .sort((a, b) => b.at.localeCompare(a.at))
+  }, [items, filter, sourceFilter, q])
 
   async function fetchFeed(source: FeedSource) {
     if (!source.url.trim()) {
@@ -131,7 +132,7 @@ export default function Page() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const xml = await res.text()
       const parsed = parseRss(xml, source)
-      if (!parsed.length) throw new Error('無法解析 RSS／Atom')
+      if (!parsed.length) throw new Error('無法解析 <item>/<title>')
       setItems((xs) => {
         const titles = new Set(xs.map((x) => x.title + x.source))
         const fresh = parsed.filter((p) => !titles.has(p.title + p.source))
@@ -150,9 +151,9 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel stack">
           <div className="label">訂閱來源</div>
-          <div className="row">
+          <div className="row" style={{ flexWrap: 'wrap' }}>
             <input className="field" placeholder="名稱" value={feedName} onChange={(e) => setFeedName(e.target.value)} />
-            <input className="field" style={{ flex: 1 }} placeholder="RSS URL（可空＝只手動）" value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} />
+            <input className="field" style={{ flex: 1, minWidth: 160 }} placeholder="RSS URL" value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} />
             <button
               type="button"
               className="btn accent"
@@ -160,7 +161,7 @@ export default function Page() {
                 if (!feedName.trim()) return
                 setSources((xs) => [...xs, { id: uid('s'), name: feedName.trim(), url: feedUrl.trim() }])
                 setFeedName('')
-                setFeedUrl('')
+                setFeedUrl('https://')
               }}
             >
               加入
@@ -168,14 +169,14 @@ export default function Page() {
           </div>
           <ul className="list">
             {sources.map((s) => (
-              <li key={s.id} className="list-item row">
-                <div style={{ flex: 1 }}>
+              <li key={s.id} className="list-item row" style={{ flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 120 }}>
                   <strong>{s.name}</strong>
                   <div className="muted mono" style={{ fontSize: 12 }}>
                     {s.url || '（僅手動）'}
                   </div>
                 </div>
-                <button type="button" className="btn sm ghost" disabled={busy || !s.url} onClick={() => fetchFeed(s)}>
+                <button type="button" className="btn sm ghost" disabled={busy || !s.url} onClick={() => void fetchFeed(s)}>
                   擷取
                 </button>
                 <button type="button" className="btn sm danger" onClick={() => setSources((xs) => xs.filter((x) => x.id !== s.id))}>
@@ -233,6 +234,7 @@ export default function Page() {
                 </option>
               ))}
             </select>
+            <input className="field" style={{ flex: 1, minWidth: 120 }} placeholder="搜尋…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <ul className="list">
             {shown.map((it) => (
@@ -244,7 +246,7 @@ export default function Page() {
                 <p className="muted" style={{ margin: 0 }}>
                   {it.summary}
                 </p>
-                <div className="row">
+                <div className="row" style={{ flexWrap: 'wrap' }}>
                   <span className="mono muted">{it.at}</span>
                   {it.link && it.link !== '#' && (
                     <a className="btn sm ghost" href={it.link} target="_blank" rel="noreferrer">
@@ -260,6 +262,7 @@ export default function Page() {
                 </div>
               </li>
             ))}
+            {!shown.length && <li className="list-item muted">無項目</li>}
           </ul>
         </div>
       </div>

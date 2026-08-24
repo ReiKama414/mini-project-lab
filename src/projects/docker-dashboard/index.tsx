@@ -1,6 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { pick, randomInt, uid } from '../../lib/utils'
 
@@ -16,6 +16,8 @@ type Ctn = {
   memLimit: number
   logs: string[]
 }
+
+type Filter = 'all' | 'running' | 'exited'
 
 const LOG_SNIPS = [
   'Listening on :8080',
@@ -35,6 +37,7 @@ export default function Page() {
     { id: '4', name: 'worker', image: 'redis:7', status: 'exited', cpu: 0, mem: 0, memLimit: 128, logs: ['Stopped'] },
   ])
   const [selected, setSelected] = useState('1')
+  const [filter, setFilter] = useLocalStorage<Filter>('lab:docker-dashboard:filter', 'all')
   const [newName, setNewName] = useState('')
   const [newImage, setNewImage] = useState('busybox:latest')
 
@@ -56,8 +59,12 @@ export default function Page() {
     return () => clearInterval(id)
   }, [setCtns])
 
+  const filtered = useMemo(
+    () => ctns.filter((c) => (filter === 'all' ? true : c.status === filter)),
+    [ctns, filter],
+  )
   const running = ctns.filter((c) => c.status === 'running').length
-  const current = ctns.find((c) => c.id === selected) || ctns[0]
+  const current = ctns.find((c) => c.id === selected) || filtered[0] || ctns[0]
 
   function toggle(id: string) {
     setCtns((xs) =>
@@ -98,6 +105,14 @@ export default function Page() {
     setNewName('')
   }
 
+  function remove(id: string) {
+    setCtns((xs) => xs.filter((x) => x.id !== id))
+    if (selected === id) {
+      const rest = ctns.filter((x) => x.id !== id)
+      setSelected(rest[0]?.id || '')
+    }
+  }
+
   return (
     <ProjectShell meta={meta}>
       <div className="grid-3" style={{ marginBottom: 12 }}>
@@ -107,6 +122,11 @@ export default function Page() {
       </div>
 
       <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+        {(['all', 'running', 'exited'] as Filter[]).map((f) => (
+          <button key={f} type="button" className={`btn sm ${filter === f ? 'accent' : 'ghost'}`} onClick={() => setFilter(f)}>
+            {f === 'all' ? '全部' : f}
+          </button>
+        ))}
         <input className="field" placeholder="名稱" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ width: 140 }} />
         <input className="field mono" placeholder="image" value={newImage} onChange={(e) => setNewImage(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
         <button type="button" className="btn accent" onClick={add}>
@@ -117,7 +137,7 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel">
           <ul className="list">
-            {ctns.map((c) => (
+            {filtered.map((c) => (
               <li
                 key={c.id}
                 className="list-item stack"
@@ -142,6 +162,16 @@ export default function Page() {
                     >
                       {c.status === 'running' ? 'Stop' : 'Start'}
                     </button>
+                    <button
+                      type="button"
+                      className="btn sm danger"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        remove(c.id)
+                      }}
+                    >
+                      移除
+                    </button>
                   </div>
                 </div>
                 <div className="stack" style={{ gap: 4 }}>
@@ -157,7 +187,7 @@ export default function Page() {
                   <div className="progress">
                     <div
                       style={{
-                        width: `${Math.min(100, (c.mem / c.memLimit) * 100)}%`,
+                        width: `${Math.min(100, (c.mem / Math.max(1, c.memLimit)) * 100)}%`,
                         height: 6,
                         borderRadius: 4,
                         background: 'var(--amber)',
@@ -167,6 +197,7 @@ export default function Page() {
                 </div>
               </li>
             ))}
+            {!filtered.length && <li className="list-item muted">此篩選無容器</li>}
           </ul>
         </div>
         <div className="panel stack">

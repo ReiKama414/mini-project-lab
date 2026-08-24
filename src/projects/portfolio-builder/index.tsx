@@ -1,7 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText } from '../../lib/utils'
+import { uid, downloadText, copyText } from '../../lib/utils'
 
 const meta = getProject('portfolio-builder')!
 
@@ -24,6 +24,32 @@ export default function Page() {
     { id: '2', title: 'Design Tokens', desc: '主題與元件庫實驗', link: '#', tags: 'CSS, Tokens' },
   ])
 
+  function toMarkdown() {
+    return [
+      `# ${name}`,
+      '',
+      `**${title}**`,
+      '',
+      bio,
+      '',
+      '## 關於',
+      '',
+      about,
+      '',
+      '## 作品',
+      '',
+      ...projects.map(
+        (p) =>
+          `### ${p.title}\n\n${p.desc}\n\n- 連結：${p.link}\n- 標籤：${p.tags}`,
+      ),
+      '',
+      '## 聯絡',
+      '',
+      `- Email: ${email}`,
+      '',
+    ].join('\n')
+  }
+
   function exportHtml() {
     const html = `<!doctype html><html lang="zh-Hant"><meta charset="utf-8"/><title>${name}</title>
 <body style="font-family:system-ui;margin:0;background:#0b1220;color:#e5e7eb">
@@ -40,16 +66,33 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
   }
 
   return (
-    <ProjectShell meta={meta} actions={<button type="button" className="btn accent sm" onClick={exportHtml}>匯出 HTML</button>}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row">
+          <button type="button" className="btn ghost sm" onClick={() => void copyText(toMarkdown())}>
+            複製 MD
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => downloadText('portfolio.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
+            匯出 Markdown
+          </button>
+          <button type="button" className="btn accent sm" onClick={exportHtml}>
+            匯出 HTML
+          </button>
+        </div>
+      }
+    >
       <div className="grid-2">
         <div className="panel stack">
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            {([
-              ['hero', '主視覺'],
-              ['about', '關於'],
-              ['projects', '作品'],
-              ['contact', '聯絡'],
-            ] as [Section, string][]).map(([k, label]) => (
+            {(
+              [
+                ['hero', '主視覺'],
+                ['about', '關於'],
+                ['projects', '作品'],
+                ['contact', '聯絡'],
+              ] as [Section, string][]
+            ).map(([k, label]) => (
               <button key={k} type="button" className={`btn sm ${section === k ? 'accent' : 'ghost'}`} onClick={() => setSection(k)}>
                 {label}
               </button>

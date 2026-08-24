@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { projects, tiers, type Tier } from '../projects/registry'
+import { IconGrid } from './icons'
 
 const tierColor: Record<Tier, string> = {
   quick: '#2a9d8f',
@@ -35,7 +36,7 @@ export function Sidebar({
         className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
         onClick={onNavigate}
       >
-        <span className="dot" style={{ background: 'var(--accent)' }} />
+        <IconGrid size={15} strokeWidth={2.25} />
         全部導覽
         <span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>
           {filtered.length}

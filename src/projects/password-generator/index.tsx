@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText } from '../../lib/utils'
+import { copyText, downloadText, uid } from '../../lib/utils'
 
 const meta = getProject('password-generator')!
 
@@ -14,6 +14,16 @@ const SETS = {
 }
 
 const AMBIGUOUS = /[0OIl1]/g
+
+type Opts = { lower: boolean; upper: boolean; digits: boolean; symbols: boolean }
+type HistoryItem = { id: string; pwd: string; at: number; length: number; score: number }
+
+const PRESETS: { label: string; length: number; opts: Opts; excludeAmbiguous: boolean }[] = [
+  { label: '網站帳號', length: 16, opts: { lower: true, upper: true, digits: true, symbols: true }, excludeAmbiguous: true },
+  { label: 'PIN 風格', length: 8, opts: { lower: false, upper: false, digits: true, symbols: false }, excludeAmbiguous: false },
+  { label: '字母數字', length: 20, opts: { lower: true, upper: true, digits: true, symbols: false }, excludeAmbiguous: true },
+  { label: '高強度', length: 32, opts: { lower: true, upper: true, digits: true, symbols: true }, excludeAmbiguous: false },
+]
 
 function securePick(pool: string) {
   const arr = new Uint32Array(1)
@@ -34,16 +44,38 @@ function strengthScore(pwd: string) {
 const STRENGTH = ['很弱', '弱', '普通', '強', '很強', '極強']
 
 export default function Page() {
-  const [length, setLength] = useState(20)
-  const [opts, setOpts] = useState({ lower: true, upper: true, digits: true, symbols: true })
-  const [excludeAmbiguous, setExcludeAmbiguous] = useState(true)
+  const [length, setLength] = useLocalStorage('lab:password-generator:length', 20)
+  const [opts, setOpts] = useLocalStorage<Opts>('lab:password-generator:opts', {
+    lower: true,
+    upper: true,
+    digits: true,
+    symbols: true,
+  })
+  const [excludeAmbiguous, setExcludeAmbiguous] = useLocalStorage('lab:password-generator:ambiguous', true)
+  const [batch, setBatch] = useLocalStorage('lab:password-generator:batch', 1)
   const [pwd, setPwd] = useState('')
+  const [batchList, setBatchList] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
-  const [history, setHistory] = useLocalStorage<string[]>('lab:password-generator:history', [])
+  const [history, setHistory] = useLocalStorage<HistoryItem[]>('lab:password-generator:history-v2', [])
+  const [histFilter, setHistFilter] = useState('')
+  const [minScore, setMinScore] = useState(0)
 
   const score = useMemo(() => strengthScore(pwd), [pwd])
 
-  function generate() {
+  const filteredHistory = useMemo(() => {
+    const q = histFilter.trim().toLowerCase()
+    return history.filter((h) => h.score >= minScore && (!q || h.pwd.toLowerCase().includes(q) || String(h.length).includes(q)))
+  }, [history, histFilter, minScore])
+
+  const stats = useMemo(() => {
+    if (!history.length) return { avgLen: 0, avgScore: 0, strong: 0 }
+    const avgLen = Math.round(history.reduce((s, h) => s + h.length, 0) / history.length)
+    const avgScore = (history.reduce((s, h) => s + h.score, 0) / history.length).toFixed(1)
+    const strong = history.filter((h) => h.score >= 4).length
+    return { avgLen, avgScore, strong }
+  }, [history])
+
+  function makeOne(): string | null {
     const required: string[] = []
     let pool = ''
     ;(
@@ -60,26 +92,88 @@ export default function Page() {
       pool += s
       required.push(securePick(s))
     })
-    if (!pool) return
+    if (!pool) return null
     const out = [...required]
     while (out.length < length) out.push(securePick(pool))
-    // shuffle
     for (let i = out.length - 1; i > 0; i--) {
       const arr = new Uint32Array(1)
       crypto.getRandomValues(arr)
       const j = arr[0]! % (i + 1)
       ;[out[i], out[j]] = [out[j]!, out[i]!]
     }
-    const result = out.join('')
-    setPwd(result)
+    return out.join('')
+  }
+
+  function generate() {
+    const n = Math.min(20, Math.max(1, batch))
+    const results: string[] = []
+    for (let i = 0; i < n; i++) {
+      const r = makeOne()
+      if (r) results.push(r)
+    }
+    if (!results.length) return
+    setPwd(results[0]!)
+    setBatchList(results)
     setCopied(false)
-    setHistory([result, ...history.filter((h) => h !== result)].slice(0, 8))
+    setHistory((h) =>
+      [
+        ...results.map((p) => ({
+          id: uid('pw'),
+          pwd: p,
+          at: Date.now(),
+          length: p.length,
+          score: strengthScore(p),
+        })),
+        ...h,
+      ].slice(0, 24),
+    )
+  }
+
+  function applyPreset(p: (typeof PRESETS)[number]) {
+    setLength(p.length)
+    setOpts(p.opts)
+    setExcludeAmbiguous(p.excludeAmbiguous)
   }
 
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row">
+          <button type="button" className="btn sm accent" onClick={generate}>
+            產生
+          </button>
+          <button
+            type="button"
+            className="btn sm ghost"
+            disabled={!batchList.length}
+            onClick={() => downloadText('passwords.txt', batchList.join('\n'))}
+          >
+            匯出批次
+          </button>
+        </div>
+      }
+    >
+      <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+        <span className="metric">歷史 {history.length}</span>
+        <span className="tag">平均長度 {stats.avgLen || '—'}</span>
+        <span className="tag">平均強度 {stats.avgScore || '—'}</span>
+        <span className="tag">強以上 {stats.strong}</span>
+      </div>
+
       <div className="grid-2">
         <div className="panel stack">
+          <div>
+            <div className="label">預設組合</div>
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              {PRESETS.map((p) => (
+                <button key={p.label} type="button" className="btn sm ghost" onClick={() => applyPreset(p)}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <label className="stack">
             <span className="label">長度：{length}</span>
             <input
@@ -91,7 +185,20 @@ export default function Page() {
               onChange={(e) => setLength(Number(e.target.value))}
             />
           </label>
-          <div className="row">
+
+          <label className="stack">
+            <span className="label">一次產生數量：{batch}</span>
+            <input
+              className="field"
+              type="range"
+              min={1}
+              max={10}
+              value={batch}
+              onChange={(e) => setBatch(Number(e.target.value))}
+            />
+          </label>
+
+          <div className="row" style={{ flexWrap: 'wrap' }}>
             {(
               [
                 ['lower', '小寫'],
@@ -110,6 +217,7 @@ export default function Page() {
               </label>
             ))}
           </div>
+
           <label className="row">
             <input
               type="checkbox"
@@ -118,21 +226,33 @@ export default function Page() {
             />
             排除易混淆字元（0 O I l 1）
           </label>
-          <div className="row">
-            <button className="btn accent" onClick={generate}>
+
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <button type="button" className="btn accent" onClick={generate}>
               產生密碼
             </button>
             <button
+              type="button"
               className="btn ghost"
               disabled={!pwd}
               onClick={async () => {
                 await copyText(pwd)
                 setCopied(true)
+                setTimeout(() => setCopied(false), 1500)
               }}
             >
               {copied ? '已複製' : '複製'}
             </button>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={!batchList.length}
+              onClick={() => void copyText(batchList.join('\n'))}
+            >
+              複製全部
+            </button>
           </div>
+
           {pwd && (
             <>
               <div className="metric mono" style={{ wordBreak: 'break-all', fontSize: 18 }}>
@@ -144,28 +264,95 @@ export default function Page() {
               <p className="muted">強度：{STRENGTH[score]} · 使用 Web Crypto 亂數</p>
             </>
           )}
-        </div>
-        <div className="panel stack">
-          <h3>最近產生</h3>
+
+          {batchList.length > 1 && (
+            <ul className="list">
+              {batchList.map((p) => (
+                <li key={p} className="list-item">
+                  <code className="mono" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {p}
+                  </code>
+                  <span className="tag">{STRENGTH[strengthScore(p)]}</span>
+                  <button type="button" className="btn ghost sm" onClick={() => void copyText(p)}>
+                    複製
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <p className="muted" style={{ fontSize: 12 }}>
             僅存在本機，請勿用於真實重要帳號後長期留存。
           </p>
+        </div>
+
+        <div className="panel stack">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0 }}>最近產生</h3>
+            <button type="button" className="btn ghost sm" disabled={!history.length} onClick={() => setHistory([])}>
+              清空歷史
+            </button>
+          </div>
+          <input
+            className="field"
+            placeholder="篩選密碼／長度…"
+            value={histFilter}
+            onChange={(e) => setHistFilter(e.target.value)}
+          />
+          <label className="stack">
+            <span className="label">最低強度篩選：{STRENGTH[minScore]}</span>
+            <input
+              className="field"
+              type="range"
+              min={0}
+              max={5}
+              value={minScore}
+              onChange={(e) => setMinScore(Number(e.target.value))}
+            />
+          </label>
           <ul className="list">
-            {history.map((h) => (
-              <li key={h} className="list-item">
-                <code className="mono" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {h}
+            {filteredHistory.map((h) => (
+              <li key={h.id} className="list-item stack">
+                <code className="mono" style={{ wordBreak: 'break-all', fontSize: 13 }}>
+                  {h.pwd}
                 </code>
-                <button className="btn ghost sm" onClick={() => void copyText(h)}>
-                  複製
-                </button>
+                <div className="row" style={{ flexWrap: 'wrap' }}>
+                  <span className="tag">{STRENGTH[h.score]}</span>
+                  <span className="muted mono" style={{ fontSize: 11 }}>
+                    長度 {h.length} · {new Date(h.at).toLocaleString('zh-TW')}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn ghost sm"
+                    onClick={() => {
+                      setPwd(h.pwd)
+                      setBatchList([h.pwd])
+                    }}
+                  >
+                    顯示
+                  </button>
+                  <button type="button" className="btn ghost sm" onClick={() => void copyText(h.pwd)}>
+                    複製
+                  </button>
+                  <button
+                    type="button"
+                    className="btn danger sm"
+                    onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))}
+                  >
+                    刪
+                  </button>
+                </div>
               </li>
             ))}
-            {!history.length && <p className="muted">尚無紀錄</p>}
+            {!filteredHistory.length && <p className="muted">尚無紀錄或不符合篩選</p>}
           </ul>
           {!!history.length && (
-            <button className="btn ghost sm" onClick={() => setHistory([])}>
-              清空歷史
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => downloadText('password-history.txt', history.map((h) => h.pwd).join('\n'))}
+            >
+              匯出歷史
             </button>
           )}
         </div>

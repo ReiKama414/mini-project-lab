@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { projects } from '../projects/registry'
+import { IconMenu, IconSearch } from './icons'
 
 export function Layout() {
   const [open, setOpen] = useState(false)
@@ -22,18 +23,20 @@ export function Layout() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="menu-btn" aria-label="選單" onClick={() => setOpen((v) => !v)}>
-          ☰
+        <button type="button" className="menu-btn" aria-label="選單" onClick={() => setOpen((v) => !v)}>
+          <IconMenu size={18} strokeWidth={2.25} />
         </button>
-        <Link to="/" className="brand">
-          <span className="brand-mark">M</span>
-          Mini Project Lab
+        <Link to="/" className="brand" aria-label="Mini Project Lab">
+          <img src="/favicon.svg" alt="" className="brand-mark" width={28} height={28} draggable={false} />
+          <span className="brand-text">Mini Project Lab</span>
         </Link>
         <div className="topbar-search">
+          <IconSearch className="search-icon" size={16} strokeWidth={2.25} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`搜尋名稱、標籤…（${matchCount}）`}
+            aria-label="搜尋專案"
           />
         </div>
       </header>

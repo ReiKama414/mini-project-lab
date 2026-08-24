@@ -62,8 +62,10 @@ export default function Page() {
   const [tab, setTab] = useState<Folder>('inbox')
   const [folderFilter, setFolderFilter] = useState<string>('全部')
   const [newFolder, setNewFolder] = useState('')
+  const [q, setQ] = useLocalStorage('lab:newsletter-reader:q', '')
 
   const list = useMemo(() => {
+    const needle = q.trim().toLowerCase()
     return items
       .filter((i) => {
         if (tab === 'inbox') return !i.archived
@@ -72,8 +74,16 @@ export default function Page() {
         return !i.read && !i.archived
       })
       .filter((i) => folderFilter === '全部' || i.folder === folderFilter)
+      .filter((i) => {
+        if (!needle) return true
+        return (
+          i.subject.toLowerCase().includes(needle) ||
+          i.from.toLowerCase().includes(needle) ||
+          i.body.toLowerCase().includes(needle)
+        )
+      })
       .sort((a, b) => b.at - a.at)
-  }, [items, tab, folderFilter])
+  }, [items, tab, folderFilter, q])
 
   const current = items.find((i) => i.id === sel) || list[0]
   const unread = items.filter((i) => !i.read && !i.archived).length
@@ -97,6 +107,13 @@ export default function Page() {
             {label}
           </button>
         ))}
+        <input
+          className="field"
+          style={{ flex: 1, minWidth: 160 }}
+          placeholder="搜尋主旨／寄件者／內容…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
         <button
           type="button"
           className="btn sm teal"
@@ -183,7 +200,12 @@ export default function Page() {
                   </option>
                 ))}
               </select>
-              <p>{current.body}</p>
+              <textarea
+                className="field"
+                rows={8}
+                value={current.body}
+                onChange={(e) => patch(current.id, { body: e.target.value })}
+              />
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 <button type="button" className="btn sm ghost" onClick={() => patch(current.id, { starred: !current.starred })}>
                   {current.starred ? '取消星號' : '加星號'}

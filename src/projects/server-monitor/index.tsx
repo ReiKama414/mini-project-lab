@@ -7,7 +7,7 @@ import { randomInt } from '../../lib/utils'
 const meta = getProject('server-monitor')!
 
 type Metrics = { cpu: number; mem: number; disk: number; netIn: number; netOut: number; load: number }
-type Histories = { cpu: number[]; mem: number[]; load: number[] }
+type Histories = { cpu: number[]; mem: number[]; disk: number[]; load: number[] }
 type Alert = { id: string; at: number; metric: string; value: number; threshold: number }
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
@@ -26,19 +26,27 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   )
 }
 
+function seedHist(n: number, min: number, max: number, float = false) {
+  return Array.from({ length: n }, () => (float ? Number((Math.random() * (max - min) + min).toFixed(2)) : randomInt(min, max)))
+}
+
 export default function Page() {
   const [host, setHost] = useLocalStorage('lab:server-monitor:host', 'prod-web-01')
   const [cpuThreshold, setCpuThreshold] = useLocalStorage('lab:server-monitor:cpu-th', 80)
   const [memThreshold, setMemThreshold] = useLocalStorage('lab:server-monitor:mem-th', 85)
+  const [diskThreshold, setDiskThreshold] = useLocalStorage('lab:server-monitor:disk-th', 90)
   const [m, setM] = useState<Metrics>({ cpu: 32, mem: 58, disk: 71, netIn: 12, netOut: 8, load: 1.2 })
   const [hist, setHist] = useState<Histories>(() => ({
-    cpu: Array.from({ length: 40 }, () => randomInt(10, 70)),
-    mem: Array.from({ length: 40 }, () => randomInt(40, 75)),
-    load: Array.from({ length: 40 }, () => Number((Math.random() * 2.5).toFixed(2))),
+    cpu: seedHist(40, 10, 70),
+    mem: seedHist(40, 40, 75),
+    disk: seedHist(40, 55, 80),
+    load: seedHist(40, 0.2, 2.5, true),
   }))
   const [alerts, setAlerts] = useState<Alert[]>([])
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
+    if (paused) return
     const id = setInterval(() => {
       setM((prev) => {
         const next: Metrics = {
@@ -52,52 +60,67 @@ export default function Page() {
         setHist((h) => ({
           cpu: [...h.cpu.slice(1), next.cpu],
           mem: [...h.mem.slice(1), next.mem],
+          disk: [...h.disk.slice(1), next.disk],
           load: [...h.load.slice(1), next.load],
         }))
         const now = Date.now()
         if (next.cpu >= cpuThreshold) {
-          setAlerts((a) => [{ id: `a_${now}_cpu`, at: now, metric: 'CPU', value: next.cpu, threshold: cpuThreshold }, ...a].slice(0, 30))
+          setAlerts((a) => [{ id: `a_${now}_cpu`, at: now, metric: 'CPU', value: next.cpu, threshold: cpuThreshold }, ...a].slice(0, 40))
         }
         if (next.mem >= memThreshold) {
-          setAlerts((a) => [{ id: `a_${now}_mem`, at: now, metric: 'Memory', value: next.mem, threshold: memThreshold }, ...a].slice(0, 30))
+          setAlerts((a) => [{ id: `a_${now}_mem`, at: now, metric: 'Memory', value: next.mem, threshold: memThreshold }, ...a].slice(0, 40))
+        }
+        if (next.disk >= diskThreshold) {
+          setAlerts((a) => [{ id: `a_${now}_disk`, at: now, metric: 'Disk', value: next.disk, threshold: diskThreshold }, ...a].slice(0, 40))
         }
         return next
       })
     }, 1200)
     return () => clearInterval(id)
-  }, [cpuThreshold, memThreshold])
+  }, [cpuThreshold, memThreshold, diskThreshold, paused])
 
   const cards = useMemo(
     () => [
       { label: 'CPU', value: `${m.cpu}%`, pct: m.cpu, warn: m.cpu >= cpuThreshold },
       { label: 'Memory', value: `${m.mem}%`, pct: m.mem, warn: m.mem >= memThreshold },
-      { label: 'Disk', value: `${m.disk}%`, pct: m.disk, warn: m.disk >= 90 },
+      { label: 'Disk', value: `${m.disk}%`, pct: m.disk, warn: m.disk >= diskThreshold },
       { label: 'Load', value: String(m.load), warn: m.load >= 2.5 },
       { label: 'Net In', value: `${m.netIn} MB/s` },
       { label: 'Net Out', value: `${m.netOut} MB/s` },
     ],
-    [m, cpuThreshold, memThreshold],
+    [m, cpuThreshold, memThreshold, diskThreshold],
   )
 
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <button type="button" className={`btn sm ${paused ? 'accent' : 'ghost'}`} onClick={() => setPaused((p) => !p)}>
+          {paused ? '繼續' : '暫停'}
+        </button>
+      }
+    >
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label className="label" style={{ margin: 0 }}>
             Hostname
           </label>
           <input className="field" value={host} onChange={(e) => setHost(e.target.value)} style={{ maxWidth: 220 }} />
-          <span className="tag">live mock</span>
+          <span className="tag">{paused ? 'paused' : 'live mock'}</span>
         </div>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 16 }}>
           <label className="label" style={{ margin: 0 }}>
-            CPU 告警 ≥ {cpuThreshold}%
+            CPU ≥ {cpuThreshold}%
           </label>
           <input type="range" min={50} max={95} value={cpuThreshold} onChange={(e) => setCpuThreshold(Number(e.target.value))} />
           <label className="label" style={{ margin: 0 }}>
-            MEM 告警 ≥ {memThreshold}%
+            MEM ≥ {memThreshold}%
           </label>
           <input type="range" min={50} max={95} value={memThreshold} onChange={(e) => setMemThreshold(Number(e.target.value))} />
+          <label className="label" style={{ margin: 0 }}>
+            Disk ≥ {diskThreshold}%
+          </label>
+          <input type="range" min={50} max={98} value={diskThreshold} onChange={(e) => setDiskThreshold(Number(e.target.value))} />
         </div>
       </div>
 
@@ -106,7 +129,11 @@ export default function Page() {
           <div key={c.label} className="panel metric stack">
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <span className="muted">{c.label}</span>
-              {c.warn && <span className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>ALERT</span>}
+              {c.warn && (
+                <span className="tag" style={{ background: 'var(--rose)', color: '#fff' }}>
+                  ALERT
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 24 }}>{c.value}</div>
             {c.pct !== undefined && (
@@ -125,17 +152,21 @@ export default function Page() {
         ))}
       </div>
 
-      <div className="grid-3" style={{ marginBottom: 12 }}>
+      <div className="grid-2" style={{ marginBottom: 12 }}>
         <div className="panel stack">
-          <div className="label">CPU sparkline</div>
+          <div className="label">CPU</div>
           <Sparkline data={hist.cpu} color="var(--sky)" />
         </div>
         <div className="panel stack">
-          <div className="label">Memory sparkline</div>
+          <div className="label">Memory</div>
           <Sparkline data={hist.mem} color="var(--amber)" />
         </div>
         <div className="panel stack">
-          <div className="label">Load sparkline</div>
+          <div className="label">Disk</div>
+          <Sparkline data={hist.disk} color="var(--rose)" />
+        </div>
+        <div className="panel stack">
+          <div className="label">Load</div>
           <Sparkline data={hist.load} color="var(--teal)" />
         </div>
       </div>

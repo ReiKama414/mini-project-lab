@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, downloadText, copyText } from '../../lib/utils'
+import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 
 const meta = getProject('ai-chat-ui')!
+
+const PROMPT_MAX = 2000
+const INPUT_MAX = 4000
 
 type Msg = { id: string; role: 'user' | 'bot' | 'system'; text: string; at: number }
 

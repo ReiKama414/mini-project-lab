@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, pick, uid } from '../../lib/utils'
+import { copyText, downloadText, pick, uid } from '../../lib/utils'
 
 const meta = getProject('log-viewer')!
 
@@ -23,6 +23,14 @@ const samples = [
 ]
 
 const sources = ['api', 'worker', 'gateway', 'auth']
+
+const LEVEL_LABEL: Record<Level | 'all', string> = {
+  all: '全部',
+  info: 'info',
+  warn: 'warn',
+  error: 'error',
+  debug: 'debug',
+}
 
 function makeSampleBatch(n = 8): Log[] {
   return Array.from({ length: n }, () => ({
@@ -76,15 +84,26 @@ export default function Page() {
     [list, filter, q],
   )
 
+  const levelCounts = useMemo(() => {
+    const c: Record<Level, number> = { info: 0, warn: 0, error: 0, debug: 0 }
+    list.forEach((l) => {
+      c[l.level]++
+    })
+    return c
+  }, [list])
+
   function generate() {
     setLogs((xs) => [...makeSampleBatch(15), ...(Array.isArray(xs) ? xs : [])].slice(0, 300))
   }
 
-  function exportLogs() {
-    const text = shown
+  function exportText() {
+    return shown
       .map((l) => `${new Date(l.at).toISOString()} [${l.level.toUpperCase()}] (${l.source}) ${l.msg}`)
       .join('\n')
-    downloadText(`logs-${Date.now()}.txt`, text || '(empty)', 'text/plain;charset=utf-8')
+  }
+
+  function exportLogs() {
+    downloadText(`logs-${Date.now()}.txt`, exportText() || '(empty)', 'text/plain;charset=utf-8')
   }
 
   return (
@@ -95,17 +114,42 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={generate}>
             產生樣本
           </button>
+          <button type="button" className="btn sm ghost" disabled={!shown.length} onClick={() => void copyText(exportText())}>
+            複製
+          </button>
           <button type="button" className="btn sm teal" onClick={exportLogs}>
             匯出
           </button>
         </div>
       }
     >
+      <div className="grid-3" style={{ marginBottom: 12 }}>
+        <div className="metric panel">
+          error <strong style={{ color: color.error }}>{levelCounts.error}</strong>
+        </div>
+        <div className="metric panel">
+          warn <strong style={{ color: color.warn }}>{levelCounts.warn}</strong>
+        </div>
+        <div className="metric panel">
+          總筆數 {list.length}
+        </div>
+      </div>
       <div className="panel row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
-        <input className="field" placeholder="搜尋訊息或來源…" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
+        <input
+          className="field"
+          placeholder="搜尋訊息或來源…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{ flex: 1, minWidth: 160 }}
+        />
         {(['all', 'info', 'warn', 'error', 'debug'] as const).map((f) => (
-          <button key={f} type="button" className={`btn sm ${filter === f ? 'accent' : 'ghost'}`} onClick={() => setFilter(f)}>
-            {f}
+          <button
+            key={f}
+            type="button"
+            className={`btn sm ${filter === f ? 'accent' : 'ghost'}`}
+            onClick={() => setFilter(f)}
+          >
+            {LEVEL_LABEL[f]}
           </button>
         ))}
         <button type="button" className={`btn sm ${paused ? 'ghost' : 'teal'}`} onClick={() => setPaused((v) => !v)}>
@@ -128,7 +172,7 @@ export default function Page() {
             <span className="muted">{new Date(l.at).toLocaleTimeString('zh-TW')}</span> {l.msg}
           </div>
         ))}
-        {!shown.length && <p className="muted">尚無日誌（可按「產生樣本」）</p>}
+        {!shown.length && <p className="muted">尚無日誌（可按「產生樣本」或關閉暫停）</p>}
       </div>
     </ProjectShell>
   )

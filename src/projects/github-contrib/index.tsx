@@ -2,7 +2,6 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { randomInt } from '../../lib/utils'
 
 const meta = getProject('github-contrib')!
 
@@ -36,7 +35,7 @@ function buildMockYear(username: string): DayCell[] {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
     const v = rand() % 100
-    const count = v > 78 ? randomInt(3, 8) : v > 62 ? randomInt(1, 3) : v > 48 ? 1 : 0
+    const count = v > 78 ? 3 + (rand() % 6) : v > 62 ? 1 + (rand() % 3) : v > 48 ? 1 : 0
     data.push({ date: d.toISOString().slice(0, 10), count })
   }
   return data

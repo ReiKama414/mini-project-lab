@@ -1,7 +1,8 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { copyText, downloadText } from '../../lib/utils'
 
 const meta = getProject('stock-watchlist')!
 
@@ -48,19 +49,24 @@ export default function Page() {
     'MSFT',
     '2330.TW',
   ])
+  const [sortDesc, setSortDesc] = useLocalStorage('lab:stock-watchlist:sortDesc', true)
+  const [notes, setNotes] = useLocalStorage<Record<string, string>>('lab:stock-watchlist:notes', {})
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [asOf, setAsOf] = useState('')
+  const [failed, setFailed] = useState<string[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     const selected = PRESETS.filter((p) => watch.includes(p.symbol))
+    const miss: string[] = []
     const results = await Promise.all(
       selected.map(async (p) => {
         const q = await fetchStooq(p.stooq)
         if (!q) {
+          miss.push(p.symbol)
           return {
             symbol: p.symbol,
             name: p.name,
@@ -81,8 +87,11 @@ export default function Page() {
       }),
     )
     setQuotes(results)
-    setAsOf(new Date().toLocaleString())
-    if (results.every((r) => r.price === 0)) setError('無法取得報價（網路或 CORS），請稍後再試')
+    setFailed(miss)
+    setAsOf(new Date().toLocaleString('zh-TW'))
+    if (results.length && results.every((r) => r.price === 0)) {
+      setError('無法取得報價（網路或 CORS），請稍後再試')
+    }
     setLoading(false)
   }, [watch])
 
@@ -90,13 +99,35 @@ export default function Page() {
     void load()
   }, [load])
 
+  const sorted = useMemo(() => {
+    return [...quotes].sort((a, b) => (sortDesc ? b.changePct - a.changePct : a.changePct - b.changePct))
+  }, [quotes, sortDesc])
+
+  const winners = sorted.filter((q) => q.changePct > 0).length
+  const losers = sorted.filter((q) => q.changePct < 0).length
+
+  function exportCsv() {
+    const rows = [
+      'symbol,name,price,change,changePct,note',
+      ...sorted.map((q) =>
+        [q.symbol, q.name, q.price, q.change.toFixed(4), q.changePct.toFixed(4), JSON.stringify(notes[q.symbol] || '')].join(','),
+      ),
+    ]
+    downloadText(`watchlist-${Date.now()}.csv`, rows.join('\n'), 'text/csv;charset=utf-8')
+  }
+
   return (
     <ProjectShell
       meta={meta}
       actions={
-        <button className="btn ghost sm" onClick={() => void load()} disabled={loading}>
-          {loading ? '更新中…' : '重新整理'}
-        </button>
+        <div className="row">
+          <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!sorted.length}>
+            匯出 CSV
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => void load()} disabled={loading}>
+            {loading ? '更新中…' : '重新整理'}
+          </button>
+        </div>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
@@ -104,6 +135,13 @@ export default function Page() {
         {asOf && ` · ${asOf}`}
         {error && ` · ${error}`}
       </p>
+
+      <div className="grid-3" style={{ marginBottom: 12 }}>
+        <div className="metric panel">觀察 {watch.length}</div>
+        <div className="metric panel">上漲 {winners} · 下跌 {losers}</div>
+        <div className="metric panel">{failed.length ? `失敗 ${failed.join(', ')}` : '報價正常'}</div>
+      </div>
+
       <div className="panel row" style={{ flexWrap: 'wrap', marginBottom: 12, gap: 8 }}>
         {PRESETS.map((p) => (
           <button
@@ -119,9 +157,13 @@ export default function Page() {
             {p.symbol}
           </button>
         ))}
+        <button type="button" className="btn sm ghost" onClick={() => setSortDesc((v) => !v)}>
+          漲跌排序 {sortDesc ? '↓' : '↑'}
+        </button>
       </div>
+
       <div className="grid-2">
-        {quotes.map((q) => (
+        {sorted.map((q) => (
           <div key={q.symbol} className="panel stack">
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <div>
@@ -141,13 +183,34 @@ export default function Page() {
             <div className="metric mono" style={{ fontSize: 28 }}>
               {q.price ? q.price.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
             </div>
-            <p className="muted">
+            <p className="muted" style={{ margin: 0 }}>
               漲跌 {q.change >= 0 ? '+' : ''}
               {q.change.toFixed(2)}
             </p>
+            <div className="progress">
+              <span
+                style={{
+                  width: `${Math.min(100, Math.abs(q.changePct) * 10 + 8)}%`,
+                  background: q.changePct >= 0 ? 'var(--teal)' : 'var(--rose)',
+                }}
+              />
+            </div>
+            <input
+              className="field"
+              placeholder="備註（本機）"
+              value={notes[q.symbol] || ''}
+              onChange={(e) => setNotes((n) => ({ ...n, [q.symbol]: e.target.value }))}
+            />
+            <button
+              type="button"
+              className="btn sm ghost"
+              onClick={() => copyText(`${q.symbol} ${q.price} (${q.changePct.toFixed(2)}%)`)}
+            >
+              複製報價
+            </button>
           </div>
         ))}
-        {!quotes.length && <p className="muted">請選擇觀察清單</p>}
+        {!sorted.length && <p className="muted">請選擇觀察清單</p>}
       </div>
     </ProjectShell>
   )
