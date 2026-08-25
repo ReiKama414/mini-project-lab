@@ -28,7 +28,7 @@ export function ProjectShell({
           <h1>{meta.title}</h1>
           <p>{meta.description}</p>
         </div>
-        {actions}
+        {actions ? <div className="project-shell-actions">{actions}</div> : null}
       </div>
       {children}
     </div>

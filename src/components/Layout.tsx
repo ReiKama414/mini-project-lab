@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { projects } from '../projects/registry'
@@ -22,6 +22,19 @@ export function Layout() {
         p.tags.some((t) => t.includes(q)),
     ).length
   }, [query])
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [mobileOpen])
 
   return (
     <div className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>

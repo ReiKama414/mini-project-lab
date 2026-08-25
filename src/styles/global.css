@@ -6,6 +6,7 @@
   --ink-soft: #3d524a;
   --ink-muted: #6b7c74;
   --line: #d4cfc0;
+  --border: var(--line);
   --accent: #f0734a;
   --accent-hover: #e05a2e;
   --accent-soft: #ffe0d4;
@@ -44,6 +45,11 @@ html,
 body,
 #root {
   min-height: 100%;
+}
+
+html,
+body {
+  overflow-x: clip;
 }
 
 body {
@@ -529,9 +535,11 @@ svg {
 
 .project-card .meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .badge {
@@ -551,12 +559,14 @@ svg {
 
 .project-card h3 {
   font-size: 1.02rem;
+  overflow-wrap: anywhere;
 }
 
 .project-card p {
   color: var(--ink-muted);
   font-size: 0.86rem;
   flex: 1;
+  overflow-wrap: anywhere;
 }
 
 .project-shell {
@@ -572,10 +582,25 @@ svg {
   margin-bottom: var(--space-4);
 }
 
+.project-shell-header > :first-child {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.project-shell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
 .project-shell-header h1 {
   font-size: clamp(1.45rem, 2.4vw, 1.9rem);
   margin-bottom: 0.45rem;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .project-shell-header p {
@@ -584,12 +609,33 @@ svg {
   line-height: 1.6;
 }
 
+.mono,
+pre.mono,
+.metric.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+input[type='file'].field {
+  max-width: 100%;
+  min-width: 0;
+}
+
 .panel {
   background: var(--bg-elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: var(--space-4);
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .panel + .panel {
@@ -1006,10 +1052,6 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
 .btn.danger { background: var(--rose); }
 
 .muted { color: var(--ink-muted); }
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.9rem;
-}
 
 .list {
   list-style: none;
@@ -1255,5 +1297,47 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
 
   .main {
     padding: 1.1rem 1rem 2.5rem;
+  }
+
+  .home-hero {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .panel {
+    padding: var(--space-3);
+  }
+
+  .project-shell-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    gap: 0.45rem;
+    padding: 0 0.7rem;
+  }
+
+  .brand-text {
+    max-width: 10ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-search {
+    max-width: none;
+    min-width: 0;
+    margin-left: 0.25rem;
+  }
+
+  .topbar-search input {
+    padding-left: 2.05rem;
+    font-size: 0.9rem;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

@@ -247,7 +247,7 @@ export default function Page() {
                       ) : (
                         <>
                           <div className="row">
-                            <strong style={{ flex: 1 }}>{c.title}</strong>
+                            <strong style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</strong>
                             <span
                               className="tag"
                               style={{
