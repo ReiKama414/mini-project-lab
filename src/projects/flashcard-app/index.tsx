@@ -223,7 +223,7 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <div className="stack" style={{ flex: 1, minWidth: 100, gap: 0 }}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 100 }}>
             <input
               className={`field${newDeckName.length > 0 && !deckNameOk ? ' is-invalid' : ''}`}
               style={{ width: '100%' }}
@@ -241,16 +241,16 @@ export default function Page() {
               </span>
             </div>
           </div>
-          <button className="btn sm teal" onClick={addDeck} disabled={!canAddDeck}>
+          <button type="button" className="btn sm teal" onClick={addDeck} disabled={!canAddDeck}>
             新增牌組
           </button>
-          <button
+          <button type="button"
             className={`btn sm ${mode === 'study' ? 'accent' : 'ghost'}`}
             onClick={() => setMode('study')}
           >
             複習
           </button>
-          <button
+          <button type="button"
             className={`btn sm ${mode === 'manage' ? 'accent' : 'ghost'}`}
             onClick={() => setMode('manage')}
           >
@@ -263,7 +263,7 @@ export default function Page() {
             再練 {stats.again}
           </span>
           {deck && deck.cards.length > 0 && (
-            <button className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => ensureOrder(deck, true)}>
+            <button type="button" className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => ensureOrder(deck, true)}>
               洗牌
             </button>
           )}
@@ -298,16 +298,16 @@ export default function Page() {
                 點擊翻面 · {pos + 1}/{studyIds.length} · 此卡 認識 {card.know} / 再練 {card.again}
               </p>
               <div className="row" style={{ justifyContent: 'center' }}>
-                <button className="btn ghost" onClick={() => go(-1)}>
+                <button type="button" className="btn ghost" onClick={() => go(-1)}>
                   上一張
                 </button>
-                <button className="btn danger" onClick={() => score('again')}>
+                <button type="button" className="btn danger" onClick={() => score('again')}>
                   再練一次
                 </button>
-                <button className="btn teal" onClick={() => score('know')}>
+                <button type="button" className="btn teal" onClick={() => score('know')}>
                   認識
                 </button>
-                <button className="btn ghost" onClick={() => go(1)}>
+                <button type="button" className="btn ghost" onClick={() => go(1)}>
                   下一張
                 </button>
               </div>
@@ -355,12 +355,12 @@ export default function Page() {
             </div>
           </div>
           <div className="row">
-            <button className="btn accent" onClick={saveCard} disabled={!canSaveCard}>
+            <button type="button" className="btn accent" onClick={saveCard} disabled={!canSaveCard}>
               {editingId ? '儲存修改' : '新增卡片'}
             </button>
             {cardsAtLimit && <p className="field-error">此牌組已達 {MAX_CARDS} 張上限</p>}
             {editingId && (
-              <button
+              <button type="button"
                 className="btn ghost"
                 onClick={() => {
                   setEditingId(null)
@@ -372,7 +372,7 @@ export default function Page() {
               </button>
             )}
             {deck && decks.length > 1 && (
-              <button
+              <button type="button"
                 className="btn ghost"
                 style={{ marginLeft: 'auto' }}
                 onClick={() => {
@@ -395,10 +395,10 @@ export default function Page() {
                 <span className="tag">
                   ✓{c.know} / ✗{c.again}
                 </span>
-                <button className="btn sm ghost" onClick={() => startEdit(c)}>
+                <button type="button" className="btn sm ghost" onClick={() => startEdit(c)}>
                   編輯
                 </button>
-                <button className="btn sm ghost" onClick={() => deleteCard(c.id)}>
+                <button type="button" className="btn sm ghost" onClick={() => deleteCard(c.id)}>
                   刪
                 </button>
               </li>

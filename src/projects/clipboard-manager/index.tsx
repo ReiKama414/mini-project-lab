@@ -115,10 +115,10 @@ export default function Page() {
               <option key={c}>{c}</option>
             ))}
           </select>
-          <button className="btn accent" onClick={() => add(text)} disabled={!canAdd}>
+          <button type="button" className="btn accent" onClick={() => add(text)} disabled={!canAdd}>
             加入
           </button>
-          <button className="btn teal" onClick={pasteFromSystem}>
+          <button type="button" className="btn teal" onClick={pasteFromSystem}>
             讀取系統剪貼簿
           </button>
           <span className="muted" style={{ marginLeft: 'auto', fontSize: 13 }}>
@@ -130,6 +130,7 @@ export default function Page() {
           {(['全部', ...CATS] as const).map((f) => (
             <button
               key={f}
+              type="button"
               className={`btn sm ${filter === f ? 'accent' : 'ghost'}`}
               onClick={() => setFilter(f)}
             >
@@ -137,25 +138,28 @@ export default function Page() {
             </button>
           ))}
           <button
+            type="button"
             className={`btn sm ${onlyPinned ? 'teal' : 'ghost'}`}
             onClick={() => setOnlyPinned(!onlyPinned)}
           >
             僅釘選
           </button>
-          <input
-            className="field"
-            style={{ flex: 1, minWidth: 140 }}
-            placeholder="搜尋…"
-            value={q}
-            maxLength={SEARCH_MAX}
-            onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
-          />
-          <button className="btn ghost sm" onClick={() => setItems([])} disabled={!items.length}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋…"
+              value={q}
+              maxLength={SEARCH_MAX}
+              onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
+            />
+            <div className="field-meta">
+              <span>搜尋 {charCount(q)} / {SEARCH_MAX}</span>
+            </div>
+          </div>
+          <button type="button" className="btn ghost sm" onClick={() => setItems([])} disabled={!items.length}>
             全部清除
           </button>
-        </div>
-        <div className="field-meta">
-          <span>搜尋 {charCount(q)} / {SEARCH_MAX}</span>
         </div>
 
         <div className="row">
@@ -182,13 +186,13 @@ export default function Page() {
                   {c.text}
                 </span>
               </div>
-              <button className="btn sm ghost" onClick={() => togglePin(c.id)}>
+              <button type="button" className="btn sm ghost" onClick={() => togglePin(c.id)}>
                 {c.pinned ? '取消釘選' : '釘選'}
               </button>
-              <button className="btn sm accent" onClick={() => copyText(c.text)}>
+              <button type="button" className="btn sm accent" onClick={() => copyText(c.text)}>
                 複製
               </button>
-              <button
+              <button type="button"
                 className="btn sm ghost"
                 onClick={() => setItems(items.filter((x) => x.id !== c.id))}
               >

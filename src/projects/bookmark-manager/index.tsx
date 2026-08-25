@@ -211,7 +211,7 @@ export default function Page() {
               <option key={f}>{f}</option>
             ))}
           </select>
-          <div className="stack" style={{ flex: 1, gap: 0 }}>
+          <div className="field-wrap" style={{ flex: 1 }}>
             <input
               className="field"
               style={{ width: '100%' }}
@@ -229,15 +229,15 @@ export default function Page() {
           </div>
           {editing ? (
             <>
-              <button className="btn accent" onClick={() => saveEdit(editing)} disabled={!titleOk || !urlOk}>
+              <button type="button" className="btn accent" onClick={() => saveEdit(editing)} disabled={!titleOk || !urlOk}>
                 儲存
               </button>
-              <button className="btn ghost" onClick={cancelEdit}>
+              <button type="button" className="btn ghost" onClick={cancelEdit}>
                 取消
               </button>
             </>
           ) : (
-            <button className="btn accent" onClick={add} disabled={!canSave}>
+            <button type="button" className="btn accent" onClick={add} disabled={!canSave}>
               新增書籤
             </button>
           )}
@@ -246,7 +246,7 @@ export default function Page() {
 
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {FOLDERS.map((f) => (
-            <button
+            <button type="button"
               key={f}
               className={`btn sm ${filterFolder === f ? 'accent' : 'ghost'}`}
               onClick={() => setFilterFolder(f)}
@@ -254,7 +254,7 @@ export default function Page() {
               {f}
             </button>
           ))}
-          <div className="stack" style={{ flex: 1, minWidth: 140, gap: 0 }}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
             <input
               className="field"
               style={{ width: '100%' }}
@@ -274,14 +274,14 @@ export default function Page() {
 
         {allTags.length > 0 && (
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button
+            <button type="button"
               className={`btn sm ${!filterTag ? 'teal' : 'ghost'}`}
               onClick={() => setFilterTag('')}
             >
               全部標籤
             </button>
             {allTags.map((t) => (
-              <button
+              <button type="button"
                 key={t}
                 className={`btn sm ${filterTag === t ? 'teal' : 'ghost'}`}
                 onClick={() => setFilterTag(filterTag === t ? '' : t)}
@@ -336,10 +336,10 @@ export default function Page() {
                 <a className="btn sm teal" href={b.url} target="_blank" rel="noreferrer">
                   開啟
                 </a>
-                <button className="btn sm ghost" onClick={() => startEdit(b)}>
+                <button type="button" className="btn sm ghost" onClick={() => startEdit(b)}>
                   編輯
                 </button>
-                <button
+                <button type="button"
                   className="btn sm ghost"
                   onClick={() => setItems(items.filter((x) => x.id !== b.id))}
                 >

@@ -138,12 +138,12 @@ export default function Page() {
         <div className="row">
           <span className="muted">類型標籤</span>
           {GENRES.map((g) => (
-            <button key={g} className={`btn sm ${genres.includes(g) ? 'teal' : 'ghost'}`} onClick={() => toggleGenre(g)}>
+            <button type="button" key={g} className={`btn sm ${genres.includes(g) ? 'teal' : 'ghost'}`} onClick={() => toggleGenre(g)}>
               {g}
             </button>
           ))}
         </div>
-        <button className="btn accent" onClick={add} disabled={!canAdd}>
+        <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
           加入片單
         </button>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 部，請先刪除再新增</p>}
@@ -151,7 +151,7 @@ export default function Page() {
 
       <div className="panel stack">
         <div className="row">
-          <div className="stack" style={{ flex: 1, minWidth: 140, gap: 0 }}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
             <input
               className="field"
               style={{ width: '100%' }}
@@ -168,7 +168,7 @@ export default function Page() {
             </div>
           </div>
           {(['all', 'want', 'watching', 'watched'] as const).map((f) => (
-            <button key={f} className={`btn sm ${filter === f ? 'accent' : 'ghost'}`} onClick={() => setFilter(f)}>
+            <button type="button" key={f} className={`btn sm ${filter === f ? 'accent' : 'ghost'}`} onClick={() => setFilter(f)}>
               {f === 'all' ? '全部' : STATUS_LABEL[f]}
             </button>
           ))}
@@ -207,14 +207,14 @@ export default function Page() {
                   <option value="watching">觀看中</option>
                   <option value="watched">已看</option>
                 </select>
-                <button className="btn sm ghost" onClick={() => setMovies(movies.filter((x) => x.id !== m.id))}>
+                <button type="button" className="btn sm ghost" onClick={() => setMovies(movies.filter((x) => x.id !== m.id))}>
                   刪除
                 </button>
               </div>
               <div className="row">
                 <span className="muted">評分</span>
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <button
+                  <button type="button"
                     key={n}
                     className={`btn sm ${m.rating >= n ? 'accent' : 'ghost'}`}
                     onClick={() => patch(m.id, { rating: m.rating === n ? 0 : n })}

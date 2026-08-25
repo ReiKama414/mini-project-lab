@@ -44,6 +44,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'ip-lookup', title: 'IP Address Lookup', description: '查詢 IP／本機網路資訊。', tier: 'feature', effort: '1～3 天', tags: ['network'] },
   { slug: 'url-shortener', title: 'URL Shortener', description: '本機短網址對照與複製。', tier: 'feature', effort: '1～3 天', tags: ['utility'] },
   { slug: 'qr-scanner', title: 'QR Code Scanner', description: '貼上／輸入內容解析 QR 文字。', tier: 'feature', effort: '1～3 天', tags: ['utility'] },
+  { slug: 'id-watermark', title: '證件浮水印工具', description: '為證件／文件照片加上用途浮水印，本機處理可下載。', tier: 'feature', effort: '1～3 天', tags: ['utility', 'security'] },
   { slug: 'clipboard-manager', title: 'Clipboard Manager', description: '本機剪貼簿歷史紀錄。', tier: 'feature', effort: '1～3 天', tags: ['productivity'] },
   { slug: 'bookmark-manager', title: 'Browser Bookmark Manager', description: '分類管理常用書籤。', tier: 'feature', effort: '1～3 天', tags: ['productivity'] },
   { slug: 'notes-app', title: '簡易筆記 App', description: '建立、編輯、刪除純文字筆記。', tier: 'feature', effort: '1～3 天', tags: ['notes'] },

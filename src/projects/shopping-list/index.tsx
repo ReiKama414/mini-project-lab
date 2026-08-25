@@ -118,46 +118,46 @@ export default function Page() {
           <span className="tag">已購 {doneCount}</span>
           <span className="muted">共 {items.length} 項</span>
         </div>
-        <div className="stack" style={{ gap: 0 }}>
-          <div className="row">
+        <div className="row">
+          <div className="field-wrap" style={{ flex: 1, minWidth: 120 }}>
             <input
               className={`field${name.length > 0 && !nameOk ? ' is-invalid' : ''}`}
-              style={{ flex: 1, minWidth: 120 }}
+              style={{ width: '100%' }}
               placeholder="品項"
               value={name}
               maxLength={MAX_NAME}
               onChange={(e) => setName(limitText(e.target.value, MAX_NAME))}
               onKeyDown={(e) => e.key === 'Enter' && add()}
             />
-            <input
-              className={`field${!qtyOk ? ' is-invalid' : ''}`}
-              style={{ width: 80 }}
-              value={qty}
-              maxLength={MAX_QTY}
-              onChange={(e) => setQty(limitText(e.target.value, MAX_QTY))}
-              placeholder="數量"
-            />
-            <select className="field" style={{ maxWidth: 140 }} value={aisle} onChange={(e) => setAisle(e.target.value)}>
-              {AISLES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-            <button className="btn accent" onClick={add} disabled={!canAdd}>
-              加入
-            </button>
+            <div className="field-meta">
+              <span className={atLimit || (!nameOk && name.length > 0) ? 'warn' : undefined}>
+                {atLimit
+                  ? `已達上限 ${MAX_ITEMS} 項`
+                  : !nameOk && name.length > 0
+                    ? '請輸入品項'
+                    : '\u00a0'}
+              </span>
+              <span>
+                {charCount(name)} / {MAX_NAME} · 數量 {charCount(qty)} / {MAX_QTY}
+              </span>
+            </div>
           </div>
-          <div className="field-meta">
-            <span className={atLimit || (!nameOk && name.length > 0) ? 'warn' : undefined}>
-              {atLimit
-                ? `已達上限 ${MAX_ITEMS} 項`
-                : !nameOk && name.length > 0
-                  ? '請輸入品項'
-                  : '\u00a0'}
-            </span>
-            <span>
-              {charCount(name)} / {MAX_NAME} · 數量 {charCount(qty)} / {MAX_QTY}
-            </span>
-          </div>
+          <input
+            className={`field${!qtyOk ? ' is-invalid' : ''}`}
+            style={{ width: 80 }}
+            value={qty}
+            maxLength={MAX_QTY}
+            onChange={(e) => setQty(limitText(e.target.value, MAX_QTY))}
+            placeholder="數量"
+          />
+          <select className="field" style={{ maxWidth: 140 }} value={aisle} onChange={(e) => setAisle(e.target.value)}>
+            {AISLES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+          <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
+            加入
+          </button>
         </div>
         <div className="row">
           <select
@@ -173,13 +173,14 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <button className="btn sm ghost" onClick={() => checkAll(true)}>
+          <button type="button" className="btn sm ghost" onClick={() => checkAll(true)}>
             全部勾選
           </button>
-          <button className="btn sm ghost" onClick={() => checkAll(false)}>
+          <button type="button" className="btn sm ghost" onClick={() => checkAll(false)}>
             全部取消
           </button>
           <button
+            type="button"
             className="btn sm ghost"
             style={{ marginLeft: 'auto' }}
             onClick={() => setItems(items.filter((i) => !i.done))}

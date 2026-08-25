@@ -116,33 +116,33 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="stack" style={{ gap: 0 }}>
-          <div className="row">
+        <div className="row">
+          <div className="field-wrap" style={{ flex: 1 }}>
             <input
               className={`field${name.length > 0 && !nameOk ? ' is-invalid' : ''}`}
-              style={{ flex: 1 }}
+              style={{ width: '100%' }}
               placeholder="新習慣名稱…"
               value={name}
               maxLength={MAX_NAME}
               onChange={(e) => setName(limitText(e.target.value, MAX_NAME))}
               onKeyDown={(e) => e.key === 'Enter' && add()}
             />
-            <button className="btn accent" onClick={add} disabled={!canAdd}>
-              新增
-            </button>
+            <div className="field-meta">
+              <span className={!nameOk && name.length > 0 ? 'warn' : undefined}>
+                {atLimit
+                  ? `已達上限 ${MAX_ITEMS} 個習慣`
+                  : !nameOk && name.length > 0
+                    ? '請輸入習慣名稱'
+                    : '\u00a0'}
+              </span>
+              <span>
+                {charCount(name)} / {MAX_NAME}
+              </span>
+            </div>
           </div>
-          <div className="field-meta">
-            <span className={!nameOk && name.length > 0 ? 'warn' : undefined}>
-              {atLimit
-                ? `已達上限 ${MAX_ITEMS} 個習慣`
-                : !nameOk && name.length > 0
-                  ? '請輸入習慣名稱'
-                  : '\u00a0'}
-            </span>
-            <span>
-              {charCount(name)} / {MAX_NAME}
-            </span>
-          </div>
+          <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
+            新增
+          </button>
         </div>
 
         <div className="row muted" style={{ fontSize: 12, paddingLeft: 8 }}>

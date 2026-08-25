@@ -83,23 +83,14 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
-          <button className="btn accent" onClick={create}>
+          <button type="button" className="btn accent" onClick={create}>
             新增筆記
           </button>
-          <input
-            className="field"
-            placeholder="搜尋標題或內容…"
-            value={q}
-            maxLength={SEARCH_MAX}
-            onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
-          />
-          <div className="field-meta">
-            <span>{charCount(q)} / {SEARCH_MAX}</span>
-          </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {FOLDERS.map((f) => (
               <button
                 key={f}
+                type="button"
                 className={`btn sm ${folder === f ? 'accent' : 'ghost'}`}
                 onClick={() => setFolder(f)}
               >
@@ -107,11 +98,25 @@ export default function Page() {
               </button>
             ))}
             <button
+              type="button"
               className={`btn sm ${onlyPinned ? 'teal' : 'ghost'}`}
               onClick={() => setOnlyPinned(!onlyPinned)}
             >
               僅釘選
             </button>
+            <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
+              <input
+                className="field"
+                style={{ width: '100%' }}
+                placeholder="搜尋標題或內容…"
+                value={q}
+                maxLength={SEARCH_MAX}
+                onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
+              />
+              <div className="field-meta">
+                <span>{charCount(q)} / {SEARCH_MAX}</span>
+              </div>
+            </div>
           </div>
           <ul className="list">
             {visible.map((n) => (
@@ -146,36 +151,37 @@ export default function Page() {
         <div className="panel stack">
           {current ? (
             <>
-              <div className="stack" style={{ gap: 4 }}>
-                <div className="row">
+              <div className="row" style={{ flexWrap: 'wrap' }}>
+                <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
                   <input
                     className={`field${!isNonEmpty(current.title) ? ' is-invalid' : ''}`}
-                    style={{ flex: 1 }}
+                    style={{ width: '100%' }}
                     value={current.title}
                     maxLength={TITLE_MAX}
                     onChange={(e) => update({ title: e.target.value })}
                   />
-                  <select
-                    className="field"
-                    style={{ maxWidth: 120 }}
-                    value={current.folder}
-                    onChange={(e) => update({ folder: e.target.value })}
-                  >
-                    {FOLDERS.filter((f) => f !== '全部').map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
-                  <button
-                    className={`btn sm ${current.pinned ? 'teal' : 'ghost'}`}
-                    onClick={() => update({ pinned: !current.pinned })}
-                  >
-                    {current.pinned ? '已釘選' : '釘選'}
-                  </button>
+                  <div className="field-meta">
+                    <span>{charCount(current.title)} / {TITLE_MAX}</span>
+                  </div>
+                  {!isNonEmpty(current.title) && <p className="field-error">標題不可空白</p>}
                 </div>
-                <div className="field-meta">
-                  <span>{charCount(current.title)} / {TITLE_MAX}</span>
-                </div>
-                {!isNonEmpty(current.title) && <p className="field-error">標題不可空白</p>}
+                <select
+                  className="field"
+                  style={{ maxWidth: 120 }}
+                  value={current.folder}
+                  onChange={(e) => update({ folder: e.target.value })}
+                >
+                  {FOLDERS.filter((f) => f !== '全部').map((f) => (
+                    <option key={f}>{f}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className={`btn sm ${current.pinned ? 'teal' : 'ghost'}`}
+                  onClick={() => update({ pinned: !current.pinned })}
+                >
+                  {current.pinned ? '已釘選' : '釘選'}
+                </button>
               </div>
               <textarea
                 className="field"
@@ -194,7 +200,7 @@ export default function Page() {
                   建立 {new Date(current.createdAt).toLocaleString('zh-TW')} · 更新{' '}
                   {new Date(current.updatedAt).toLocaleString('zh-TW')}
                 </span>
-                <button
+                <button type="button"
                   className="btn ghost"
                   style={{ marginLeft: 'auto' }}
                   onClick={() => {

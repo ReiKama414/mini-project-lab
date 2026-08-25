@@ -129,7 +129,7 @@ export default function Page() {
             新增筆記
           </button>
           {notes.length >= MAX_ITEMS && <p className="field-error">已達上限 {MAX_ITEMS} 則筆記</p>}
-          <div className="stack" style={{ gap: 0 }}>
+          <div className="field-wrap">
             <input
               className="field"
               placeholder="搜尋…"

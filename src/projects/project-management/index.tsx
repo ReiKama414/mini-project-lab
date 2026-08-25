@@ -156,7 +156,7 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <div className="stack" style={{ flex: 1, minWidth: 140, gap: 0 }}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
             <input className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`} style={{ width: '100%' }} placeholder="任務標題" value={title} maxLength={MAX_TITLE} onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))} />
             <div className="field-meta"><span className={!titleOk && title.length > 0 ? 'warn' : undefined}>{!titleOk && title.length > 0 ? '請輸入標題' : ' '}</span><span>{charCount(title)} / {MAX_TITLE}</span></div>
           </div>
@@ -199,7 +199,7 @@ export default function Page() {
         </div>
 
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <div className="stack" style={{ gap: 0, flex: 1 }}>
+          <div className="field-wrap" style={{ flex: 1 }}>
             <input className="field" placeholder="新專案名稱" value={newProject} maxLength={MAX_PROJECT_NAME} onChange={(e) => setNewProject(limitText(e.target.value, MAX_PROJECT_NAME))} />
             <div className="field-meta"><span className={projects.length >= MAX_PROJECTS ? 'warn' : undefined}>{projects.length >= MAX_PROJECTS ? `專案上限 ${MAX_PROJECTS}` : ' '}</span><span>{charCount(newProject)} / {MAX_PROJECT_NAME}</span></div>
           </div>
@@ -217,7 +217,7 @@ export default function Page() {
           >
             新增專案
           </button>
-          <div className="stack" style={{ flex: 1, minWidth: 120, gap: 0 }}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 120 }}>
             <input className="field" style={{ width: '100%' }} placeholder="搜尋任務…" value={q} maxLength={MAX_SEARCH} onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))} />
             <div className="field-meta"><span /><span>{charCount(q)} / {MAX_SEARCH}</span></div>
           </div>

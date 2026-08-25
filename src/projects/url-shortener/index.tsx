@@ -134,7 +134,7 @@ export default function Page() {
           </div>
           {!urlOk && isNonEmpty(url) && <p className="field-error">請輸入有效的 http/https URL</p>}
           <div className="row">
-            <div className="stack" style={{ flex: 1, gap: 2 }}>
+            <div className="field-wrap" style={{ flex: 1 }}>
               <input
                 className="field"
                 placeholder="自訂短碼（選填）"
@@ -146,7 +146,7 @@ export default function Page() {
                 <span>{charCount(custom)} / {CODE_MAX}</span>
               </div>
             </div>
-            <div className="stack" style={{ flex: 1, gap: 2 }}>
+            <div className="field-wrap" style={{ flex: 1 }}>
               <input
                 className="field"
                 placeholder="備註（選填）"
@@ -158,7 +158,7 @@ export default function Page() {
                 <span>{charCount(note)} / {NOTE_MAX}</span>
               </div>
             </div>
-            <button className="btn accent" onClick={create} disabled={!canCreate}>
+            <button type="button" className="btn accent" onClick={create} disabled={!canCreate}>
               縮短
             </button>
           </div>
@@ -168,17 +168,19 @@ export default function Page() {
         {msg && <p className="tag">{msg}</p>}
 
         <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1 }}
-            placeholder="搜尋短碼 / URL / 備註…"
-            value={q}
-            maxLength={SEARCH_MAX}
-            onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
-          />
-        </div>
-        <div className="field-meta">
-          <span>{charCount(q)} / {SEARCH_MAX}</span>
+          <div className="field-wrap" style={{ flex: 1 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋短碼 / URL / 備註…"
+              value={q}
+              maxLength={SEARCH_MAX}
+              onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
+            />
+            <div className="field-meta">
+              <span>{charCount(q)} / {SEARCH_MAX}</span>
+            </div>
+          </div>
         </div>
 
         <ul className="list">
@@ -202,13 +204,13 @@ export default function Page() {
                 <span>{new Date(l.createdAt).toLocaleString('zh-TW')}</span>
               </div>
               <div className="row">
-                <button className="btn sm teal" onClick={() => open(l)}>
+                <button type="button" className="btn sm teal" onClick={() => open(l)}>
                   開啟（計次）
                 </button>
-                <button className="btn sm ghost" onClick={() => copyText(l.code)}>
+                <button type="button" className="btn sm ghost" onClick={() => copyText(l.code)}>
                   複製短碼
                 </button>
-                <button
+                <button type="button"
                   className="btn sm ghost"
                   onClick={() => {
                     copyText(fullShortUrl(l.code))
@@ -217,7 +219,7 @@ export default function Page() {
                 >
                   複製完整 URL
                 </button>
-                <button
+                <button type="button"
                   className="btn sm ghost"
                   onClick={() => setLinks(links.filter((x) => x.id !== l.id))}
                 >

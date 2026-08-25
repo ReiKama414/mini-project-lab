@@ -120,39 +120,39 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
-        <div className="stack" style={{ gap: 0 }}>
-          <div className="row">
+        <div className="row">
+          <div className="field-wrap" style={{ flex: 1 }}>
             <input
               className={`field${text.length > 0 && !titleOk ? ' is-invalid' : ''}`}
-              style={{ flex: 1 }}
+              style={{ width: '100%' }}
               placeholder="新增卡片…"
               value={text}
               maxLength={MAX_TITLE}
               onChange={(e) => setText(limitText(e.target.value, MAX_TITLE))}
               onKeyDown={(e) => e.key === 'Enter' && add()}
             />
-            <select
-              className="field"
-              style={{ width: 100 }}
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as Priority)}
-            >
-              <option value="high">高優先</option>
-              <option value="medium">中優先</option>
-              <option value="low">低優先</option>
-            </select>
-            <button className="btn accent" onClick={add} disabled={!canAdd}>
-              新增
-            </button>
+            <div className="field-meta">
+              <span className={atLimit || (!titleOk && text.length > 0) ? 'warn' : undefined}>
+                {atLimit ? `已達上限 ${MAX_ITEMS} 張` : !titleOk && text.length > 0 ? '請輸入標題' : '\u00a0'}
+              </span>
+              <span>
+                {charCount(text)} / {MAX_TITLE}
+              </span>
+            </div>
           </div>
-          <div className="field-meta">
-            <span className={atLimit || (!titleOk && text.length > 0) ? 'warn' : undefined}>
-              {atLimit ? `已達上限 ${MAX_ITEMS} 張` : !titleOk && text.length > 0 ? '請輸入標題' : '\u00a0'}
-            </span>
-            <span>
-              {charCount(text)} / {MAX_TITLE}
-            </span>
-          </div>
+          <select
+            className="field"
+            style={{ width: 100 }}
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as Priority)}
+          >
+            <option value="high">高優先</option>
+            <option value="medium">中優先</option>
+            <option value="low">低優先</option>
+          </select>
+          <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
+            新增
+          </button>
         </div>
 
         <div className="row">

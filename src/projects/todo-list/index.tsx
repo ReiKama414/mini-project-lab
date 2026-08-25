@@ -131,23 +131,25 @@ export default function Page() {
           {error && <p className="field-error">{error}</p>}
         </div>
 
-        <div className="row">
+        <div className="row toolbar-row">
           {(['all', 'active', 'done'] as const).map((f) => (
             <button
               key={f}
+              type="button"
               className={`btn sm ${filter === f ? 'accent' : 'ghost'}`}
               onClick={() => setFilter(f)}
             >
               {f === 'all' ? '全部' : f === 'active' ? '未完成' : '已完成'}
             </button>
           ))}
-          <div className="stack" style={{ flex: 1, maxWidth: 220, gap: 2 }}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 160, maxWidth: 280 }}>
             <input
               className="field"
               placeholder="搜尋…"
               value={q}
               maxLength={SEARCH_MAX}
               onChange={(e) => setQ(limitText(e.target.value, SEARCH_MAX))}
+              aria-label="搜尋待辦"
             />
             <div className="field-meta">
               <span>{charCount(q)} / {SEARCH_MAX}</span>
@@ -157,6 +159,7 @@ export default function Page() {
             剩餘 {left} · 完成 {doneCount}
           </span>
           <button
+            type="button"
             className="btn ghost sm"
             onClick={() => setTodos(todos.filter((t) => !t.done))}
             disabled={!doneCount}
@@ -191,7 +194,7 @@ export default function Page() {
                   {PRIORITY_LABEL[t.priority]}
                 </span>
                 {editing === t.id ? (
-                  <div className="stack" style={{ flex: 1, gap: 2 }}>
+                  <div className="field-wrap" style={{ flex: 1 }}>
                     <input
                       className={`field${!canSaveEdit ? ' is-invalid' : ''}`}
                       autoFocus

@@ -128,7 +128,7 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button className="btn ghost sm" onClick={exportCsv} disabled={!monthEntries.length}>
+        <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!monthEntries.length}>
           匯出 CSV
         </button>
       }
@@ -214,10 +214,10 @@ export default function Page() {
 
       <div className="panel stack">
         <div className="row">
-          <button className={`btn sm ${type === 'income' ? 'teal' : 'ghost'}`} onClick={() => switchType('income')}>
+          <button type="button" className={`btn sm ${type === 'income' ? 'teal' : 'ghost'}`} onClick={() => switchType('income')}>
             收入
           </button>
-          <button className={`btn sm ${type === 'expense' ? 'accent' : 'ghost'}`} onClick={() => switchType('expense')}>
+          <button type="button" className={`btn sm ${type === 'expense' ? 'accent' : 'ghost'}`} onClick={() => switchType('expense')}>
             支出
           </button>
         </div>
@@ -276,7 +276,7 @@ export default function Page() {
             {!dateOk && <p className="field-error">請選擇有效日期</p>}
           </div>
         </div>
-        <button className="btn accent" onClick={add} disabled={!canAdd}>
+        <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
           記一筆
         </button>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
@@ -292,11 +292,11 @@ export default function Page() {
             onChange={(e) => setFilterMonth(e.target.value)}
           />
           {(['all', 'income', 'expense'] as const).map((f) => (
-            <button key={f} className={`btn sm ${filterType === f ? 'accent' : 'ghost'}`} onClick={() => setFilterType(f)}>
+            <button type="button" key={f} className={`btn sm ${filterType === f ? 'accent' : 'ghost'}`} onClick={() => setFilterType(f)}>
               {f === 'all' ? '全部' : f === 'income' ? '收入' : '支出'}
             </button>
           ))}
-          <div className="stack" style={{ flex: 1, minWidth: 120, gap: 0 }}>
+          <div className="field-wrap" style={{ flex: 1, minWidth: 120 }}>
             <input
               className="field"
               style={{ width: '100%' }}
@@ -331,7 +331,7 @@ export default function Page() {
                 <span className="mono" style={{ color: e.type === 'income' ? 'var(--teal)' : 'var(--rose)' }}>
                   {e.type === 'income' ? '+' : '-'}${e.amount.toLocaleString()}
                 </span>
-                <button className="btn sm ghost" onClick={() => setEntries(entries.filter((x) => x.id !== e.id))}>
+                <button type="button" className="btn sm ghost" onClick={() => setEntries(entries.filter((x) => x.id !== e.id))}>
                   刪
                 </button>
               </li>

@@ -294,11 +294,11 @@ export default function Page() {
         </div>
 
         <div className="panel stack">
-          <div className="stack" style={{ gap: 0, flex: 1 }}>
-            <input className="field" placeholder="搜尋姓名／公司／Email…" value={q} maxLength={MAX_SEARCH} onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))} />
-            <div className="field-meta"><span /><span>{charCount(q)} / {MAX_SEARCH}</span></div>
-          </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
+            <div className="field-wrap" style={{ flex: 1, minWidth: 160 }}>
+              <input className="field" style={{ width: '100%' }} placeholder="搜尋姓名／公司／Email…" value={q} maxLength={MAX_SEARCH} onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))} />
+              <div className="field-meta"><span /><span>{charCount(q)} / {MAX_SEARCH}</span></div>
+            </div>
             <span className="muted">標籤</span>
             <select className="field" style={{ width: 120 }} value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
               <option value="全部">全部</option>

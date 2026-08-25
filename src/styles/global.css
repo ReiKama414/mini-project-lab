@@ -609,6 +609,58 @@ svg {
   align-items: center;
 }
 
+/* 列內有字數提示時改頂對齊，避免按鈕相對輸入框「浮起來」 */
+.row:has(.field-meta),
+.row:has(.field-wrap) {
+  align-items: flex-start;
+}
+
+.field-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.field-wrap > .field-meta {
+  margin-top: 0;
+}
+
+/* 工具列：字數列不參與對齊基準；按鈕高度對齊輸入框 */
+.row:has(.field-meta) > .btn,
+.row:has(.field-wrap) > .btn,
+.row:has(.field-meta) > .btn.sm,
+.row:has(.field-wrap) > .btn.sm {
+  margin-top: 0;
+  min-height: 2.75rem;
+}
+
+.row:has(.field-meta) > .muted,
+.row:has(.field-wrap) > .muted,
+.row:has(.field-meta) > .tag,
+.row:has(.field-wrap) > .tag,
+.row:has(.field-meta) > .label,
+.row:has(.field-wrap) > .label {
+  margin-top: 0.7rem;
+}
+
+.list-item:has(.field-meta),
+.list-item:has(.field-wrap) {
+  align-items: flex-start;
+}
+
+.list-item:has(.field-meta) > input[type="checkbox"],
+.list-item:has(.field-wrap) > input[type="checkbox"],
+.list-item:has(.field-meta) > .tag,
+.list-item:has(.field-wrap) > .tag {
+  margin-top: 0.7rem;
+}
+
+.list-item:has(.field-meta) > .btn,
+.list-item:has(.field-wrap) > .btn {
+  margin-top: 0.45rem;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -635,8 +687,21 @@ svg {
   background: #fff;
   border-radius: var(--radius-sm);
   padding: 0.65rem 0.8rem;
+  min-height: 2.75rem;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+/* 同一列的控制項高度對齊 */
+.row > .field,
+.row > select.field,
+.row > input.field,
+.row > .btn:not(.sm) {
+  min-height: 2.75rem;
+}
+
+.row > .btn.sm {
+  min-height: 2.35rem;
 }
 
 .field:hover {
