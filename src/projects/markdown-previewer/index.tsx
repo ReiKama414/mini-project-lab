@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, limitText, copyText } from '../../lib/utils'
+import { sanitizeHtml } from '../../lib/sanitize'
 
 const meta = getProject('markdown-previewer')!
 
@@ -193,7 +194,7 @@ function mdToHtml(src: string) {
 
 export default function Page() {
   const [md, setMd] = useLocalStorage('lab:markdown-previewer:md', TEMPLATES.basic!.body)
-  const html = useMemo(() => mdToHtml(md), [md])
+  const html = useMemo(() => sanitizeHtml(mdToHtml(md)), [md])
 
   return (
     <ProjectShell meta={meta}>

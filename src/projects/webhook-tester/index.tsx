@@ -1,6 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
@@ -79,7 +79,7 @@ export default function Page() {
     'lab:webhook-tester:headers',
     'Content-Type: application/json\nX-Signature: demo',
   )
-  const [secret, setSecret] = useLocalStorage('lab:webhook-tester:secret', 'whsec_lab_demo')
+  const [secret, setSecret] = useState('whsec_lab_demo')
   const [statusCode, setStatusCode] = useLocalStorage('lab:webhook-tester:status', 200)
   const [sel, setSel] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
@@ -87,6 +87,14 @@ export default function Page() {
   const [jsonOk, setJsonOk] = useState(false)
   const [endpoint, setEndpoint] = useLocalStorage('lab:webhook-tester:endpoint', 'https://hooks.lab.local/receive')
   const [verifyMsg, setVerifyMsg] = useState('')
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem('lab:webhook-tester:secret')
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   const current = events.find((e) => e.id === sel) || events[0]
   const expectedSig = useMemo(() => simpleHmac(secret, body), [secret, body])
@@ -216,6 +224,9 @@ export default function Page() {
 
   return (
     <ProjectShell meta={meta}>
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機模擬 webhook 收件與簽章流程。簽章為示範用簡易雜湊，非正式 HMAC。Secret 不寫入 localStorage。
+      </p>
       <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         <span className="label" style={{ margin: 0 }}>
           範例事件
@@ -251,13 +262,17 @@ export default function Page() {
               <span className="label">Webhook Secret</span>
               <input
                 className="field mono"
+                type="password"
                 maxLength={SECRET_MAX}
                 value={secret}
+                autoComplete="off"
                 onChange={(e) => setSecret(limitText(e.target.value, SECRET_MAX))}
               />
               <div className="field-meta">
-                <span className="field-hint">簽章用密鑰</span>
-                <span>{charCount(secret)}/{SECRET_MAX}</span>
+                <span className="field-hint">僅記憶體，不寫入本機</span>
+                <span>
+                  {charCount(secret)}/{SECRET_MAX}
+                </span>
               </div>
             </label>
             <label className="stack">

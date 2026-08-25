@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, downloadText, uid } from '../../lib/utils'
+import { sanitizeHtml } from '../../lib/sanitize'
 
 const meta = getProject('markdown-notes')!
 
@@ -70,7 +71,7 @@ export default function Page() {
   const [tab, setTab] = useState<'edit' | 'preview' | 'split'>('split')
   const [q, setQ] = useState('')
   const current = notes.find((n) => n.id === active) || null
-  const html = useMemo(() => (current ? mdToHtml(current.md) : ''), [current])
+  const html = useMemo(() => (current ? sanitizeHtml(mdToHtml(current.md)) : ''), [current])
 
   const visible = useMemo(() => {
     const s = q.trim().toLowerCase()
