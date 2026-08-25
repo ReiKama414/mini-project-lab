@@ -17,7 +17,7 @@ const meta: ProjectMeta = getProject('robots-generator') ?? {
 export default function Page() {
   const [allowAll, setAllowAll] = useLocalStorage('lab:robots-generator:allow', true)
   const [disallow, setDisallow] = useLocalStorage('lab:robots-generator:disallow', '/admin\n/private')
-  const [sitemap, setSitemap] = useLocalStorage('lab:robots-generator:sitemap', 'https://example.com/sitemap.xml')
+  const [sitemap, setSitemap] = useLocalStorage('lab:robots-generator:sitemap', 'https://mini-project-lab-wheat.vercel.app/sitemap.xml')
   const [copied, setCopied] = useState(false)
 
   const sitemapOk = !isNonEmpty(sitemap) || isValidHttpUrl(sitemap)

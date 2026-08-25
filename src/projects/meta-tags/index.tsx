@@ -17,8 +17,8 @@ const meta: ProjectMeta = getProject('meta-tags') ?? {
 export default function Page() {
   const [title, setTitle] = useLocalStorage('lab:meta-tags:title', '我的網站')
   const [desc, setDesc] = useLocalStorage('lab:meta-tags:desc', '簡短說明')
-  const [url, setUrl] = useLocalStorage('lab:meta-tags:url', 'https://example.com')
-  const [image, setImage] = useLocalStorage('lab:meta-tags:image', 'https://example.com/og.png')
+  const [url, setUrl] = useLocalStorage('lab:meta-tags:url', 'https://mini-project-lab-wheat.vercel.app')
+  const [image, setImage] = useLocalStorage('lab:meta-tags:image', 'https://mini-project-lab-wheat.vercel.app/favicon.svg')
   const [copied, setCopied] = useState(false)
 
   const urlOk = !isNonEmpty(url) || isValidHttpUrl(url)

@@ -20,7 +20,7 @@ const URL_CAP = 500
 export default function Page() {
   const [urls, setUrls] = useLocalStorage(
     'lab:sitemap-generator:urls',
-    'https://example.com/\nhttps://example.com/about\nhttps://example.com/blog',
+    'https://mini-project-lab-wheat.vercel.app/\nhttps://mini-project-lab-wheat.vercel.app/p/todo-list\nhttps://mini-project-lab-wheat.vercel.app/p/pomodoro',
   )
   const [copied, setCopied] = useState(false)
 

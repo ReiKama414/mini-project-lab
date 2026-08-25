@@ -6,7 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const reg = fs.readFileSync(path.join(root, 'src/projects/registry.ts'), 'utf8')
 const slugs = [...reg.matchAll(/slug: '([^']+)'/g)].map((m) => m[1])
 
-const base = process.env.SITE_URL?.replace(/\/$/, '') || 'https://example.com'
+const base = process.env.SITE_URL?.replace(/\/$/, '') || 'https://mini-project-lab-wheat.vercel.app'
 const today = new Date().toISOString().slice(0, 10)
 
 const urls = [

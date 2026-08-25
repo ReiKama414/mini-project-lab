@@ -21,7 +21,7 @@ const U = 300
 export default function Page() {
   const [title, setTitle] = useLocalStorage('lab:og-preview:title', 'Mini Project Lab')
   const [desc, setDesc] = useLocalStorage('lab:og-preview:desc', '本機優先的實用小工具集合')
-  const [url, setUrl] = useLocalStorage('lab:og-preview:url', 'https://example.com')
+  const [url, setUrl] = useLocalStorage('lab:og-preview:url', 'https://mini-project-lab-wheat.vercel.app')
   const [image, setImage] = useLocalStorage('lab:og-preview:image', 'https://picsum.photos/1200/630')
   const [copied, setCopied] = useState(false)
   const urlOk = !isNonEmpty(url) || isValidHttpUrl(url)
@@ -116,7 +116,7 @@ export default function Page() {
             )}
             <div style={{ padding: 12 }}>
               <div className="muted" style={{ fontSize: 12 }}>
-                {urlOk ? normalizeHttpUrl(url).replace(/^https?:\/\//, '') : 'example.com'}
+                {urlOk ? normalizeHttpUrl(url).replace(/^https?:\/\//, '') : 'mini-project-lab-wheat.vercel.app'}
               </div>
               <strong style={{ display: 'block', marginTop: 4 }}>{title || '標題'}</strong>
               <p className="muted" style={{ margin: '6px 0 0', fontSize: 13 }}>
