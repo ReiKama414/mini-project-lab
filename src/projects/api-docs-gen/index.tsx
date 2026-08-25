@@ -13,7 +13,6 @@ const PATH_MAX = 200
 const SUMMARY_MAX = 200
 const DESC_MAX = 2000
 const BODY_MAX = 20000
-const JSON_MAX = 50000
 
 type Ep = {
   id: string
@@ -159,6 +158,22 @@ export default function Page() {
 
   function tryIt() {
     if (!current) return
+    if (charCount(tryBody) > BODY_MAX) {
+      setTryResult({ status: 413, body: `Payload 超過 ${BODY_MAX.toLocaleString()} 字上限`, ms: 0 })
+      return
+    }
+    if (isNonEmpty(tryBody) && (current.method === 'POST' || current.method === 'PUT' || current.method === 'PATCH')) {
+      try {
+        JSON.parse(tryBody)
+      } catch (e) {
+        setTryResult({
+          status: 400,
+          body: `JSON 錯誤：${e instanceof Error ? e.message : 'Invalid JSON'}`,
+          ms: 0,
+        })
+        return
+      }
+    }
     const start = performance.now()
     const status = current.status || 200
     let body = current.response || '{ "ok": true }'
@@ -310,15 +325,22 @@ export default function Page() {
                 {current.path}
               </div>
               {(current.method === 'POST' || current.method === 'PUT' || current.method === 'PATCH') && (
-                <textarea
-                  className="field mono"
-                  rows={4}
-                  value={tryBody}
-                  onChange={(e) => setTryBody(limitText(e.target.value, BODY_MAX))}
-                  placeholder="request body"
-                />
+                <>
+                  <textarea
+                    className={cn('field mono', isNonEmpty(tryBody) && (() => { try { JSON.parse(tryBody); return false } catch { return true } })() && 'is-invalid')}
+                    rows={4}
+                    maxLength={BODY_MAX}
+                    value={tryBody}
+                    onChange={(e) => setTryBody(limitText(e.target.value, BODY_MAX))}
+                    placeholder="request body"
+                  />
+                  <div className="field-meta">
+                    <span className="field-hint">JSON payload 有大小上限</span>
+                    <span>{charCount(tryBody)}/{BODY_MAX}</span>
+                  </div>
+                </>
               )}
-              <button type="button" className="btn accent" onClick={tryIt}>
+              <button type="button" className="btn accent" onClick={tryIt} disabled={!current}>
                 送出模擬請求
               </button>
               {tryResult && (

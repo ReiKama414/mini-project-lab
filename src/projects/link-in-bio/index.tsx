@@ -186,8 +186,13 @@ export default function Page() {
             <button
               type="button"
               className="btn sm ghost"
+              disabled={socials.length >= MAX_SOCIALS}
               onClick={() =>
-                setSocials((xs) => [...xs, { id: uid('s'), label: '社群', icon: '◎', url: 'https://' }])
+                setSocials((xs) =>
+                  xs.length >= MAX_SOCIALS
+                    ? xs
+                    : [...xs, { id: uid('s'), label: '社群', icon: '◎', url: 'https://' }],
+                )
               }
             >
               新增

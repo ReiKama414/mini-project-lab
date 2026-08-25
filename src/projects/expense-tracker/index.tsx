@@ -67,7 +67,7 @@ export default function Page() {
   const [filterCat, setFilterCat] = useState('全部')
 
   const amount = parseNumber(amountStr)
-  const amountOk = amount != null && amount >= 0
+  const amountOk = Number.isFinite(amount) && amount >= 0
   const titleOk = isNonEmpty(title)
   const dateOk = isValidDate(date)
   const atLimit = items.length >= MAX_ITEMS
@@ -98,7 +98,7 @@ export default function Page() {
   const maxCat = byCat[0]?.[1] || 1
 
   function add() {
-    if (!canAdd || amount == null) return
+    if (!canAdd || !Number.isFinite(amount)) return
     const amt = clamp(amount, 0, MAX_AMOUNT)
     setItems([
       {
@@ -179,7 +179,7 @@ export default function Page() {
               value={amountStr}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setAmountStr(e.target.value)
+                if (!Number.isFinite(n)) setAmountStr(e.target.value)
                 else setAmountStr(String(clamp(n, 0, MAX_AMOUNT)))
               }}
             />

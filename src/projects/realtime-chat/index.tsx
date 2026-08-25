@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, pick, uid } from '../../lib/utils'
+import { charCount, downloadText, isNonEmpty, limitText, pick, uid } from '../../lib/utils'
 
 const meta = getProject('realtime-chat')!
+
+const NAME_MAX = 32
+const ROOM_MAX = 40
+const MSG_MAX = 500
 
 type Msg = { id: string; room: string; user: string; text: string; at: number }
 type Room = { id: string; name: string }
@@ -92,16 +96,25 @@ export default function Page() {
   }, [roomId, setMsgs, botOn])
 
   function send() {
-    if (!input.trim()) return
+    if (!isNonEmpty(input)) return
     setMsgs((xs) =>
-      [...xs, { id: uid('m'), room: roomId, user: name || '你', text: input.trim(), at: Date.now() }].slice(-300),
+      [
+        ...xs,
+        {
+          id: uid('m'),
+          room: roomId,
+          user: limitText(name.trim() || '你', NAME_MAX),
+          text: limitText(input.trim(), MSG_MAX),
+          at: Date.now(),
+        },
+      ].slice(-300),
     )
     setInput('')
   }
 
   function addRoom() {
-    const n = newRoom.trim().toLowerCase().replace(/\s+/g, '-')
-    if (!n || rooms.some((r) => r.id === n)) return
+    const n = limitText(newRoom.trim().toLowerCase().replace(/\s+/g, '-'), ROOM_MAX)
+    if (!isNonEmpty(n) || rooms.some((r) => r.id === n)) return
     setRooms((xs) => [...xs, { id: n, name: n }])
     setRoomId(n)
     setNewRoom('')
@@ -176,10 +189,17 @@ export default function Page() {
             className="field"
             placeholder="新房間"
             value={newRoom}
-            onChange={(e) => setNewRoom(e.target.value)}
+            maxLength={ROOM_MAX}
+            onChange={(e) => setNewRoom(limitText(e.target.value, ROOM_MAX))}
             onKeyDown={(e) => e.key === 'Enter' && addRoom()}
           />
-          <button type="button" className="btn sm teal" onClick={addRoom}>
+          <div className="field-meta">
+            <span className="field-hint">房間名</span>
+            <span>
+              {charCount(newRoom)}/{ROOM_MAX}
+            </span>
+          </div>
+          <button type="button" className="btn sm teal" onClick={addRoom} disabled={!isNonEmpty(newRoom)}>
             建立
           </button>
         </aside>
@@ -189,7 +209,16 @@ export default function Page() {
             <label className="label" style={{ margin: 0 }}>
               暱稱
             </label>
-            <input className="field" value={name} onChange={(e) => setName(e.target.value)} style={{ maxWidth: 140 }} />
+            <input
+              className="field"
+              value={name}
+              maxLength={NAME_MAX}
+              onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+              style={{ maxWidth: 140 }}
+            />
+            <span className="muted" style={{ fontSize: 11 }}>
+              {charCount(name)}/{NAME_MAX}
+            </span>
             <span className="tag">#{room?.name ?? roomId}</span>
             <button type="button" className={`btn sm ${botOn ? 'teal' : 'ghost'}`} onClick={() => setBotOn((v) => !v)}>
               {botOn ? '模擬在線 ON' : '模擬在線 OFF'}
@@ -234,7 +263,8 @@ export default function Page() {
               className="field"
               style={{ flex: 1 }}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              maxLength={MSG_MAX}
+              onChange={(e) => setInput(limitText(e.target.value, MSG_MAX))}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
@@ -243,7 +273,10 @@ export default function Page() {
               }}
               placeholder="說點什麼…（Enter 送出）"
             />
-            <button type="button" className="btn accent" onClick={send}>
+            <span className="muted" style={{ fontSize: 11 }}>
+              {charCount(input)}/{MSG_MAX}
+            </span>
+            <button type="button" className="btn accent" onClick={send} disabled={!isNonEmpty(input)}>
               送出
             </button>
           </div>

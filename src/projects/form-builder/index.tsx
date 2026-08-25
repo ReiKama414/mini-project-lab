@@ -262,7 +262,14 @@ export default function Page() {
                     className="field"
                     style={{ flex: 1, minWidth: 120 }}
                     value={f.label}
-                    onChange={(e) => setFields((fs) => fs.map((x) => (x.id === f.id ? { ...x, label: e.target.value } : x)))}
+                    maxLength={MAX_LABEL}
+                    onChange={(e) =>
+                      setFields((fs) =>
+                        fs.map((x) =>
+                          x.id === f.id ? { ...x, label: limitText(e.target.value, MAX_LABEL) } : x,
+                        ),
+                      )
+                    }
                   />
                   <span className="tag">{TYPE_LABEL[f.type]}</span>
                   <label className="row">
@@ -288,7 +295,14 @@ export default function Page() {
                     className="field"
                     value={f.options || ''}
                     placeholder="選項，逗號分隔"
-                    onChange={(e) => setFields((fs) => fs.map((x) => (x.id === f.id ? { ...x, options: e.target.value } : x)))}
+                    maxLength={MAX_OPTIONS}
+                    onChange={(e) =>
+                      setFields((fs) =>
+                        fs.map((x) =>
+                          x.id === f.id ? { ...x, options: limitText(e.target.value, MAX_OPTIONS) } : x,
+                        ),
+                      )
+                    }
                   />
                 )}
               </div>

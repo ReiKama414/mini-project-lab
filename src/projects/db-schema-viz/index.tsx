@@ -2,9 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { charCount, clamp, copyText, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('db-schema-viz')!
+
+const NAME_MAX = 64
+const FK_MAX = 80
+const POS_MIN = 0
+const POS_MAX = 2000
 
 type Col = { id: string; name: string; type: string; pk?: boolean; fk?: string }
 type Table = { id: string; name: string; cols: Col[]; x: number; y: number }
@@ -224,7 +229,7 @@ export default function Page() {
             </option>
           ))}
         </select>
-        <button type="button" className="btn sm teal" onClick={linkRelation}>
+        <button type="button" className="btn sm teal" onClick={linkRelation} disabled={!relFrom || !relTo}>
           建立 FK
         </button>
         <span className="muted">
@@ -298,7 +303,12 @@ export default function Page() {
                 <input
                   style={{ background: 'transparent', border: 0, color: '#fff', fontWeight: 700, width: 130 }}
                   value={t.name}
-                  onChange={(e) => setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)))}
+                  maxLength={NAME_MAX}
+                  onChange={(e) =>
+                    setTables((xs) =>
+                      xs.map((x) => (x.id === t.id ? { ...x, name: limitText(e.target.value, NAME_MAX) } : x)),
+                    )
+                  }
                 />
                 <button
                   type="button"
@@ -318,16 +328,28 @@ export default function Page() {
                   className="field"
                   type="number"
                   title="x"
+                  min={POS_MIN}
+                  max={POS_MAX}
                   value={t.x}
-                  onChange={(e) => setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, x: Number(e.target.value) } : x)))}
+                  onChange={(e) => {
+                    const n = parseNumber(e.target.value)
+                    if (!Number.isFinite(n)) return
+                    setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, x: clamp(Math.round(n), POS_MIN, POS_MAX) } : x)))
+                  }}
                   style={{ width: 70, padding: 4 }}
                 />
                 <input
                   className="field"
                   type="number"
                   title="y"
+                  min={POS_MIN}
+                  max={POS_MAX}
                   value={t.y}
-                  onChange={(e) => setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, y: Number(e.target.value) } : x)))}
+                  onChange={(e) => {
+                    const n = parseNumber(e.target.value)
+                    if (!Number.isFinite(n)) return
+                    setTables((xs) => xs.map((x) => (x.id === t.id ? { ...x, y: clamp(Math.round(n), POS_MIN, POS_MAX) } : x)))
+                  }}
                   style={{ width: 70, padding: 4 }}
                 />
               </div>
@@ -341,11 +363,15 @@ export default function Page() {
                       </label>
                       {c.fk && <span className="tag">FK</span>}
                       <input
-                        className="field"
+                        className={`field${!isNonEmpty(c.name) ? ' is-invalid' : ''}`}
                         value={c.name}
-                        onChange={(e) => updateCol(t.id, c.id, { name: e.target.value })}
+                        maxLength={NAME_MAX}
+                        onChange={(e) => updateCol(t.id, c.id, { name: limitText(e.target.value, NAME_MAX) })}
                         style={{ flex: 1, padding: 4 }}
                       />
+                      <span className="muted" style={{ fontSize: 10 }}>
+                        {charCount(c.name)}/{NAME_MAX}
+                      </span>
                       <button
                         type="button"
                         className="btn sm danger"
@@ -366,7 +392,10 @@ export default function Page() {
                         className="field mono"
                         placeholder="fk table.col"
                         value={c.fk || ''}
-                        onChange={(e) => updateCol(t.id, c.id, { fk: e.target.value || undefined })}
+                        maxLength={FK_MAX}
+                        onChange={(e) =>
+                          updateCol(t.id, c.id, { fk: limitText(e.target.value, FK_MAX) || undefined })
+                        }
                         style={{ flex: 1, padding: 4, fontSize: 11 }}
                       />
                     </div>

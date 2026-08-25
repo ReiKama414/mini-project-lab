@@ -44,7 +44,7 @@ export default function Page() {
   const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS
   const amount = parseNumber(amountStr)
   const titleOk = isNonEmpty(title)
-  const amountOk = amount != null && amount >= 0
+  const amountOk = Number.isFinite(amount) && amount >= 0
   const dateOk = isValidDate(date)
   const atLimit = entries.length >= MAX_ITEMS
   const canAdd = titleOk && amountOk && dateOk && !atLimit
@@ -93,7 +93,7 @@ export default function Page() {
   }
 
   function add() {
-    if (!canAdd || amount == null) return
+    if (!canAdd || !Number.isFinite(amount)) return
     setEntries([
       {
         id: uid('acc'),
@@ -250,7 +250,7 @@ export default function Page() {
               value={amountStr}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setAmountStr(e.target.value)
+                if (!Number.isFinite(n)) setAmountStr(e.target.value)
                 else setAmountStr(String(clamp(n, 0, MAX_AMOUNT)))
               }}
             />

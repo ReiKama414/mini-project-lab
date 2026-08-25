@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('ab-testing')!
+
+const TITLE_MAX = 80
+const BODY_MAX = 400
+const COUNT_MAX = 1_000_000
 
 type Variant = 'A' | 'B'
 type Snapshot = {
@@ -48,6 +52,7 @@ export default function Page() {
   const [history, setHistory] = useLocalStorage<Snapshot[]>('lab:ab-testing:history', [])
   const [showHistory, setShowHistory] = useLocalStorage('lab:ab-testing:showHistory', true)
   const [editMode, setEditMode] = useState(false)
+  const [numError, setNumError] = useState('')
 
   const rates = useMemo(
     () => ({
@@ -125,15 +130,31 @@ export default function Page() {
   }
 
   function setImp(v: Variant, raw: string) {
-    const n = Math.max(0, Math.floor(Number(raw) || 0))
-    setImpressions((x) => ({ ...x, [v]: n }))
-    setConversions((c) => ({ ...c, [v]: Math.min(c[v], n) }))
+    const n = parseNumber(raw)
+    if (!Number.isFinite(n)) {
+      setNumError('請輸入有效數字')
+      return
+    }
+    setNumError('')
+    const clamped = clamp(Math.floor(n), 0, COUNT_MAX)
+    setImpressions((x) => ({ ...x, [v]: clamped }))
+    setConversions((c) => ({ ...c, [v]: Math.min(c[v], clamped) }))
   }
 
   function setConv(v: Variant, raw: string) {
-    const n = Math.max(0, Math.floor(Number(raw) || 0))
-    setConversions((x) => ({ ...x, [v]: Math.min(n, impressions[v]) }))
+    const n = parseNumber(raw)
+    if (!Number.isFinite(n)) {
+      setNumError('請輸入有效數字')
+      return
+    }
+    setNumError('')
+    const clamped = clamp(Math.floor(n), 0, impressions[v])
+    setConversions((x) => ({ ...x, [v]: clamped }))
   }
+
+  const contentOk = (['A', 'B'] as Variant[]).every(
+    (v) => isNonEmpty(content[v].title) && isNonEmpty(content[v].body),
+  )
 
   return (
     <ProjectShell
@@ -154,7 +175,13 @@ export default function Page() {
     >
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <label className="label">流量分配 · A {split}% / B {100 - split}%</label>
-        <input type="range" min={10} max={90} value={split} onChange={(e) => setSplit(Number(e.target.value))} />
+        <input
+          type="range"
+          min={10}
+          max={90}
+          value={clamp(split, 10, 90)}
+          onChange={(e) => setSplit(clamp(parseNumber(e.target.value, 50), 10, 90))}
+        />
       </div>
 
       <div className="grid-2" style={{ marginBottom: 12 }}>
@@ -166,16 +193,38 @@ export default function Page() {
               {winner === '平手' && <span className="tag">平手</span>}
             </div>
             <input
-              className="field"
+              className={`field${!isNonEmpty(content[v].title) ? ' is-invalid' : ''}`}
               value={content[v].title}
-              onChange={(e) => setContent((c) => ({ ...c, [v]: { ...c[v], title: e.target.value } }))}
+              maxLength={TITLE_MAX}
+              onChange={(e) =>
+                setContent((c) => ({ ...c, [v]: { ...c[v], title: limitText(e.target.value, TITLE_MAX) } }))
+              }
             />
+            <div className="field-meta">
+              <span className={!isNonEmpty(content[v].title) ? 'warn' : undefined}>
+                {!isNonEmpty(content[v].title) ? '標題不可空白' : ' '}
+              </span>
+              <span>
+                {charCount(content[v].title)} / {TITLE_MAX}
+              </span>
+            </div>
             <textarea
-              className="field"
+              className={`field${!isNonEmpty(content[v].body) ? ' is-invalid' : ''}`}
               rows={2}
               value={content[v].body}
-              onChange={(e) => setContent((c) => ({ ...c, [v]: { ...c[v], body: e.target.value } }))}
+              maxLength={BODY_MAX}
+              onChange={(e) =>
+                setContent((c) => ({ ...c, [v]: { ...c[v], body: limitText(e.target.value, BODY_MAX) } }))
+              }
             />
+            <div className="field-meta">
+              <span className={!isNonEmpty(content[v].body) ? 'warn' : undefined}>
+                {!isNonEmpty(content[v].body) ? '內文不可空白' : ' '}
+              </span>
+              <span>
+                {charCount(content[v].body)} / {BODY_MAX}
+              </span>
+            </div>
             <div className="metric">
               曝光 {impressions[v]} · 轉換 {conversions[v]} · {(rates[v] * 100).toFixed(1)}%
             </div>
@@ -223,7 +272,7 @@ export default function Page() {
           {sampleHint}
         </p>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="btn accent" onClick={enterRandom}>
+          <button type="button" className="btn accent" onClick={enterRandom} disabled={!contentOk}>
             依流量分配進入
           </button>
           <button type="button" className="btn ghost" onClick={() => enter('A')}>
@@ -248,17 +297,19 @@ export default function Page() {
                 <label className="stack">
                   <span className="muted">曝光數</span>
                   <input
-                    className="field"
+                    className={`field${numError ? ' is-invalid' : ''}`}
                     type="number"
                     min={0}
+                    max={COUNT_MAX}
                     value={impressions[v]}
                     onChange={(e) => setImp(v, e.target.value)}
                   />
+                  <p className="field-hint">0–{COUNT_MAX.toLocaleString()}</p>
                 </label>
                 <label className="stack">
                   <span className="muted">轉換數（不可超過曝光）</span>
                   <input
-                    className="field"
+                    className={`field${numError ? ' is-invalid' : ''}`}
                     type="number"
                     min={0}
                     max={impressions[v]}
@@ -270,6 +321,7 @@ export default function Page() {
             ))}
           </div>
         )}
+        {numError && <p className="field-error">{numError}</p>}
 
         {assigned && (
           <div className="list-item" style={{ background: assigned === 'A' ? 'var(--sky-soft)' : 'var(--teal-soft)' }}>

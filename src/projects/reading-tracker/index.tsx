@@ -41,7 +41,7 @@ export default function Page() {
 
   const pages = parseNumber(pagesStr)
   const titleOk = isNonEmpty(title)
-  const pagesOk = pages != null && pages >= 1
+  const pagesOk = Number.isFinite(pages) && pages >= 1
   const atLimit = books.length >= MAX_ITEMS
   const canAdd = titleOk && pagesOk && !atLimit
 
@@ -58,7 +58,7 @@ export default function Page() {
   }, [books])
 
   function add() {
-    if (!canAdd || pages == null) return
+    if (!canAdd || !Number.isFinite(pages)) return
     setBooks([
       {
         id: uid('read'),
@@ -170,7 +170,7 @@ export default function Page() {
               value={pagesStr}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setPagesStr(e.target.value)
+                if (!Number.isFinite(n)) setPagesStr(e.target.value)
                 else setPagesStr(String(clamp(Math.round(n), 1, MAX_PAGES)))
               }}
               placeholder="總頁數"

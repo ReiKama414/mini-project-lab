@@ -2,12 +2,15 @@ import { useMemo, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { projects } from '../projects/registry'
-import { IconMenu, IconSearch } from './icons'
+import { useLocalStorage } from '../lib/storage'
+import { IconGithub, IconMenu, IconSearch, IconSidebarClose, IconSidebarOpen } from './icons'
 
 export function Layout() {
-  const [open, setOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed, setCollapsed] = useLocalStorage('lab:sidebar-collapsed', false)
   const [query, setQuery] = useState('')
   const location = useLocation()
+  const year = new Date().getFullYear()
   const matchCount = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return projects.length
@@ -21,10 +24,29 @@ export function Layout() {
   }, [query])
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
       <header className="topbar">
-        <button type="button" className="menu-btn" aria-label="選單" onClick={() => setOpen((v) => !v)}>
+        <button
+          type="button"
+          className="menu-btn"
+          aria-label="開啟選單"
+          onClick={() => setMobileOpen((v) => !v)}
+        >
           <IconMenu size={18} strokeWidth={2.25} />
+        </button>
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-label={collapsed ? '展開左側導覽' : '收合左側導覽'}
+          aria-pressed={collapsed}
+          title={collapsed ? '展開導覽' : '收合導覽'}
+          onClick={() => setCollapsed((v) => !v)}
+        >
+          {collapsed ? (
+            <IconSidebarOpen size={18} strokeWidth={2.25} />
+          ) : (
+            <IconSidebarClose size={18} strokeWidth={2.25} />
+          )}
         </button>
         <Link to="/" className="brand" aria-label="Mini Project Lab">
           <img src="/favicon.svg" alt="" className="brand-mark" width={28} height={28} draggable={false} />
@@ -41,13 +63,41 @@ export function Layout() {
         </div>
       </header>
 
-      {open && <div className="overlay" onClick={() => setOpen(false)} />}
+      {mobileOpen && <div className="overlay" onClick={() => setMobileOpen(false)} />}
 
-      <Sidebar open={open} query={query} onNavigate={() => setOpen(false)} />
+      <Sidebar
+        open={mobileOpen}
+        collapsed={collapsed}
+        query={query}
+        onNavigate={() => setMobileOpen(false)}
+        onToggleCollapse={() => setCollapsed((v) => !v)}
+      />
 
-      <main className="main" key={location.pathname}>
-        <Outlet context={{ query }} />
-      </main>
+      <div className="content-col">
+        <main className="main" key={location.pathname}>
+          <Outlet context={{ query }} />
+        </main>
+        <footer className="site-footer">
+          <p>
+            © {year}{' '}
+            <a href="https://github.com/ReiKama414" target="_blank" rel="noreferrer">
+              ReiKama414
+            </a>
+            {' · '}
+            Mini Project Lab · MIT License
+          </p>
+          <a
+            className="site-footer-github"
+            href="https://github.com/ReiKama414"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="GitHub：ReiKama414"
+          >
+            <IconGithub size={16} strokeWidth={2.25} />
+            <span>GitHub</span>
+          </a>
+        </footer>
+      </div>
     </div>
   )
 }

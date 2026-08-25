@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, uid } from '../../lib/utils'
+import { charCount, copyText, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('qr-scanner')!
+
+const PAYLOAD_MAX = 4000
 
 type HistoryItem = { id: string; text: string; type: string; at: number }
 
@@ -216,18 +218,27 @@ export default function Page() {
           <label className="stack">
             <span className="label">QR Payload</span>
             <textarea
-              className="field mono"
+              className={`field mono${!isNonEmpty(payload) ? ' is-invalid' : ''}`}
               rows={6}
               value={payload}
-              onChange={(e) => setPayload(e.target.value)}
+              maxLength={PAYLOAD_MAX}
+              onChange={(e) => setPayload(limitText(e.target.value, PAYLOAD_MAX))}
               placeholder="例如 https://… 或 WIFI:T:WPA;S:MyNet;P:secret;;"
             />
+            <div className="field-meta">
+              <span className={!isNonEmpty(payload) ? 'warn' : undefined}>
+                {!isNonEmpty(payload) ? '請貼上 QR 內容' : ' '}
+              </span>
+              <span>
+                {charCount(payload)} / {PAYLOAD_MAX}
+              </span>
+            </div>
           </label>
           <div className="row">
-            <button className="btn accent" onClick={() => remember(payload)}>
+            <button className="btn accent" onClick={() => remember(payload)} disabled={!isNonEmpty(payload)}>
               解析並加入歷史
             </button>
-            <button className="btn ghost" onClick={() => copyText(payload)}>
+            <button className="btn ghost" onClick={() => copyText(payload)} disabled={!isNonEmpty(payload)}>
               複製原始
             </button>
           </div>

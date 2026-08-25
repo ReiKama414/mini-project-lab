@@ -167,11 +167,17 @@ export default function Page() {
             <button
               type="button"
               className="btn ghost"
-              onClick={() => setQs((xs) => [...xs, { id: uid('q'), text: '新問題？', options: ['是', '否', '普通'] }])}
+              disabled={qs.length >= MAX_QUESTIONS}
+              onClick={() => {
+                if (qs.length >= MAX_QUESTIONS) return
+                setQs((xs) => [...xs, { id: uid('q'), text: '新問題？', options: ['是', '否', '普通'] }])
+              }}
             >
               新增題目
             </button>
-            <span className="muted">{qs.length} 題</span>
+            <span className="muted">
+              {qs.length}/{MAX_QUESTIONS} 題
+            </span>
           </div>
           {qs.length === 0 ? (
             <div className="list-item stack">
@@ -189,7 +195,7 @@ export default function Page() {
                     className="field"
                     style={{ flex: 1 }}
                     value={q.text}
-                    onChange={(e) => setQs((xs) => xs.map((x) => (x.id === q.id ? { ...x, text: e.target.value } : x)))}
+                    onChange={(e) => setQs((xs) => xs.map((x) => (x.id === q.id ? { ...x, text: limitText(e.target.value, MAX_QUESTION) } : x)))}
                   />
                   <span className="mono muted">{q.text.length}</span>
                   <button type="button" className="btn sm danger" onClick={() => setQs((xs) => xs.filter((x) => x.id !== q.id))}>

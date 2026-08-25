@@ -62,9 +62,9 @@ export default function Page() {
   const weight = parseNumber(weightStr)
   const name = (customEx.trim() || exercise).trim()
   const nameOk = isNonEmpty(name)
-  const setsOk = sets != null && sets >= 1
-  const repsOk = reps != null && reps >= 1
-  const weightOk = weight != null && weight >= 0
+  const setsOk = Number.isFinite(sets) && sets >= 1
+  const repsOk = Number.isFinite(reps) && reps >= 1
+  const weightOk = Number.isFinite(weight) && weight >= 0
   const dateOk = isValidDate(date)
   const atLimit = items.length >= MAX_ITEMS
   const canAdd = nameOk && setsOk && repsOk && weightOk && dateOk && !atLimit
@@ -97,7 +97,7 @@ export default function Page() {
   }, [items])
 
   function add() {
-    if (!canAdd || sets == null || reps == null || weight == null) return
+    if (!canAdd || !Number.isFinite(sets) || !Number.isFinite(reps) || !Number.isFinite(weight)) return
     setItems([
       {
         id: uid('wo'),
@@ -165,7 +165,7 @@ export default function Page() {
               value={setsStr}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setSetsStr(e.target.value)
+                if (!Number.isFinite(n)) setSetsStr(e.target.value)
                 else setSetsStr(String(clamp(Math.round(n), 1, MAX_SETS)))
               }}
             />
@@ -181,7 +181,7 @@ export default function Page() {
               value={repsStr}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setRepsStr(e.target.value)
+                if (!Number.isFinite(n)) setRepsStr(e.target.value)
                 else setRepsStr(String(clamp(Math.round(n), 1, MAX_REPS)))
               }}
             />
@@ -198,7 +198,7 @@ export default function Page() {
               value={weightStr}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setWeightStr(e.target.value)
+                if (!Number.isFinite(n)) setWeightStr(e.target.value)
                 else setWeightStr(String(clamp(n, 0, MAX_WEIGHT)))
               }}
             />

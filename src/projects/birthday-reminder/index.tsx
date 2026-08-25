@@ -54,10 +54,10 @@ export default function Page() {
   const nameOk = isNonEmpty(name)
   const maxDay = daysInMonth(month)
   const dayOk = day >= 1 && day <= maxDay
-  const yearParsed = birthYear.trim() ? parseNumber(birthYear) : null
+  const yearParsed = birthYear.trim() ? parseNumber(birthYear) : NaN
   const yearOk =
     !birthYear.trim() ||
-    (yearParsed != null && yearParsed >= 1900 && yearParsed <= CURRENT_YEAR)
+    (Number.isFinite(yearParsed) && yearParsed >= 1900 && yearParsed <= CURRENT_YEAR)
   const atLimit = people.length >= MAX_ITEMS
   const canAdd = nameOk && dayOk && yearOk && !atLimit
 
@@ -80,7 +80,7 @@ export default function Page() {
         name: name.trim(),
         month,
         day: clamp(day, 1, maxDay),
-        birthYear: yearParsed && yearParsed > 1900 ? Math.round(yearParsed) : undefined,
+        birthYear: Number.isFinite(yearParsed) && yearParsed > 1900 ? Math.round(yearParsed) : undefined,
       },
       ...people,
     ])
@@ -139,7 +139,7 @@ export default function Page() {
               value={birthYear}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setBirthYear(e.target.value)
+                if (!Number.isFinite(n)) setBirthYear(e.target.value)
                 else setBirthYear(String(clamp(Math.round(n), 1900, CURRENT_YEAR)))
               }}
             />

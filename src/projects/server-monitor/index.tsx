@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { randomInt } from '../../lib/utils'
+import { charCount, clamp, limitText, parseNumber, randomInt } from '../../lib/utils'
 
 const meta = getProject('server-monitor')!
+
+const HOST_MAX = 80
+const TH_MIN = 50
+const TH_MAX = 98
 
 type Metrics = { cpu: number; mem: number; disk: number; netIn: number; netOut: number; load: number }
 type Histories = { cpu: number[]; mem: number[]; disk: number[]; load: number[] }
@@ -105,22 +109,52 @@ export default function Page() {
           <label className="label" style={{ margin: 0 }}>
             Hostname
           </label>
-          <input className="field" value={host} onChange={(e) => setHost(e.target.value)} style={{ maxWidth: 220 }} />
+          <input
+            className={`field${!host.trim() ? ' is-invalid' : ''}`}
+            value={host}
+            maxLength={HOST_MAX}
+            onChange={(e) => setHost(limitText(e.target.value, HOST_MAX))}
+            style={{ maxWidth: 220 }}
+          />
           <span className="tag">{paused ? 'paused' : 'live mock'}</span>
+        </div>
+        <div className="field-meta">
+          <span className={!host.trim() ? 'warn' : undefined}>{!host.trim() ? '請輸入 hostname' : ' '}</span>
+          <span>
+            {charCount(host)} / {HOST_MAX}
+          </span>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 16 }}>
           <label className="label" style={{ margin: 0 }}>
             CPU ≥ {cpuThreshold}%
           </label>
-          <input type="range" min={50} max={95} value={cpuThreshold} onChange={(e) => setCpuThreshold(Number(e.target.value))} />
+          <input
+            type="range"
+            min={TH_MIN}
+            max={95}
+            value={clamp(cpuThreshold, TH_MIN, 95)}
+            onChange={(e) => setCpuThreshold(clamp(parseNumber(e.target.value, 80), TH_MIN, 95))}
+          />
           <label className="label" style={{ margin: 0 }}>
             MEM ≥ {memThreshold}%
           </label>
-          <input type="range" min={50} max={95} value={memThreshold} onChange={(e) => setMemThreshold(Number(e.target.value))} />
+          <input
+            type="range"
+            min={TH_MIN}
+            max={95}
+            value={clamp(memThreshold, TH_MIN, 95)}
+            onChange={(e) => setMemThreshold(clamp(parseNumber(e.target.value, 85), TH_MIN, 95))}
+          />
           <label className="label" style={{ margin: 0 }}>
             Disk ≥ {diskThreshold}%
           </label>
-          <input type="range" min={50} max={98} value={diskThreshold} onChange={(e) => setDiskThreshold(Number(e.target.value))} />
+          <input
+            type="range"
+            min={TH_MIN}
+            max={TH_MAX}
+            value={clamp(diskThreshold, TH_MIN, TH_MAX)}
+            onChange={(e) => setDiskThreshold(clamp(parseNumber(e.target.value, 90), TH_MIN, TH_MAX))}
+          />
         </div>
       </div>
 

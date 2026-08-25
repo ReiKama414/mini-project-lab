@@ -50,8 +50,8 @@ export default function Page() {
   const time = parseNumber(timeStr)
   const baseServings = parseNumber(baseServingsStr)
   const titleOk = isNonEmpty(title)
-  const timeOk = time != null && time >= 1
-  const servingsOk = baseServings != null && baseServings >= 1
+  const timeOk = Number.isFinite(time) && time >= 1
+  const servingsOk = Number.isFinite(baseServings) && baseServings >= 1
   const atLimit = recipes.length >= MAX_ITEMS
   const canAdd = titleOk && timeOk && servingsOk && !atLimit
   const filtered = useMemo(() => {
@@ -85,7 +85,7 @@ export default function Page() {
   }
 
   function add() {
-    if (!canAdd || time == null || baseServings == null) return
+    if (!canAdd || !Number.isFinite(time) || !Number.isFinite(baseServings)) return
     const r: Recipe = {
       id: uid('rcp'),
       title: title.trim(),
@@ -158,7 +158,7 @@ export default function Page() {
                 value={timeStr}
                 onChange={(e) => {
                   const n = parseNumber(e.target.value)
-                  if (n == null) setTimeStr(e.target.value)
+                  if (!Number.isFinite(n)) setTimeStr(e.target.value)
                   else setTimeStr(String(clamp(Math.round(n), 1, MAX_TIME)))
                 }}
                 placeholder="分鐘"
@@ -174,7 +174,7 @@ export default function Page() {
                 value={baseServingsStr}
                 onChange={(e) => {
                   const n = parseNumber(e.target.value)
-                  if (n == null) setBaseServingsStr(e.target.value)
+                  if (!Number.isFinite(n)) setBaseServingsStr(e.target.value)
                   else setBaseServingsStr(String(clamp(Math.round(n), 1, MAX_SERVINGS)))
                 }}
                 placeholder="基準份量"

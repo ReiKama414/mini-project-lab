@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { charCount, copyText, downloadText, limitText } from '../../lib/utils'
 
 const meta = getProject('code-editor')!
+
+const CODE_MAX = 50_000
 
 type Tab = 'html' | 'css' | 'js'
 type Bundle = { html: string; css: string; js: string }
@@ -132,7 +134,8 @@ export default function Page() {
           className="field mono panel"
           style={{ minHeight: 360, fontSize: 13 }}
           value={code[tab]}
-          onChange={(e) => setCode((c) => ({ ...c, [tab]: e.target.value }))}
+          maxLength={CODE_MAX}
+          onChange={(e) => setCode((c) => ({ ...c, [tab]: limitText(e.target.value, CODE_MAX) }))}
           spellCheck={false}
         />
         <iframe
@@ -143,6 +146,12 @@ export default function Page() {
           srcDoc={srcDoc}
           sandbox="allow-scripts"
         />
+      </div>
+      <div className="field-meta" style={{ marginTop: 8 }}>
+        <span className="field-hint">{tab.toUpperCase()} 字元上限</span>
+        <span>
+          {charCount(code[tab])} / {CODE_MAX.toLocaleString()}
+        </span>
       </div>
       <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
         HTML／CSS／JS 分頁編輯，範例可一鍵載入，內容與分頁狀態會存到本機。

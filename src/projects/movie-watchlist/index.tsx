@@ -41,8 +41,8 @@ export default function Page() {
   const [search, setSearch] = useState('')
 
   const titleOk = isNonEmpty(title)
-  const yearNum = year.trim() ? parseNumber(year) : null
-  const yearOk = !year.trim() || (yearNum != null && yearNum >= 1888 && yearNum <= 2100)
+  const yearNum = year.trim() ? parseNumber(year) : NaN
+  const yearOk = !year.trim() || (Number.isFinite(yearNum) && yearNum >= 1888 && yearNum <= 2100)
   const atLimit = movies.length >= MAX_ITEMS
   const canAdd = titleOk && yearOk && !atLimit
 

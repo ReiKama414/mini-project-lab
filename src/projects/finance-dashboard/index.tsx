@@ -2,9 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('finance-dashboard')!
+
+const LABEL_MAX = 80
+const AMOUNT_MAX = 100_000_000
+const BUDGET_MIN = 0
+const BUDGET_MAX = 100_000_000
 
 type Tx = {
   id: string
@@ -36,6 +41,12 @@ export default function Page() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
   const [budget, setBudget] = useLocalStorage('lab:finance-dashboard:budget', 30000)
+  const [amountError, setAmountError] = useState('')
+
+  const amountNum = parseNumber(amount)
+  const amountOk = Number.isFinite(amountNum) && amountNum > 0 && amountNum <= AMOUNT_MAX
+  const labelOk = isNonEmpty(label)
+  const canAdd = labelOk && amountOk && !amountError
 
   const monthTxs = useMemo(
     () => txs.filter((t) => t.date.startsWith(month)),
@@ -57,14 +68,21 @@ export default function Page() {
   const budgetPct = budget ? Math.min(100, (expense / budget) * 100) : 0
 
   function add() {
-    const n = Number(amount)
-    if (!label.trim() || !n) return
+    if (!canAdd || !Number.isFinite(amountNum)) return
     setTxs((t) => [
-      { id: uid('tx'), label: label.trim(), amount: n, type, cat, date },
+      {
+        id: uid('tx'),
+        label: label.trim(),
+        amount: clamp(amountNum, 0.01, AMOUNT_MAX),
+        type,
+        cat,
+        date,
+      },
       ...t,
     ])
     setLabel('')
     setAmount('')
+    setAmountError('')
   }
 
   function exportCsv() {
@@ -104,9 +122,18 @@ export default function Page() {
           className="field"
           type="number"
           style={{ width: 140 }}
+          min={BUDGET_MIN}
+          max={BUDGET_MAX}
           value={budget}
-          onChange={(e) => setBudget(Number(e.target.value))}
+          onChange={(e) => {
+            const n = parseNumber(e.target.value)
+            if (!Number.isFinite(n)) return
+            setBudget(clamp(n, BUDGET_MIN, BUDGET_MAX))
+          }}
         />
+        <p className="field-hint" style={{ margin: 0 }}>
+          預算 {BUDGET_MIN}–{BUDGET_MAX.toLocaleString()}
+        </p>
       </div>
 
       <div className="grid-3" style={{ marginBottom: 12 }}>
@@ -141,18 +168,36 @@ export default function Page() {
         <div className="panel stack">
           <div className="label">新增交易</div>
           <input
-            className="field"
+            className={`field${!labelOk && label.length > 0 ? ' is-invalid' : ''}`}
             placeholder="項目"
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            maxLength={LABEL_MAX}
+            onChange={(e) => setLabel(limitText(e.target.value, LABEL_MAX))}
           />
+          <div className="field-meta">
+            <span className={!labelOk ? 'warn' : undefined}>{!labelOk ? '請輸入項目' : ' '}</span>
+            <span>
+              {charCount(label)} / {LABEL_MAX}
+            </span>
+          </div>
           <div className="grid-2">
-            <input
-              className="field"
-              placeholder="金額"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+            <div className="stack">
+              <input
+                className={`field${(amount && !amountOk) || amountError ? ' is-invalid' : ''}`}
+                placeholder="金額"
+                value={amount}
+                onChange={(e) => {
+                  const raw = e.target.value
+                  setAmount(raw)
+                  const n = parseNumber(raw)
+                  if (raw.trim() && !Number.isFinite(n)) setAmountError('請輸入有效數字')
+                  else if (Number.isFinite(n) && (n <= 0 || n > AMOUNT_MAX)) setAmountError(`金額須為 0.01–${AMOUNT_MAX.toLocaleString()}`)
+                  else setAmountError('')
+                }}
+              />
+              {amountError && <p className="field-error">{amountError}</p>}
+              <p className="field-hint">0.01–{AMOUNT_MAX.toLocaleString()}</p>
+            </div>
             <input
               className="field"
               type="date"
@@ -191,7 +236,7 @@ export default function Page() {
                 <option key={c}>{c}</option>
               ))}
             </select>
-            <button type="button" className="btn accent" onClick={add}>
+            <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
               新增
             </button>
           </div>

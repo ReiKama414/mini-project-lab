@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText } from '../../lib/utils'
+import { charCount, copyText, downloadText, limitText } from '../../lib/utils'
 
 const meta = getProject('stock-watchlist')!
+
+const NOTE_MAX = 120
 
 type Quote = {
   symbol: string
@@ -199,8 +201,17 @@ export default function Page() {
               className="field"
               placeholder="備註（本機）"
               value={notes[q.symbol] || ''}
-              onChange={(e) => setNotes((n) => ({ ...n, [q.symbol]: e.target.value }))}
+              maxLength={NOTE_MAX}
+              onChange={(e) =>
+                setNotes((n) => ({ ...n, [q.symbol]: limitText(e.target.value, NOTE_MAX) }))
+              }
             />
+            <div className="field-meta">
+              <span className="field-hint">備註</span>
+              <span>
+                {charCount(notes[q.symbol] || '')} / {NOTE_MAX}
+              </span>
+            </div>
             <button
               type="button"
               className="btn sm ghost"

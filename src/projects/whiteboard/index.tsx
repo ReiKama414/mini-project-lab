@@ -2,10 +2,15 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid } from '../../lib/utils'
+import { charCount, clamp, limitText, parseNumber, uid } from '../../lib/utils'
 import { IconMaximize, IconMinimize } from '../../components/icons'
 
 const meta = getProject('whiteboard')!
+
+const FILTER_MAX = 40
+const LABEL_MAX = 40
+const SIZE_MIN = 1
+const SIZE_MAX = 32
 
 const PALETTE = ['#1a2e28', '#f0734a', '#2a9d8f', '#e9a319', '#d6406a', '#3b82a0', '#ffffff']
 
@@ -213,7 +218,7 @@ export default function Page() {
   function saveSnapshot() {
     const c = canvasRef.current
     if (!c) return
-    const label = `草稿 ${snapshots.length + 1}`
+    const label = limitText(`草稿 ${snapshots.length + 1}`, LABEL_MAX)
     const dataUrl = c.toDataURL('image/png')
     setSnapshots((xs) => [{ id: uid('wb'), at: Date.now(), label, dataUrl }, ...xs].slice(0, 8))
   }
@@ -350,7 +355,13 @@ export default function Page() {
           <label className="label" style={{ margin: 0 }}>
             粗細 {size}
           </label>
-          <input type="range" min={1} max={32} value={size} onChange={(e) => setSize(Number(e.target.value))} />
+          <input
+            type="range"
+            min={SIZE_MIN}
+            max={SIZE_MAX}
+            value={clamp(size, SIZE_MIN, SIZE_MAX)}
+            onChange={(e) => setSize(clamp(parseNumber(e.target.value, 4), SIZE_MIN, SIZE_MAX))}
+          />
           {SIZE_PRESETS.map((p) => (
             <button
               key={p.label}
@@ -414,8 +425,15 @@ export default function Page() {
           className="field"
           placeholder="篩選草稿名稱…"
           value={snapFilter}
-          onChange={(e) => setSnapFilter(e.target.value)}
+          maxLength={FILTER_MAX}
+          onChange={(e) => setSnapFilter(limitText(e.target.value, FILTER_MAX))}
         />
+        <div className="field-meta">
+          <span className="field-hint">篩選</span>
+          <span>
+            {charCount(snapFilter)} / {FILTER_MAX}
+          </span>
+        </div>
         <ul className="list">
           {filteredSnaps.map((s) => (
             <li key={s.id} className="list-item" style={{ alignItems: 'center', gap: 12 }}>

@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { pick, randomInt, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, pick, randomInt, uid } from '../../lib/utils'
 
 const meta = getProject('docker-dashboard')!
+
+const NAME_MAX = 64
+const IMAGE_MAX = 120
 
 type Ctn = {
   id: string
@@ -86,14 +89,15 @@ export default function Page() {
   }
 
   function add() {
+    if (!isNonEmpty(newName) && !isNonEmpty(newImage)) return
     const name = newName.trim() || `ctn_${ctns.length + 1}`
     const id = uid('c')
     setCtns((xs) => [
       ...xs,
       {
         id,
-        name,
-        image: newImage.trim() || 'busybox',
+        name: limitText(name, NAME_MAX),
+        image: limitText(newImage.trim() || 'busybox', IMAGE_MAX),
         status: 'running',
         cpu: 1,
         mem: 32,
@@ -127,11 +131,33 @@ export default function Page() {
             {f === 'all' ? '全部' : f}
           </button>
         ))}
-        <input className="field" placeholder="名稱" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ width: 140 }} />
-        <input className="field mono" placeholder="image" value={newImage} onChange={(e) => setNewImage(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
-        <button type="button" className="btn accent" onClick={add}>
+        <input
+          className="field"
+          placeholder="名稱"
+          value={newName}
+          maxLength={NAME_MAX}
+          onChange={(e) => setNewName(limitText(e.target.value, NAME_MAX))}
+          style={{ width: 140 }}
+        />
+        <input
+          className={`field mono${!isNonEmpty(newImage) ? ' is-invalid' : ''}`}
+          placeholder="image"
+          value={newImage}
+          maxLength={IMAGE_MAX}
+          onChange={(e) => setNewImage(limitText(e.target.value, IMAGE_MAX))}
+          style={{ flex: 1, minWidth: 160 }}
+        />
+        <button type="button" className="btn accent" onClick={add} disabled={!isNonEmpty(newImage)}>
           新增容器
         </button>
+      </div>
+      <div className="field-meta" style={{ marginBottom: 12 }}>
+        <span className={!isNonEmpty(newImage) ? 'warn' : undefined}>
+          {!isNonEmpty(newImage) ? '請輸入 image' : `名稱 ${charCount(newName)}/${NAME_MAX}`}
+        </span>
+        <span>
+          {charCount(newImage)} / {IMAGE_MAX}
+        </span>
       </div>
 
       <div className="grid-2">

@@ -2,9 +2,14 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { charCount, downloadText, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('dependency-dashboard')!
+
+const NAME_MAX = 80
+const VER_MAX = 40
+const QUERY_MAX = 80
+const NOTES_MAX = 200
 
 type Status = 'ok' | 'patch' | 'minor' | 'major' | 'unknown'
 type SortKey = 'name' | 'status' | 'current'
@@ -177,8 +182,15 @@ export default function Page() {
             style={{ flex: 1, minWidth: 160 }}
             placeholder="搜尋套件或備註…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            maxLength={QUERY_MAX}
+            onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
           />
+          <div className="field-meta" style={{ width: '100%' }}>
+            <span className="field-hint">搜尋</span>
+            <span>
+              {charCount(query)} / {QUERY_MAX}
+            </span>
+          </div>
           <label className="row" style={{ gap: 6 }}>
             <span className="muted" style={{ fontSize: 12 }}>
               排序
@@ -199,12 +211,19 @@ export default function Page() {
           </button>
         </div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <input className="field" placeholder="套件名" value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            className={`field${!isNonEmpty(name) ? ' is-invalid' : ''}`}
+            placeholder="套件名"
+            value={name}
+            maxLength={NAME_MAX}
+            onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+          />
           <input
             className="field"
             style={{ width: 110 }}
             value={current}
-            onChange={(e) => setCurrent(e.target.value)}
+            maxLength={VER_MAX}
+            onChange={(e) => setCurrent(limitText(e.target.value, VER_MAX))}
             placeholder="目前"
             title="目前版本"
           />
@@ -212,15 +231,17 @@ export default function Page() {
             className="field"
             style={{ width: 110 }}
             value={latest}
-            onChange={(e) => setLatest(e.target.value)}
+            maxLength={VER_MAX}
+            onChange={(e) => setLatest(limitText(e.target.value, VER_MAX))}
             placeholder="最新"
             title="最新版本"
           />
           <button
             type="button"
             className="btn accent"
+            disabled={!isNonEmpty(name)}
             onClick={() => {
-              if (!name.trim()) return
+              if (!isNonEmpty(name)) return
               setDeps((xs) => [
                 {
                   id: uid('d'),
@@ -237,6 +258,12 @@ export default function Page() {
           >
             新增
           </button>
+        </div>
+        <div className="field-meta">
+          <span className={!isNonEmpty(name) ? 'warn' : undefined}>{!isNonEmpty(name) ? '請輸入套件名' : ' '}</span>
+          <span>
+            {charCount(name)} / {NAME_MAX}
+          </span>
         </div>
         <ul className="list">
           {rows.map((d) => (
@@ -273,16 +300,25 @@ export default function Page() {
                 </button>
               </div>
               {(editingNotes === d.id || d.notes) && (
-                <input
-                  className="field"
-                  value={d.notes}
-                  placeholder="備註（例如：延後到下個 sprint）"
-                  onChange={(e) =>
-                    setDeps((xs) => xs.map((x) => (x.id === d.id ? { ...x, notes: e.target.value } : x)))
-                  }
-                  onBlur={() => setEditingNotes(null)}
-                  autoFocus={editingNotes === d.id}
-                />
+                <>
+                  <input
+                    className="field"
+                    value={d.notes}
+                    maxLength={NOTES_MAX}
+                    placeholder="備註（例如：延後到下個 sprint）"
+                    onChange={(e) =>
+                      setDeps((xs) => xs.map((x) => (x.id === d.id ? { ...x, notes: limitText(e.target.value, NOTES_MAX) } : x)))
+                    }
+                    onBlur={() => setEditingNotes(null)}
+                    autoFocus={editingNotes === d.id}
+                  />
+                  <div className="field-meta">
+                    <span className="field-hint">備註</span>
+                    <span>
+                      {charCount(d.notes)} / {NOTES_MAX}
+                    </span>
+                  </div>
+                </>
               )}
             </li>
           ))}

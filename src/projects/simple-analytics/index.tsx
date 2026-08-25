@@ -2,9 +2,12 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid } from '../../lib/utils'
+import { charCount, downloadText, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('simple-analytics')!
+
+const EVENT_MAX = 64
+const PATH_MAX = 200
 
 type Range = '24h' | '7d' | '30d'
 type Event = { id: string; name: string; path: string; at: number }
@@ -95,8 +98,17 @@ export default function Page() {
   const typeMax = Math.max(1, ...byType.map(([, n]) => n))
 
   function track() {
+    if (!isNonEmpty(eventName) || !isNonEmpty(path)) return
     setEvents((xs) =>
-      [{ id: uid('ev'), name: eventName.trim() || 'event', path: path.trim() || '/', at: Date.now() }, ...xs].slice(0, 500),
+      [
+        {
+          id: uid('ev'),
+          name: limitText(eventName.trim(), EVENT_MAX),
+          path: limitText(path.trim() || '/', PATH_MAX),
+          at: Date.now(),
+        },
+        ...xs,
+      ].slice(0, 500),
     )
   }
 
@@ -181,11 +193,33 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <input className="field" value={eventName} onChange={(e) => setEventName(e.target.value)} placeholder="事件名" style={{ width: 140 }} />
-        <input className="field mono" value={path} onChange={(e) => setPath(e.target.value)} placeholder="/path" style={{ flex: 1, minWidth: 120 }} />
-        <button type="button" className="btn accent" onClick={track}>
+        <input
+          className={`field${!isNonEmpty(eventName) ? ' is-invalid' : ''}`}
+          value={eventName}
+          maxLength={EVENT_MAX}
+          onChange={(e) => setEventName(limitText(e.target.value, EVENT_MAX))}
+          placeholder="事件名"
+          style={{ width: 140 }}
+        />
+        <input
+          className={`field mono${!isNonEmpty(path) ? ' is-invalid' : ''}`}
+          value={path}
+          maxLength={PATH_MAX}
+          onChange={(e) => setPath(limitText(e.target.value, PATH_MAX))}
+          placeholder="/path"
+          style={{ flex: 1, minWidth: 120 }}
+        />
+        <button type="button" className="btn accent" onClick={track} disabled={!isNonEmpty(eventName) || !isNonEmpty(path)}>
           追蹤事件
         </button>
+      </div>
+      <div className="field-meta" style={{ marginBottom: 12 }}>
+        <span className={!isNonEmpty(eventName) || !isNonEmpty(path) ? 'warn' : undefined}>
+          {!isNonEmpty(eventName) ? '請輸入事件名' : !isNonEmpty(path) ? '請輸入路徑' : ' '}
+        </span>
+        <span>
+          {charCount(eventName)}/{EVENT_MAX} · {charCount(path)}/{PATH_MAX}
+        </span>
       </div>
 
       <div className="grid-2" style={{ marginBottom: 12 }}>

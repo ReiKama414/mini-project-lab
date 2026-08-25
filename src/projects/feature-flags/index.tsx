@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText, uid, limitText, isNonEmpty } from '../../lib/utils'
+import { downloadText, uid, limitText, isNonEmpty, charCount, cn } from '../../lib/utils'
 
 const meta = getProject('feature-flags')!
 
@@ -84,20 +84,31 @@ export default function Page() {
         </button>
       }
     >
-      <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        <span className="label" style={{ margin: 0 }}>
-          環境
-        </span>
-        {(['all', ...ENVS] as const).map((e) => (
-          <button key={e} type="button" className={`btn sm ${envFilter === e ? 'accent' : 'ghost'}`} onClick={() => setEnvFilter(e)}>
-            {e}
+      <div className="panel stack" style={{ marginBottom: 12 }}>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <span className="label" style={{ margin: 0 }}>
+            環境
+          </span>
+          {(['all', ...ENVS] as const).map((e) => (
+            <button key={e} type="button" className={`btn sm ${envFilter === e ? 'accent' : 'ghost'}`} onClick={() => setEnvFilter(e)}>
+              {e}
+            </button>
+          ))}
+          <input
+            className={cn('field mono', !isNonEmpty(newKey) && 'is-invalid')}
+            maxLength={KEY_MAX}
+            value={newKey}
+            onChange={(e) => setNewKey(limitText(e.target.value.replace(/[^a-zA-Z0-9_.:-]/g, ''), KEY_MAX))}
+            style={{ width: 140 }}
+          />
+          <button type="button" className="btn accent" onClick={addFlag} disabled={!isNonEmpty(newKey)}>
+            新增 Flag
           </button>
-        ))}
-        <input className="field mono" maxLength={KEY_MAX}
-            value={newKey} onChange={(e) => setNewKey(limitText(e.target.value.replace(/[^a-zA-Z0-9_.:-]/g, ''), KEY_MAX))} style={{ width: 140 }} />
-        <button type="button" className="btn accent" onClick={addFlag} disabled={!isNonEmpty(newKey)}>
-          新增 Flag
-        </button>
+        </div>
+        <div className="field-meta">
+          <span className={!isNonEmpty(newKey) ? 'warn' : undefined}>{isNonEmpty(newKey) ? '可新增' : '請輸入 flag key'}</span>
+          <span>{charCount(newKey)}/{KEY_MAX}</span>
+        </div>
       </div>
 
       <div className="grid-2">

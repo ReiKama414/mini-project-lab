@@ -2,9 +2,13 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid } from '../../lib/utils'
+import { clamp, copyText, downloadText, limitText, charCount, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('currency-converter')!
+
+const AMOUNT_MIN = 0
+const AMOUNT_MAX = 1_000_000_000_000
+const FILTER_MAX = 40
 
 const FALLBACK: Record<string, number> = {
   USD: 1,
@@ -68,6 +72,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [histFilter, setHistFilter] = useState('')
+  const [amountError, setAmountError] = useState('')
   const codes = useMemo(() => Object.keys(rates).sort(), [rates])
 
   const load = useCallback(async () => {
@@ -104,6 +109,9 @@ export default function Page() {
     return usd * tr
   }, [amount, from, to, rates])
 
+  const amountOk = Number.isFinite(amount) && amount >= AMOUNT_MIN && amount <= AMOUNT_MAX && !amountError
+  const canSave = amountOk && Number.isFinite(result)
+
   const rateOne = useMemo(() => {
     const fr = rates[from]
     const tr = rates[to]
@@ -132,6 +140,7 @@ export default function Page() {
   }, [watch, rates, from, amount])
 
   function saveHistory() {
+    if (!canSave) return
     setHistory((h) =>
       [
         {
@@ -146,6 +155,16 @@ export default function Page() {
         ...h,
       ].slice(0, 30),
     )
+  }
+
+  function onAmountChange(raw: string) {
+    const n = parseNumber(raw)
+    if (!Number.isFinite(n)) {
+      setAmountError('請輸入有效數字')
+      return
+    }
+    setAmountError('')
+    setAmount(clamp(n, AMOUNT_MIN, AMOUNT_MAX))
   }
 
   function toggleFavorite() {
@@ -179,7 +198,7 @@ export default function Page() {
           <button type="button" className="btn ghost sm" onClick={() => void load()} disabled={loading}>
             {loading ? '更新中…' : '重新抓匯率'}
           </button>
-          <button type="button" className="btn ghost sm" onClick={saveHistory}>
+          <button type="button" className="btn ghost sm" onClick={saveHistory} disabled={!canSave}>
             存入歷史
           </button>
         </div>
@@ -239,12 +258,17 @@ export default function Page() {
           <label className="stack">
             <span className="label">金額</span>
             <input
-              className="field"
+              className={`field${amountError ? ' is-invalid' : ''}`}
               type="number"
-              min={0}
+              min={AMOUNT_MIN}
+              max={AMOUNT_MAX}
               value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              onChange={(e) => onAmountChange(e.target.value)}
             />
+            {amountError && <p className="field-error">{amountError}</p>}
+            <p className="field-hint">
+              {AMOUNT_MIN}–{AMOUNT_MAX.toLocaleString()}
+            </p>
           </label>
 
           <div className="grid-2">
@@ -302,7 +326,7 @@ export default function Page() {
             >
               複製結果
             </button>
-            <button type="button" className="btn teal" onClick={saveHistory}>
+            <button type="button" className="btn teal" onClick={saveHistory} disabled={!canSave}>
               存入歷史
             </button>
           </div>
@@ -364,8 +388,15 @@ export default function Page() {
             className="field"
             placeholder="篩選歷史…"
             value={histFilter}
-            onChange={(e) => setHistFilter(e.target.value)}
+            maxLength={FILTER_MAX}
+            onChange={(e) => setHistFilter(limitText(e.target.value, FILTER_MAX))}
           />
+          <div className="field-meta">
+            <span className="field-hint">篩選字串</span>
+            <span>
+              {charCount(histFilter)} / {FILTER_MAX}
+            </span>
+          </div>
           <ul className="list">
             {filteredHistory.map((h) => (
               <li key={h.id} className="list-item stack">

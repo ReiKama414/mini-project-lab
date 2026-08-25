@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadText } from '../../lib/utils'
+import { clamp, downloadText } from '../../lib/utils'
 
 const meta = getProject('heatmap-analytics')!
 
@@ -120,7 +120,13 @@ export default function Page() {
         <label className="label" style={{ margin: 0 }}>
           強度 {intensity}%
         </label>
-        <input type="range" min={20} max={100} value={intensity} onChange={(e) => setIntensity(Number(e.target.value))} />
+        <input
+          type="range"
+          min={20}
+          max={100}
+          value={clamp(intensity, 20, 100)}
+          onChange={(e) => setIntensity(clamp(Number(e.target.value) || 70, 20, 100))}
+        />
       </div>
 
       <div className="grid-2" style={{ alignItems: 'start' }}>

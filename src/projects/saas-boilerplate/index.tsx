@@ -2,13 +2,23 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, limitText, isNonEmpty, isValidEmail } from '../../lib/utils'
+import { uid, limitText, isNonEmpty, isValidEmail, charCount, clamp, parseNumber } from '../../lib/utils'
 
 const meta = getProject('saas-boilerplate')!
 
 const NAME_MAX = 80
 const EMAIL_MAX = 254
 const ORG_MAX = 120
+const TZ_MAX = 64
+const MRR_MAX = 1_000_000
+const CHURN_MAX = 100
+const NPS_MIN = -100
+const NPS_MAX = 100
+const TRIALS_MAX = 100_000
+const SEAT_MIN = 1
+const SEAT_MAX = 500
+const SESSION_MIN = 1
+const SESSION_MAX = 365
 
 type Customer = { id: string; name: string; email: string; plan: string; mrr: number }
 type Member = { id: string; name: string; email: string; role: 'owner' | 'admin' | 'member' }
@@ -68,16 +78,22 @@ export default function Page() {
   const planPrice = PLAN_PRICE[plan] ?? 0
 
   function addCustomer() {
-    if (!draft.name.trim() || !draft.email.trim()) return
+    if (!isNonEmpty(draft.name) || !isValidEmail(draft.email)) return
     setCustomers((xs) => [
       ...xs,
-      { id: uid('c'), name: draft.name.trim(), email: draft.email.trim(), plan: draft.plan, mrr: Number(draft.mrr) || 0 },
+      {
+        id: uid('c'),
+        name: draft.name.trim(),
+        email: draft.email.trim(),
+        plan: draft.plan,
+        mrr: clamp(Number.isFinite(draft.mrr) ? draft.mrr : 0, 0, MRR_MAX),
+      },
     ])
     setDraft({ name: '', email: '', plan: 'Pro', mrr: 29 })
   }
 
   function addMember() {
-    if (!memberDraft.name.trim() || !memberDraft.email.trim()) return
+    if (!isNonEmpty(memberDraft.name) || !isValidEmail(memberDraft.email)) return
     if (members.length >= settings.seatLimit) {
       setBillingNote(`已達席次上限 ${settings.seatLimit}`)
       return
@@ -89,6 +105,9 @@ export default function Page() {
     setMemberDraft({ name: '', email: '', role: 'member' })
     setBillingNote('')
   }
+
+  const customerDraftOk = isNonEmpty(draft.name) && isValidEmail(draft.email)
+  const memberDraftOk = isNonEmpty(memberDraft.name) && isValidEmail(memberDraft.email)
 
   function switchPlan(p: string) {
     setPlan(p)
@@ -149,26 +168,46 @@ export default function Page() {
                     className="field"
                     type="number"
                     step={0.1}
+                    min={0}
+                    max={CHURN_MAX}
                     value={metrics.churn}
-                    onChange={(e) => setMetrics((m) => ({ ...m, churn: Number(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      const n = parseNumber(e.target.value)
+                      if (!Number.isFinite(n)) return
+                      setMetrics((m) => ({ ...m, churn: clamp(n, 0, CHURN_MAX) }))
+                    }}
                   />
+                  <p className="field-hint">0–{CHURN_MAX}</p>
                 </label>
                 <label className="stack">
                   <span className="label">NPS</span>
                   <input
                     className="field"
                     type="number"
+                    min={NPS_MIN}
+                    max={NPS_MAX}
                     value={metrics.nps}
-                    onChange={(e) => setMetrics((m) => ({ ...m, nps: Number(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      const n = parseNumber(e.target.value)
+                      if (!Number.isFinite(n)) return
+                      setMetrics((m) => ({ ...m, nps: clamp(Math.round(n), NPS_MIN, NPS_MAX) }))
+                    }}
                   />
+                  <p className="field-hint">{NPS_MIN}–{NPS_MAX}</p>
                 </label>
                 <label className="stack">
                   <span className="label">試用中</span>
                   <input
                     className="field"
                     type="number"
+                    min={0}
+                    max={TRIALS_MAX}
                     value={metrics.trials}
-                    onChange={(e) => setMetrics((m) => ({ ...m, trials: Number(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      const n = parseNumber(e.target.value)
+                      if (!Number.isFinite(n)) return
+                      setMetrics((m) => ({ ...m, trials: clamp(Math.round(n), 0, TRIALS_MAX) }))
+                    }}
                   />
                 </label>
               </div>
@@ -179,8 +218,20 @@ export default function Page() {
             <>
               <h3 style={{ margin: 0 }}>客戶</h3>
               <div className="row" style={{ flexWrap: 'wrap' }}>
-                <input className="field" placeholder="名稱" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: limitText(e.target.value, NAME_MAX) }))} />
-                <input className="field" placeholder="Email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: limitText(e.target.value, EMAIL_MAX) }))} />
+                <input
+                  className={`field${!isNonEmpty(draft.name) ? ' is-invalid' : ''}`}
+                  placeholder="名稱"
+                  value={draft.name}
+                  maxLength={NAME_MAX}
+                  onChange={(e) => setDraft((d) => ({ ...d, name: limitText(e.target.value, NAME_MAX) }))}
+                />
+                <input
+                  className={`field${draft.email && !isValidEmail(draft.email) ? ' is-invalid' : ''}`}
+                  placeholder="Email"
+                  value={draft.email}
+                  maxLength={EMAIL_MAX}
+                  onChange={(e) => setDraft((d) => ({ ...d, email: limitText(e.target.value, EMAIL_MAX) }))}
+                />
                 <select className="field" value={draft.plan} onChange={(e) => setDraft((d) => ({ ...d, plan: e.target.value }))} style={{ width: 110 }}>
                   {PLANS.map((p) => (
                     <option key={p}>{p}</option>
@@ -189,13 +240,27 @@ export default function Page() {
                 <input
                   className="field"
                   type="number"
+                  min={0}
+                  max={MRR_MAX}
                   style={{ width: 90 }}
                   value={draft.mrr}
-                  onChange={(e) => setDraft((d) => ({ ...d, mrr: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const n = parseNumber(e.target.value)
+                    if (!Number.isFinite(n)) return
+                    setDraft((d) => ({ ...d, mrr: clamp(n, 0, MRR_MAX) }))
+                  }}
                 />
-                <button type="button" className="btn accent sm" onClick={addCustomer} disabled={!isNonEmpty(draft.name) || !isValidEmail(draft.email)}>
+                <button type="button" className="btn accent sm" onClick={addCustomer} disabled={!customerDraftOk}>
                   新增
                 </button>
+              </div>
+              <div className="field-meta">
+                <span className={!customerDraftOk ? 'warn' : undefined}>
+                  {!isNonEmpty(draft.name) ? '請輸入名稱' : !isValidEmail(draft.email) ? 'Email 格式無效' : ' '}
+                </span>
+                <span>
+                  {charCount(draft.name)}/{NAME_MAX} · {charCount(draft.email)}/{EMAIL_MAX}
+                </span>
               </div>
               <ul className="list">
                 {customers.map((c) => (
@@ -205,13 +270,23 @@ export default function Page() {
                         <input
                           className="field"
                           value={c.name}
-                          onChange={(e) => setCustomers((xs) => xs.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)))}
+                          maxLength={NAME_MAX}
+                          onChange={(e) =>
+                            setCustomers((xs) =>
+                              xs.map((x) => (x.id === c.id ? { ...x, name: limitText(e.target.value, NAME_MAX) } : x)),
+                            )
+                          }
                         />
                         <input
                           className="field mono"
                           style={{ marginTop: 4 }}
                           value={c.email}
-                          onChange={(e) => setCustomers((xs) => xs.map((x) => (x.id === c.id ? { ...x, email: e.target.value } : x)))}
+                          maxLength={EMAIL_MAX}
+                          onChange={(e) =>
+                            setCustomers((xs) =>
+                              xs.map((x) => (x.id === c.id ? { ...x, email: limitText(e.target.value, EMAIL_MAX) } : x)),
+                            )
+                          }
                         />
                       </div>
                       <button type="button" className="btn sm danger" onClick={() => setCustomers((xs) => xs.filter((x) => x.id !== c.id))}>
@@ -232,10 +307,14 @@ export default function Page() {
                       <input
                         className="field"
                         type="number"
+                        min={0}
+                        max={MRR_MAX}
                         value={c.mrr}
-                        onChange={(e) =>
-                          setCustomers((xs) => xs.map((x) => (x.id === c.id ? { ...x, mrr: Number(e.target.value) || 0 } : x)))
-                        }
+                        onChange={(e) => {
+                          const n = parseNumber(e.target.value)
+                          if (!Number.isFinite(n)) return
+                          setCustomers((xs) => xs.map((x) => (x.id === c.id ? { ...x, mrr: clamp(n, 0, MRR_MAX) } : x)))
+                        }}
                         style={{ width: 100 }}
                       />
                       <span className="muted">MRR / 月</span>
@@ -253,15 +332,17 @@ export default function Page() {
               </h3>
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 <input
-                  className="field"
+                  className={`field${!isNonEmpty(memberDraft.name) ? ' is-invalid' : ''}`}
                   placeholder="姓名"
                   value={memberDraft.name}
+                  maxLength={NAME_MAX}
                   onChange={(e) => setMemberDraft((d) => ({ ...d, name: limitText(e.target.value, NAME_MAX) }))}
                 />
                 <input
-                  className="field"
+                  className={`field${memberDraft.email && !isValidEmail(memberDraft.email) ? ' is-invalid' : ''}`}
                   placeholder="Email"
                   value={memberDraft.email}
+                  maxLength={EMAIL_MAX}
                   onChange={(e) => setMemberDraft((d) => ({ ...d, email: limitText(e.target.value, EMAIL_MAX) }))}
                 />
                 <select
@@ -276,9 +357,17 @@ export default function Page() {
                     </option>
                   ))}
                 </select>
-                <button type="button" className="btn accent sm" onClick={addMember}>
+                <button type="button" className="btn accent sm" onClick={addMember} disabled={!memberDraftOk}>
                   邀請
                 </button>
+              </div>
+              <div className="field-meta">
+                <span className={!memberDraftOk ? 'warn' : undefined}>
+                  {!isNonEmpty(memberDraft.name) ? '請輸入姓名' : !isValidEmail(memberDraft.email) ? 'Email 格式無效' : ' '}
+                </span>
+                <span>
+                  {charCount(memberDraft.name)}/{NAME_MAX}
+                </span>
               </div>
               {billingNote && <p className="muted">{billingNote}</p>}
               <ul className="list">
@@ -378,26 +467,57 @@ export default function Page() {
               {settingsTab === 'general' && (
                 <>
                   <label className="label">組織名稱</label>
-                  <input className="field" value={org} onChange={(e) => setOrg(limitText(e.target.value, ORG_MAX))} />
+                  <input
+                    className={`field${!isNonEmpty(org) ? ' is-invalid' : ''}`}
+                    value={org}
+                    maxLength={ORG_MAX}
+                    onChange={(e) => setOrg(limitText(e.target.value, ORG_MAX))}
+                  />
+                  <div className="field-meta">
+                    <span className={!isNonEmpty(org) ? 'warn' : undefined}>{!isNonEmpty(org) ? '組織名稱不可空白' : ' '}</span>
+                    <span>
+                      {charCount(org)} / {ORG_MAX}
+                    </span>
+                  </div>
                   <label className="label">支援 Email</label>
                   <input
-                    className="field"
+                    className={`field${settings.supportEmail && !isValidEmail(settings.supportEmail) ? ' is-invalid' : ''}`}
                     value={settings.supportEmail}
-                    onChange={(e) => setSettings((s) => ({ ...s, supportEmail: e.target.value }))}
+                    maxLength={EMAIL_MAX}
+                    onChange={(e) => setSettings((s) => ({ ...s, supportEmail: limitText(e.target.value, EMAIL_MAX) }))}
                   />
+                  {settings.supportEmail && !isValidEmail(settings.supportEmail) && (
+                    <p className="field-error">Email 格式無效</p>
+                  )}
                   <label className="label">時區</label>
                   <input
                     className="field"
                     value={settings.timezone}
-                    onChange={(e) => setSettings((s) => ({ ...s, timezone: e.target.value }))}
+                    maxLength={TZ_MAX}
+                    onChange={(e) => setSettings((s) => ({ ...s, timezone: limitText(e.target.value, TZ_MAX) }))}
                   />
+                  <div className="field-meta">
+                    <span className="field-hint">時區字串</span>
+                    <span>
+                      {charCount(settings.timezone)} / {TZ_MAX}
+                    </span>
+                  </div>
                   <label className="label">席次上限</label>
                   <input
                     className="field"
                     type="number"
+                    min={SEAT_MIN}
+                    max={SEAT_MAX}
                     value={settings.seatLimit}
-                    onChange={(e) => setSettings((s) => ({ ...s, seatLimit: Number(e.target.value) || 1 }))}
+                    onChange={(e) => {
+                      const n = parseNumber(e.target.value)
+                      if (!Number.isFinite(n)) return
+                      setSettings((s) => ({ ...s, seatLimit: clamp(Math.round(n), SEAT_MIN, SEAT_MAX) }))
+                    }}
                   />
+                  <p className="field-hint">
+                    {SEAT_MIN}–{SEAT_MAX}
+                  </p>
                 </>
               )}
               {settingsTab === 'notifications' && (
@@ -424,9 +544,18 @@ export default function Page() {
                   <input
                     className="field"
                     type="number"
+                    min={SESSION_MIN}
+                    max={SESSION_MAX}
                     value={settings.sessionDays}
-                    onChange={(e) => setSettings((s) => ({ ...s, sessionDays: Number(e.target.value) || 1 }))}
+                    onChange={(e) => {
+                      const n = parseNumber(e.target.value)
+                      if (!Number.isFinite(n)) return
+                      setSettings((s) => ({ ...s, sessionDays: clamp(Math.round(n), SESSION_MIN, SESSION_MAX) }))
+                    }}
                   />
+                  <p className="field-hint">
+                    {SESSION_MIN}–{SESSION_MAX} 天
+                  </p>
                 </>
               )}
             </>

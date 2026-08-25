@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText } from '../../lib/utils'
+import { charCount, copyText, isNonEmpty, limitText } from '../../lib/utils'
 
 const meta = getProject('ip-lookup')!
+
+const QUERY_MAX = 45
 
 type IpInfo = {
   ip: string
@@ -178,7 +180,8 @@ export default function Page() {
             style={{ flex: 1 }}
             placeholder="輸入 IP，空白則查本機公開 IP"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            maxLength={QUERY_MAX}
+            onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
             onKeyDown={(e) => e.key === 'Enter' && lookup(query)}
           />
           <button className="btn accent" disabled={loading} onClick={() => lookup(query)}>
@@ -190,6 +193,12 @@ export default function Page() {
           <button className="btn teal" disabled={probing} onClick={probeLan}>
             {probing ? '探測中…' : '本機網路'}
           </button>
+        </div>
+        <div className="field-meta">
+          <span className="field-hint">{isNonEmpty(query) ? '指定 IP' : '空白＝本機公開 IP'}</span>
+          <span>
+            {charCount(query)} / {QUERY_MAX}
+          </span>
         </div>
 
         {error && <p className="muted">{error}</p>}

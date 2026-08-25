@@ -8,6 +8,15 @@ import { IconCalendar, IconCopy } from '../../components/icons'
 
 const meta = getProject('age-calculator')!
 
+const DATE_MIN = '1900-01-01'
+const DATE_MAX = '2100-12-31'
+
+function isValidIsoDate(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const d = new Date(iso + 'T12:00:00')
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso
+}
+
 const ZODIAC = ['鼠', '牛', '虎', '兔', '龍', '蛇', '馬', '羊', '猴', '雞', '狗', '豬']
 
 const MILESTONES = [
@@ -64,6 +73,17 @@ export default function Page() {
   const [asOf, setAsOf] = useLocalStorage('lab:age:asOf', new Date().toISOString().slice(0, 10))
   const [showZodiac, setShowZodiac] = useLocalStorage('lab:age:showZodiac', true)
   const [copied, setCopied] = useState(false)
+
+  const birthOk = isValidIsoDate(birth) && birth >= DATE_MIN && birth <= DATE_MAX
+  const asOfOk = isValidIsoDate(asOf) && asOf >= DATE_MIN && asOf <= DATE_MAX
+  const orderOk = birthOk && asOfOk && asOf >= birth
+  const dateError = !birthOk
+    ? '請輸入有效生日'
+    : !asOfOk
+      ? '請輸入有效基準日'
+      : !orderOk
+        ? '基準日不可早於生日'
+        : ''
 
   const info = useMemo(() => {
     const b = new Date(birth + 'T00:00:00')
@@ -160,13 +180,30 @@ export default function Page() {
         <div className="grid-2">
           <label className="stack">
             <span className="label">生日（國曆）</span>
-            <input className="field" type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />
+            <input
+              className={`field${!birthOk || (!orderOk && birthOk && asOfOk) ? ' is-invalid' : ''}`}
+              type="date"
+              min={DATE_MIN}
+              max={DATE_MAX}
+              value={birth}
+              onChange={(e) => setBirth(e.target.value)}
+            />
+            <p className="field-hint">{DATE_MIN}–{DATE_MAX}</p>
           </label>
           <label className="stack">
             <span className="label">計算基準日</span>
-            <input className="field" type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
+            <input
+              className={`field${!asOfOk || (!orderOk && birthOk && asOfOk) ? ' is-invalid' : ''}`}
+              type="date"
+              min={DATE_MIN}
+              max={DATE_MAX}
+              value={asOf}
+              onChange={(e) => setAsOf(e.target.value)}
+            />
+            <p className="field-hint">{DATE_MIN}–{DATE_MAX}</p>
           </label>
         </div>
+        {dateError && <p className="field-error">{dateError}</p>}
         <label className="check">
           <input type="checkbox" checked={showZodiac} onChange={() => setShowZodiac(!showZodiac)} />
           顯示生肖／星座（可選）
@@ -280,7 +317,7 @@ export default function Page() {
             </div>
 
             <div className="row">
-              <button type="button" className="btn accent" onClick={() => void handleCopy()}>
+              <button type="button" className="btn accent" onClick={() => void handleCopy()} disabled={!info || !!dateError}>
                 <IconCopy size={15} />
                 {copied ? '已複製到剪貼簿' : '複製完整結果'}
               </button>

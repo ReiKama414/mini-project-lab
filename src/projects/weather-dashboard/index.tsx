@@ -2,8 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { charCount, limitText } from '../../lib/utils'
 
 const meta = getProject('weather-dashboard')!
+
+const QUERY_MAX = 40
 
 type DayForecast = { day: string; high: number; low: number; icon: string; condition: string }
 type CityWeather = {
@@ -278,8 +281,12 @@ export default function Page() {
               style={{ flex: 1 }}
               placeholder="搜尋城市、國家…"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              maxLength={QUERY_MAX}
+              onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
             />
+            <span className="muted" style={{ fontSize: 12, alignSelf: 'center' }}>
+              {charCount(query)}/{QUERY_MAX}
+            </span>
             <button
               className={`btn sm ${unit === 'C' ? 'accent' : 'ghost'}`}
               onClick={() => setUnit('C')}

@@ -2,9 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, pick, uid } from '../../lib/utils'
+import { charCount, copyText, downloadText, limitText, pick, uid } from '../../lib/utils'
 
 const meta = getProject('log-viewer')!
+
+const QUERY_MAX = 120
 
 type Level = 'info' | 'warn' | 'error' | 'debug'
 type Log = { id: string; level: Level; msg: string; at: number; source: string }
@@ -139,9 +141,13 @@ export default function Page() {
           className="field"
           placeholder="搜尋訊息或來源…"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          maxLength={QUERY_MAX}
+          onChange={(e) => setQ(limitText(e.target.value, QUERY_MAX))}
           style={{ flex: 1, minWidth: 160 }}
         />
+        <span className="muted" style={{ fontSize: 12 }}>
+          {charCount(q)}/{QUERY_MAX}
+        </span>
         {(['all', 'info', 'warn', 'error', 'debug'] as const).map((f) => (
           <button
             key={f}

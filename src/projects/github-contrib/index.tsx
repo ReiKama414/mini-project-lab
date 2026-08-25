@@ -2,8 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import { charCount, isNonEmpty, limitText } from '../../lib/utils'
 
 const meta = getProject('github-contrib')!
+
+const USER_MAX = 39
 
 type DayCell = { date: string; count: number }
 type Stats = {
@@ -110,6 +113,7 @@ export default function Page() {
 
   const load = useCallback(async () => {
     const name = user.trim() || 'octocat'
+    if (!isNonEmpty(name)) return
     setLoading(true)
     setErr('')
     try {
@@ -144,18 +148,25 @@ export default function Page() {
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <input
-            className="field"
+            className={`field${!isNonEmpty(user) ? ' is-invalid' : ''}`}
             value={user}
-            onChange={(e) => setUser(e.target.value)}
+            maxLength={USER_MAX}
+            onChange={(e) => setUser(limitText(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''), USER_MAX))}
             placeholder="GitHub username"
             style={{ maxWidth: 220 }}
-            onKeyDown={(e) => e.key === 'Enter' && void load()}
+            onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(user) && void load()}
           />
-          <button type="button" className="btn accent" disabled={loading} onClick={() => void load()}>
+          <button type="button" className="btn accent" disabled={loading || !isNonEmpty(user)} onClick={() => void load()}>
             {loading ? '載入中…' : '分析'}
           </button>
           <span className="tag">{stats.source === 'api' ? 'GitHub Events API' : 'Mock 資料'}</span>
           {stats.events !== undefined && <span className="muted">近 100 筆事件</span>}
+        </div>
+        <div className="field-meta">
+          <span className={!isNonEmpty(user) ? 'warn' : undefined}>{!isNonEmpty(user) ? '請輸入使用者名稱' : ' '}</span>
+          <span>
+            {charCount(user)} / {USER_MAX}
+          </span>
         </div>
         {err && <p className="muted">{err}</p>}
       </div>

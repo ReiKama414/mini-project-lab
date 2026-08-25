@@ -122,7 +122,7 @@ export default function Page() {
           <div className="row">
             <label className="stack" style={{ flex: 1 }}>
               <span className="label">稅率 %</span>
-              <input className={`field${!taxOk ? ' is-invalid' : ''}`} type="number" min={0} max={40} value={taxRate} onChange={(e) => { const n = parseNumber(e.target.value); setTaxRate(n == null ? 0 : clamp(n, 0, 40)) }} />
+              <input className={`field${!taxOk ? ' is-invalid' : ''}`} type="number" min={0} max={40} value={taxRate} onChange={(e) => { const n = parseNumber(e.target.value); setTaxRate(!Number.isFinite(n) ? 0 : clamp(n, 0, 40)) }} />
             </label>
             <label className="stack" style={{ flex: 1 }}>
               <span className="label">幣別</span>
@@ -162,14 +162,14 @@ export default function Page() {
                 style={{ width: 70 }}
                 type="number"
                 value={l.qty}
-                min={0} max={MAX_QTY} onChange={(e) => { const n = parseNumber(e.target.value); setLines((xs) => xs.map((x) => (x.id === l.id ? { ...x, qty: n == null ? 0 : clamp(n, 0, MAX_QTY) } : x))) }}
+                min={0} max={MAX_QTY} onChange={(e) => { const n = parseNumber(e.target.value); setLines((xs) => xs.map((x) => (x.id === l.id ? { ...x, qty: !Number.isFinite(n) ? 0 : clamp(n, 0, MAX_QTY) } : x))) }}
               />
               <input
                 className="field"
                 style={{ width: 100 }}
                 type="number"
                 value={l.price}
-                min={0} max={MAX_PRICE} onChange={(e) => { const n = parseNumber(e.target.value); setLines((xs) => xs.map((x) => (x.id === l.id ? { ...x, price: n == null ? 0 : clamp(n, 0, MAX_PRICE) } : x))) }}
+                min={0} max={MAX_PRICE} onChange={(e) => { const n = parseNumber(e.target.value); setLines((xs) => xs.map((x) => (x.id === l.id ? { ...x, price: !Number.isFinite(n) ? 0 : clamp(n, 0, MAX_PRICE) } : x))) }}
               />
               <button type="button" className="btn sm danger" onClick={() => setLines((xs) => xs.filter((x) => x.id !== l.id))}>
                 ×

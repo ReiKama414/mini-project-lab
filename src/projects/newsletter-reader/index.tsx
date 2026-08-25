@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { uid, limitText } from '../../lib/utils'
+import { uid, limitText, charCount } from '../../lib/utils'
 
 const meta = getProject('newsletter-reader')!
 
@@ -116,9 +116,12 @@ export default function Page() {
           style={{ flex: 1, minWidth: 160 }}
           placeholder="搜尋主旨／寄件者／內容…"
           maxLength={Q_MAX}
-            value={q}
+          value={q}
           onChange={(e) => setQ(limitText(e.target.value, Q_MAX))}
         />
+        <span className="mono muted" style={{ fontSize: 12 }}>
+          {charCount(q)}/{Q_MAX}
+        </span>
         <button
           type="button"
           className="btn sm teal"
@@ -157,6 +160,7 @@ export default function Page() {
         <button
           type="button"
           className="btn sm ghost"
+          disabled={!newFolder.trim() || folders.includes(newFolder.trim())}
           onClick={() => {
             if (!newFolder.trim() || folders.includes(newFolder.trim())) return
             setFolders((fs) => [...fs, newFolder.trim()])
@@ -210,9 +214,13 @@ export default function Page() {
                 className="field"
                 rows={8}
                 maxLength={BODY_MAX}
-              value={current.body}
+                value={current.body}
                 onChange={(e) => patch(current.id, { body: limitText(e.target.value, BODY_MAX) })}
               />
+              <div className="field-meta">
+                <span className="field-hint">內文上限</span>
+                <span>{charCount(current.body)}/{BODY_MAX}</span>
+              </div>
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 <button type="button" className="btn sm ghost" onClick={() => patch(current.id, { starred: !current.starred })}>
                   {current.starred ? '取消星號' : '加星號'}

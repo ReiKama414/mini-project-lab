@@ -190,7 +190,7 @@ export default function Page() {
             )}
           </div>
           <div className="row">
-            <button className="btn accent" onClick={generate} disabled={!!error && error === '請輸入有效數字'}>
+            <button className="btn accent" onClick={generate} disabled={error === '請輸入有效數字'}>
               產生
             </button>
             <button

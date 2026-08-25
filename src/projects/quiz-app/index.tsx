@@ -59,8 +59,10 @@ export default function Page() {
   const [left, setLeft] = useState(60)
   const [startedAt, setStartedAt] = useState(0)
   const endedRef = useRef(false)
+  const [limitError, setLimitError] = useState('')
 
   const q = queue[i]
+  const limitOk = !useTimer || (Number.isFinite(limitSec) && limitSec >= 15 && limitSec <= 300 && !limitError)
 
   const pool = useMemo(
     () => (category === '全部' ? BANK : BANK.filter((x) => x.category === category)),
@@ -153,7 +155,7 @@ export default function Page() {
             {useTimer && (
               <div className="stack" style={{ gap: 0 }}>
                 <input
-                  className={`field${limitSec < 15 || limitSec > 300 ? ' is-invalid' : ''}`}
+                  className={`field${limitError || limitSec < 15 || limitSec > 300 ? ' is-invalid' : ''}`}
                   type="number"
                   min={15}
                   max={300}
@@ -161,16 +163,21 @@ export default function Page() {
                   value={limitSec}
                   onChange={(e) => {
                     const n = parseNumber(e.target.value)
-                    if (n == null) return
+                    if (!Number.isFinite(n)) {
+                      setLimitError('請輸入有效數字')
+                      return
+                    }
+                    setLimitError('')
                     setLimitSec(clamp(Math.round(n), 15, 300))
                   }}
                 />
+                {limitError && <p className="field-error">{limitError}</p>}
                 <p className="field-hint">15–300 秒</p>
               </div>
             )}
             {useTimer && <span className="muted">秒</span>}
           </label>
-          <button className="btn accent" onClick={start} disabled={!pool.length || (useTimer && (limitSec < 15 || limitSec > 300))}>
+          <button className="btn accent" onClick={start} disabled={!pool.length || !limitOk}>
             開始測驗（最多 10 題）
           </button>
 

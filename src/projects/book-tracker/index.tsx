@@ -41,7 +41,7 @@ export default function Page() {
 
   const pages = pagesStr.trim() ? parseNumber(pagesStr) : 0
   const titleOk = isNonEmpty(title)
-  const pagesOk = pages != null && pages >= 0
+  const pagesOk = Number.isFinite(pages) && pages >= 0
   const atLimit = books.length >= MAX_ITEMS
   const canAdd = titleOk && pagesOk && !atLimit
 
@@ -67,7 +67,7 @@ export default function Page() {
   }, [books])
 
   function add() {
-    if (!canAdd || pages == null) return
+    if (!canAdd || !Number.isFinite(pages)) return
     setBooks([
       {
         id: uid('bk'),
@@ -167,7 +167,7 @@ export default function Page() {
               value={pagesStr}
               onChange={(e) => {
                 const n = parseNumber(e.target.value)
-                if (n == null) setPagesStr(e.target.value)
+                if (!Number.isFinite(n)) setPagesStr(e.target.value)
                 else setPagesStr(String(clamp(Math.round(n), 0, MAX_PAGES)))
               }}
             />
@@ -250,7 +250,7 @@ export default function Page() {
                   placeholder="頁數"
                   onChange={(e) => {
                     const n = parseNumber(e.target.value)
-                    patch(b.id, { pages: n == null ? 0 : clamp(Math.round(n), 0, MAX_PAGES) })
+                    patch(b.id, { pages: !Number.isFinite(n) ? 0 : clamp(Math.round(n), 0, MAX_PAGES) })
                   }}
                 />
               </div>

@@ -136,11 +136,14 @@ export default function Page() {
   const [favorites, setFavorites] = useLocalStorage<string[]>('lab:random-name:favorites', [])
   const [names, setNames] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
+  const [countError, setCountError] = useState('')
 
   const favSet = useMemo(() => new Set(favorites), [favorites])
+  const countOk = Number.isFinite(count) && count >= COUNT_MIN && count <= COUNT_MAX && !countError
 
   function generate() {
-    const n = clamp(Number.isFinite(count) ? count : COUNT_MIN, COUNT_MIN, COUNT_MAX)
+    if (!countOk) return
+    const n = clamp(count, COUNT_MIN, COUNT_MAX)
     setNames(Array.from({ length: n }, () => makeName(category, lang, gender)))
     setCopied(false)
   }
@@ -180,20 +183,28 @@ export default function Page() {
             <label className="stack">
               <span className="label">數量（{COUNT_MIN}–{COUNT_MAX}）</span>
               <input
-                className="field"
+                className={`field${countError ? ' is-invalid' : ''}`}
                 type="number"
                 min={COUNT_MIN}
                 max={COUNT_MAX}
                 value={count}
                 onChange={(e) => {
                   const n = parseNumber(e.target.value)
-                  if (!Number.isFinite(n)) return
+                  if (!Number.isFinite(n)) {
+                    setCountError('請輸入有效數字')
+                    return
+                  }
+                  setCountError('')
                   setCount(clamp(n, COUNT_MIN, COUNT_MAX))
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') generate()
+                  if (e.key === 'Enter' && countOk) generate()
                 }}
               />
+              {countError && <p className="field-error">{countError}</p>}
+              <p className="field-hint">
+                {COUNT_MIN}–{COUNT_MAX}
+              </p>
             </label>
             <label className="stack">
               <span className="label">語言</span>
@@ -218,10 +229,10 @@ export default function Page() {
             </label>
           </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn accent" onClick={generate}>
+            <button type="button" className="btn accent" onClick={generate} disabled={!countOk}>
               產生
             </button>
-            <button type="button" className="btn teal" disabled={!names.length} onClick={generate}>
+            <button type="button" className="btn teal" disabled={!names.length || !countOk} onClick={generate}>
               全部重新產生
             </button>
             <button type="button" className="btn ghost" disabled={!names.length} onClick={() => void copyAll()}>
