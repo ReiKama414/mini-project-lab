@@ -156,6 +156,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機模擬／示範：事件資料僅存此瀏覽器，非真實網站流量追蹤。
+      </p>
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         {(['24h', '7d', '30d'] as Range[]).map((r) => (
           <button key={r} type="button" className={`btn sm ${range === r ? 'accent' : 'ghost'}`} onClick={() => setRange(r)}>

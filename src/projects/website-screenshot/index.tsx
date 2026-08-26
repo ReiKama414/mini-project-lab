@@ -100,6 +100,9 @@ export default function Page() {
 
   return (
     <ProjectShell meta={meta}>
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        預覽卡／OG 佔位，非真實網頁截圖。僅嘗試讀取 Open Graph／title meta，畫面為示意版面。
+      </p>
       <div className="panel stack">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <input
@@ -121,7 +124,7 @@ export default function Page() {
             onClick={() => void fetchMeta()}
             disabled={loadingMeta || !isValidHttpUrl(fullUrl)}
           >
-            {loadingMeta ? '讀取 meta…' : '產生預覽卡'}
+            {loadingMeta ? '讀取 meta…' : '產生 OG 預覽'}
           </button>
           <button type="button" className="btn teal" onClick={openUrl} disabled={!isValidHttpUrl(fullUrl)}>
             開啟網址
@@ -214,16 +217,16 @@ export default function Page() {
               >
                 <div style={{ background: 'rgba(0,0,0,.35)', borderRadius: 12, padding: 16, maxWidth: '100%' }}>
                   <div style={{ fontSize: device === 'mobile' ? 20 : 26, fontWeight: 700 }}>{title || host}</div>
-                  <p style={{ color: '#ffffffcc', marginTop: 8, fontSize: 13 }}>{desc || '截圖佔位預覽'}</p>
+                  <p style={{ color: '#ffffffcc', marginTop: 8, fontSize: 13 }}>{desc || 'OG／裝置框佔位（非真實截圖）'}</p>
                   <span className="tag" style={{ marginTop: 8, display: 'inline-block' }}>
-                    {device} · {new Date().toLocaleString('zh-TW')}
+                    {device} · 佔位預覽 · {new Date().toLocaleString('zh-TW')}
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="panel stack">
-              <div className="label">Open Graph 預覽卡</div>
+              <div className="label">Open Graph 預覽卡（佔位）</div>
               {ogImage ? (
                 <div
                   style={{
@@ -244,7 +247,7 @@ export default function Page() {
               )}
               <strong>{title || host}</strong>
               <p className="muted" style={{ fontSize: 13 }}>
-                {desc || '按「產生預覽卡」嘗試抓取 og:title / description / image'}
+                {desc || '按「產生 OG 預覽」嘗試抓取 og:title／description／image（非網頁截圖）'}
               </p>
               <a className="mono" href={fullUrl || '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--sky)', wordBreak: 'break-all' }}>
                 {fullUrl || '—'}

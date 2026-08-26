@@ -104,6 +104,9 @@ export default function Page() {
         </button>
       }
     >
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機模擬資料，非真實 Docker／主機監控
+      </p>
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label className="label" style={{ margin: 0 }}>

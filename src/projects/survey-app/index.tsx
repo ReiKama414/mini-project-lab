@@ -110,8 +110,22 @@ export default function Page() {
           <button
             type="button"
             className="btn ghost sm"
-            disabled={!responses.length}
-            onClick={() => downloadText('survey-results.json', JSON.stringify(responses, null, 2), 'application/json')}
+            onClick={() =>
+              downloadText(
+                'survey-export.json',
+                JSON.stringify(
+                  {
+                    title,
+                    exportedAt: new Date().toISOString(),
+                    questions: qs,
+                    responses,
+                  },
+                  null,
+                  2,
+                ),
+                'application/json;charset=utf-8',
+              )
+            }
           >
             匯出 JSON
           </button>

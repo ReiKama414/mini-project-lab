@@ -21,6 +21,7 @@ type Target = {
   latency: number
   history: number[]
   lastNote: string
+  lastCheck?: number
   checking?: boolean
 }
 
@@ -99,6 +100,7 @@ export default function Page() {
                 ok: result.ok,
                 latency: result.latency,
                 lastNote: result.note,
+                lastCheck: result.at,
                 history: [...t.history, result.latency || 0].slice(-24),
               }
             : t,
@@ -178,6 +180,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機示範／proxy 限制：優先直接 CORS 請求；失敗時改經公開 CORS proxy（allorigins）。延遲可能含代理往返，非正式 API 監控服務。自動探測約 30 秒一次。
+      </p>
       <div className="grid-3" style={{ marginBottom: 12 }}>
         <div className="metric panel">Targets {targets.length}</div>
         <div className="metric panel">Healthy {healthy}</div>
@@ -240,7 +245,7 @@ export default function Page() {
                   </div>
                   <div className="row">
                     <span className="muted">
-                      {t.latency}ms · {t.lastNote}
+                      {t.latency ? `${t.latency}ms` : '—'} · {t.lastNote}
                     </span>
                     <button type="button" className="btn sm ghost" onClick={() => void checkOne(t.id, t.url, t.name)}>
                       Probe
@@ -248,6 +253,10 @@ export default function Page() {
                     <DeleteButton onClick={() => setTargets((xs) => xs.filter((x) => x.id !== t.id))} label="刪除" />
                   </div>
                 </div>
+                <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+                  上次檢查：
+                  {t.lastCheck ? new Date(t.lastCheck).toLocaleString('zh-TW') : '尚未探測'}
+                </p>
                 <div className="row" style={{ alignItems: 'flex-end', height: 40, gap: 2 }}>
                   {t.history.map((v, i) => (
                     <div

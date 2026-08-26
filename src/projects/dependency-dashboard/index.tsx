@@ -14,6 +14,7 @@ const NOTES_MAX = 200
 
 type Status = 'ok' | 'patch' | 'minor' | 'major' | 'unknown'
 type SortKey = 'name' | 'status' | 'current'
+type FetchState = 'idle' | 'loading' | 'error' | 'ok'
 
 type Dep = {
   id: string
@@ -23,6 +24,8 @@ type Dep = {
   ignored: boolean
   notes: string
 }
+
+type NpmLatest = { version?: string }
 
 const DEFAULT_DEPS: Dep[] = [
   { id: '1', name: 'react', current: '19.0.0', latest: '19.2.8', ignored: false, notes: '核心框架' },
@@ -73,6 +76,14 @@ function statusLabel(s: Status) {
   )[s]
 }
 
+async function fetchNpmLatest(name: string): Promise<string> {
+  const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/latest`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = (await res.json()) as NpmLatest
+  if (!data.version?.trim()) throw new Error('無版本欄位')
+  return data.version.trim()
+}
+
 export default function Page() {
   const [deps, setDeps] = useLocalStorage<Dep[]>('lab:dependency-dashboard:v2', DEFAULT_DEPS)
   const [filter, setFilter] = useState<'all' | Status | 'ignored'>('all')
@@ -82,6 +93,9 @@ export default function Page() {
   const [current, setCurrent] = useState('1.0.0')
   const [latest, setLatest] = useState('1.1.0')
   const [editingNotes, setEditingNotes] = useState<string | null>(null)
+  const [fetchState, setFetchState] = useState<Record<string, FetchState>>({})
+  const [fetchError, setFetchError] = useState<Record<string, string>>({})
+  const [bulkFetching, setBulkFetching] = useState(false)
 
   const enriched = useMemo(
     () =>
@@ -139,13 +153,45 @@ export default function Page() {
     setDeps((xs) => xs.map((x) => (x.id === id ? { ...x, ignored: !x.ignored } : x)))
   }
 
+  async function checkLatest(id: string) {
+    const dep = deps.find((d) => d.id === id)
+    if (!dep) return
+    setFetchState((s) => ({ ...s, [id]: 'loading' }))
+    setFetchError((e) => {
+      const next = { ...e }
+      delete next[id]
+      return next
+    })
+    try {
+      const version = await fetchNpmLatest(dep.name)
+      setDeps((xs) => xs.map((x) => (x.id === id ? { ...x, latest: limitText(version, VER_MAX) } : x)))
+      setFetchState((s) => ({ ...s, [id]: 'ok' }))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '查詢失敗'
+      setFetchState((s) => ({ ...s, [id]: 'error' }))
+      setFetchError((e) => ({ ...e, [id]: msg }))
+    }
+  }
+
+  async function checkAllLatest() {
+    if (!deps.length || bulkFetching) return
+    setBulkFetching(true)
+    await Promise.allSettled(deps.map((d) => checkLatest(d.id)))
+    setBulkFetching(false)
+  }
+
   return (
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn ghost sm" onClick={exportCsv}>
-          匯出 CSV
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          <button type="button" className="btn ghost sm" disabled={bulkFetching || !deps.length} onClick={() => void checkAllLatest()}>
+            {bulkFetching ? '查詢中…' : '從 npm 查最新'}
+          </button>
+          <button type="button" className="btn ghost sm" onClick={exportCsv}>
+            匯出 CSV
+          </button>
+        </div>
       }
     >
       <div className="grid-3" style={{ marginBottom: 12 }}>
@@ -205,7 +251,11 @@ export default function Page() {
           <button
             type="button"
             className="btn ghost sm"
-            onClick={() => setDeps(DEFAULT_DEPS)}
+            onClick={() => {
+              setDeps(DEFAULT_DEPS)
+              setFetchState({})
+              setFetchError({})
+            }}
             title="還原示範套件清單"
           >
             重置示範資料
@@ -266,66 +316,84 @@ export default function Page() {
           </span>
         </div>
         <ul className="list">
-          {rows.map((d) => (
-            <li key={d.id} className="stack" style={{ gap: 6, padding: '10px 0', borderBottom: '1px solid var(--border, #3333)' }}>
-              <div className="row" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
-                <strong className="mono" style={{ flex: 1, minWidth: 100, opacity: d.ignored ? 0.55 : 1 }}>
-                  {d.name}
-                </strong>
-                <span className="muted mono">{d.current}</span>
-                <span>→</span>
-                <span className="mono">{d.latest}</span>
-                <span className="tag">{statusLabel(d.status)}</span>
-                {d.ignored && <span className="tag">忽略</span>}
-                <button
-                  type="button"
-                  className="btn teal sm"
-                  disabled={d.status === 'ok' || d.ignored}
-                  onClick={() => bumpToLatest(d.id)}
-                >
-                  更新
-                </button>
-                <button type="button" className={`btn sm ${d.ignored ? 'accent' : 'ghost'}`} onClick={() => toggleIgnore(d.id)}>
-                  {d.ignored ? '取消忽略' : '忽略'}
-                </button>
-                <button
-                  type="button"
-                  className="btn ghost sm"
-                  onClick={() => setEditingNotes(editingNotes === d.id ? null : d.id)}
-                >
-                  備註
-                </button>
-                <button type="button" className="btn ghost sm" onClick={() => setDeps((xs) => xs.filter((x) => x.id !== d.id))}>
-                  刪
-                </button>
-              </div>
-              {(editingNotes === d.id || d.notes) && (
-                <>
-                  <input
-                    className="field"
-                    value={d.notes}
-                    maxLength={NOTES_MAX}
-                    placeholder="備註（例如：延後到下個 sprint）"
-                    onChange={(e) =>
-                      setDeps((xs) => xs.map((x) => (x.id === d.id ? { ...x, notes: limitText(e.target.value, NOTES_MAX) } : x)))
-                    }
-                    onBlur={() => setEditingNotes(null)}
-                    autoFocus={editingNotes === d.id}
-                  />
-                  <div className="field-meta">
-                    <span className="field-hint">備註</span>
-                    <span>
-                      {charCount(d.notes)} / {NOTES_MAX}
-                    </span>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
+          {rows.map((d) => {
+            const state = fetchState[d.id] ?? 'idle'
+            return (
+              <li key={d.id} className="stack" style={{ gap: 6, padding: '10px 0', borderBottom: '1px solid var(--border, #3333)' }}>
+                <div className="row" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+                  <strong className="mono" style={{ flex: 1, minWidth: 100, opacity: d.ignored ? 0.55 : 1 }}>
+                    {d.name}
+                  </strong>
+                  <span className="muted mono">{d.current}</span>
+                  <span>→</span>
+                  <span className="mono">{d.latest}</span>
+                  <span className="tag">{statusLabel(d.status)}</span>
+                  {d.ignored && <span className="tag">忽略</span>}
+                  <button
+                    type="button"
+                    className="btn ghost sm"
+                    disabled={state === 'loading'}
+                    onClick={() => void checkLatest(d.id)}
+                    title="從 npm registry 查最新版本"
+                  >
+                    {state === 'loading' ? '查詢中…' : '查最新'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn teal sm"
+                    disabled={d.status === 'ok' || d.ignored}
+                    onClick={() => bumpToLatest(d.id)}
+                  >
+                    更新
+                  </button>
+                  <button type="button" className={`btn sm ${d.ignored ? 'accent' : 'ghost'}`} onClick={() => toggleIgnore(d.id)}>
+                    {d.ignored ? '取消忽略' : '忽略'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost sm"
+                    onClick={() => setEditingNotes(editingNotes === d.id ? null : d.id)}
+                  >
+                    備註
+                  </button>
+                  <button type="button" className="btn ghost sm" onClick={() => setDeps((xs) => xs.filter((x) => x.id !== d.id))}>
+                    刪
+                  </button>
+                </div>
+                {state === 'error' && fetchError[d.id] && (
+                  <p className="field-error" style={{ margin: 0 }}>
+                    npm 查詢失敗：{fetchError[d.id]}
+                  </p>
+                )}
+                {state === 'ok' && <p className="muted" style={{ margin: 0, fontSize: 12 }}>已更新最新版本</p>}
+                {(editingNotes === d.id || d.notes) && (
+                  <>
+                    <input
+                      className="field"
+                      value={d.notes}
+                      maxLength={NOTES_MAX}
+                      placeholder="備註（例如：延後到下個 sprint）"
+                      onChange={(e) =>
+                        setDeps((xs) => xs.map((x) => (x.id === d.id ? { ...x, notes: limitText(e.target.value, NOTES_MAX) } : x)))
+                      }
+                      onBlur={() => setEditingNotes(null)}
+                      autoFocus={editingNotes === d.id}
+                    />
+                    <div className="field-meta">
+                      <span className="field-hint">備註</span>
+                      <span>
+                        {charCount(d.notes)} / {NOTES_MAX}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </li>
+            )
+          })}
           {!rows.length && <p className="muted">沒有符合篩選的套件。</p>}
         </ul>
         <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-          示範資料，版本狀態依 semver 比對。可標記忽略、寫備註，並匯出 CSV。
+          可離線手動維護清單；「查最新」會向 npm registry 查詢。版本狀態依 semver 比對，可標記忽略、寫備註，並匯出 CSV。
         </p>
       </div>
     </ProjectShell>

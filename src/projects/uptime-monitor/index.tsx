@@ -116,14 +116,14 @@ export default function Page() {
         </button>
       }
     >
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機示範／proxy 限制：經公開 CORS proxy（allorigins）探測，非正式監控服務；延遲含 proxy 往返，結果可能受代理可用性影響。可每分鐘自動檢查。
+      </p>
       <div className="grid-3" style={{ marginBottom: 12 }}>
         <div className="metric panel">站點 {sites.length}</div>
         <div className="metric panel">在線 {up}</div>
         <div className="metric panel">異常 {down}</div>
       </div>
-      <p className="muted" style={{ marginBottom: 12 }}>
-        透過公開 CORS proxy 實際請求目標 URL（示範用）。可自動每分鐘檢查。
-      </p>
       <label className="row" style={{ marginBottom: 12 }}>
         <input type="checkbox" checked={auto} onChange={() => setAuto(!auto)} />
         自動輪詢（60 秒）
@@ -217,11 +217,12 @@ export default function Page() {
                   </button>
                 </div>
               </div>
-              {s.history[0] && (
-                <p className="muted" style={{ fontSize: 12 }}>
-                  上次：{new Date(s.history[0].at).toLocaleTimeString()} · {s.history[0].note}
-                </p>
-              )}
+              <p className="muted" style={{ fontSize: 12 }}>
+                上次檢查：
+                {s.lastCheck
+                  ? `${new Date(s.lastCheck).toLocaleString('zh-TW')} · ${s.history[0]?.note ?? s.status}`
+                  : '尚未檢查'}
+              </p>
             </li>
           )
         })}

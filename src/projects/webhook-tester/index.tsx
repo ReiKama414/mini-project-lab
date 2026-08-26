@@ -222,6 +222,26 @@ export default function Page() {
     return `curl -X POST ${JSON.stringify(endpoint)} \\\n  ${hdr} \\\n  -d ${JSON.stringify(ev.body)}\n# 預期回應 HTTP ${ev.status}`
   }
 
+  function curlForDraft() {
+    const hdr = headers
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => `-H ${JSON.stringify(l)}`)
+      .join(' \\\n  ')
+    const last = events[0]
+    const payload = last?.body ?? body
+    const hdrBlock = last
+      ? last.headers
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .map((l) => `-H ${JSON.stringify(l)}`)
+          .join(' \\\n  ')
+      : hdr
+    return `curl -X POST ${JSON.stringify(endpoint)} \\\n  ${hdrBlock} \\\n  -d ${JSON.stringify(payload)}\n# ${last ? `上次事件 ${last.eventName} · HTTP ${last.status}` : '目前草稿 payload'}`
+  }
+
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
@@ -345,6 +365,14 @@ export default function Page() {
             </button>
             <button type="button" className="btn accent" onClick={send} disabled={!canSend}>
               送出 → {statusCode}
+            </button>
+            <button
+              type="button"
+              className="btn ghost sm"
+              disabled={!isNonEmpty(body) && !events.length}
+              onClick={() => void copyText(curlForDraft())}
+            >
+              複製 curl（上次／草稿）
             </button>
             <button type="button" className="btn ghost" onClick={() => setEvents([])}>
               清空

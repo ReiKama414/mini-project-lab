@@ -99,6 +99,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機模擬／示範：點擊熱點僅在此瀏覽器累積，非正式產品熱力分析。
+      </p>
       <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
         <button type="button" className={`btn sm ${mode === 'collect' ? 'accent' : 'ghost'}`} onClick={() => setMode('collect')}>
           收集點擊

@@ -1,6 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, limitText, pick, uid } from '../../lib/utils'
 
@@ -62,6 +62,8 @@ export default function Page() {
   const [filter, setFilter] = useState<'all' | Level>('all')
   const [q, setQ] = useState('')
   const [paused, setPaused] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [importMsg, setImportMsg] = useState('')
 
   useEffect(() => {
     if (paused) return
@@ -105,7 +107,77 @@ export default function Page() {
   }
 
   function exportLogs() {
-    downloadText(`logs-${Date.now()}.txt`, exportText() || '(empty)', 'text/plain;charset=utf-8')
+    downloadText(`logs-filtered-${Date.now()}.txt`, exportText() || '(empty)', 'text/plain;charset=utf-8')
+  }
+
+  function parseImportedLine(line: string, idx: number): Log | null {
+    const trimmed = line.trim()
+    if (!trimmed) return null
+    const m = trimmed.match(
+      /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)\s+\[(INFO|WARN|ERROR|DEBUG)\]\s+\(([^)]+)\)\s+(.+)$/i,
+    )
+    if (m) {
+      const at = Date.parse(m[1]!)
+      const level = m[2]!.toLowerCase() as Level
+      return {
+        id: uid('imp'),
+        at: Number.isFinite(at) ? at : Date.now() - idx * 1000,
+        level,
+        source: m[3] || 'import',
+        msg: m[4] || trimmed,
+      }
+    }
+    const loose = trimmed.match(/\[(info|warn|error|debug)\]/i)
+    const level = (loose?.[1]?.toLowerCase() as Level | undefined) || 'info'
+    return {
+      id: uid('imp'),
+      at: Date.now() - idx * 500,
+      level,
+      source: 'import',
+      msg: trimmed.slice(0, 500),
+    }
+  }
+
+  function onImportFile(file: File | null) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = String(reader.result || '')
+      try {
+        const parsed = JSON.parse(text) as unknown
+        if (Array.isArray(parsed)) {
+          const imported: Log[] = parsed
+            .map((row, i) => {
+              if (!row || typeof row !== 'object') return null
+              const r = row as Partial<Log>
+              const level = (['info', 'warn', 'error', 'debug'] as const).includes(r.level as Level)
+                ? (r.level as Level)
+                : 'info'
+              return {
+                id: typeof r.id === 'string' ? r.id : uid('imp'),
+                level,
+                msg: String(r.msg || '').slice(0, 500) || '(empty)',
+                at: typeof r.at === 'number' ? r.at : Date.now() - i * 500,
+                source: String(r.source || 'import').slice(0, 40),
+              } satisfies Log
+            })
+            .filter((x): x is Log => !!x)
+          setLogs((xs) => [...imported, ...(Array.isArray(xs) ? xs : [])].slice(0, 300))
+          setImportMsg(`已匯入 JSON ${imported.length} 筆`)
+          return
+        }
+      } catch {
+        /* plain text */
+      }
+      const lines = text.split(/\r?\n/)
+      const imported = lines
+        .map((line, i) => parseImportedLine(line, i))
+        .filter((x): x is Log => !!x)
+        .slice(0, 300)
+      setLogs((xs) => [...imported, ...(Array.isArray(xs) ? xs : [])].slice(0, 300))
+      setImportMsg(`已匯入文字 ${imported.length} 筆`)
+    }
+    reader.readAsText(file)
   }
 
   return (
@@ -113,18 +185,36 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".txt,.log,.json,text/plain,application/json"
+            hidden
+            onChange={(e) => {
+              onImportFile(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
+          <button type="button" className="btn sm ghost" onClick={() => fileRef.current?.click()}>
+            匯入日誌
+          </button>
           <button type="button" className="btn sm ghost" onClick={generate}>
             產生樣本
           </button>
           <button type="button" className="btn sm ghost" disabled={!shown.length} onClick={() => void copyText(exportText())}>
-            複製
+            複製篩選
           </button>
-          <button type="button" className="btn sm teal" onClick={exportLogs}>
-            匯出
+          <button type="button" className="btn sm teal" disabled={!shown.length} onClick={exportLogs}>
+            下載篩選
           </button>
         </div>
       }
     >
+      {importMsg && (
+        <p className="muted" style={{ marginBottom: 8, fontSize: 13 }}>
+          {importMsg}
+        </p>
+      )}
       <div className="grid-3" style={{ marginBottom: 12 }}>
         <div className="metric panel">
           error <strong style={{ color: color.error }}>{levelCounts.error}</strong>

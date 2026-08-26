@@ -93,16 +93,42 @@ export default function Page() {
         (t) => `${t.date},${t.type},${t.cat},"${t.label.replace(/"/g, '""')}",${t.amount}`,
       ),
     ]
-    downloadText(`finance-${month}.csv`, lines.join('\n'), 'text/csv')
+    downloadText(`finance-${month}.csv`, lines.join('\n'), 'text/csv;charset=utf-8')
+  }
+
+  function exportJson() {
+    downloadText(
+      `finance-${month}.json`,
+      JSON.stringify(
+        {
+          month,
+          budget,
+          actualExpense: expense,
+          income,
+          balance,
+          budgetRemaining: budget - expense,
+          exportedAt: new Date().toISOString(),
+          transactions: monthTxs,
+        },
+        null,
+        2,
+      ),
+      'application/json;charset=utf-8',
+    )
   }
 
   return (
     <ProjectShell
       meta={meta}
       actions={
-        <button className="btn ghost sm" onClick={exportCsv}>
-          匯出本月 CSV
-        </button>
+        <div className="row">
+          <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!monthTxs.length}>
+            匯出本月 CSV
+          </button>
+          <button type="button" className="btn ghost sm" onClick={exportJson} disabled={!monthTxs.length}>
+            匯出本月 JSON
+          </button>
+        </div>
       }
     >
       <div className="row" style={{ marginBottom: 12 }}>
@@ -154,7 +180,8 @@ export default function Page() {
             />
           </div>
           <div className="muted" style={{ fontSize: 12 }}>
-            預算使用 {budgetPct.toFixed(0)}%
+            預算 vs 實際：${expense.toLocaleString()} / ${budget.toLocaleString()}（{budgetPct.toFixed(0)}%）
+            · 剩餘 ${Math.max(0, budget - expense).toLocaleString()}
           </div>
         </div>
         <div className="metric panel">

@@ -120,6 +120,9 @@ export default function Page() {
 
   return (
     <ProjectShell meta={meta}>
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機模擬資料，非真實 Docker／主機監控
+      </p>
       <div className="grid-3" style={{ marginBottom: 12 }}>
         <div className="metric panel">Containers {ctns.length}</div>
         <div className="metric panel">Running {running}</div>

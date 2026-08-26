@@ -1,7 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, charCount, isNonEmpty, isValidEmail, limitText } from '../../lib/utils'
 
@@ -73,6 +73,52 @@ function isValidDate(iso: string) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso
 }
 
+function parseContact(row: unknown): Contact | null {
+  if (!row || typeof row !== 'object') return null
+  const r = row as Record<string, unknown>
+  const name = typeof r.name === 'string' ? limitText(r.name.trim(), MAX_NAME) : ''
+  if (!name) return null
+  const status = typeof r.status === 'string' && (STATUSES as string[]).includes(r.status) ? (r.status as Status) : '潛在'
+  const email = typeof r.email === 'string' ? limitText(r.email.trim(), MAX_EMAIL) : ''
+  if (email && !isValidEmail(email)) return null
+  const next = typeof r.next === 'string' ? r.next : ''
+  if (next && !isValidDate(next)) return null
+  return {
+    id: typeof r.id === 'string' && r.id ? r.id : uid('c'),
+    name,
+    company: typeof r.company === 'string' ? limitText(r.company, MAX_COMPANY) : '',
+    email,
+    note: typeof r.note === 'string' ? limitText(r.note, MAX_NOTE) : '',
+    next,
+    status,
+    tag: typeof r.tag === 'string' ? limitText(r.tag.trim() || '一般', MAX_TAG) : '一般',
+  }
+}
+
+function parseContactsJson(raw: unknown): Contact[] | null {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { contacts?: unknown }).contacts)
+      ? (raw as { contacts: unknown[] }).contacts
+      : null
+  if (!list) return null
+  const out: Contact[] = []
+  for (const row of list) {
+    const c = parseContact(row)
+    if (c) out.push(c)
+  }
+  return out.slice(0, MAX_ITEMS)
+}
+
+function mergeContacts(existing: Contact[], incoming: Contact[]): Contact[] {
+  const byId = new Map(existing.map((c) => [c.id, c]))
+  for (const c of incoming) {
+    if (byId.has(c.id)) byId.set(c.id, { ...byId.get(c.id)!, ...c })
+    else byId.set(c.id, c)
+  }
+  return [...byId.values()].slice(0, MAX_ITEMS)
+}
+
 const empty = { name: '', company: '', email: '', note: '', next: '', status: '潛在' as Status, tag: '一般' }
 
 export default function Page() {
@@ -83,6 +129,8 @@ export default function Page() {
   const [dueOnly, setDueOnly] = useLocalStorage('lab:personal-crm:dueOnly', false)
   const [form, setForm] = useState(empty)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [importMsg, setImportMsg] = useState('')
+  const importRef = useRef<HTMLInputElement>(null)
   const today = new Date().toISOString().slice(0, 10)
 
   const tags = useMemo(() => {
@@ -122,6 +170,30 @@ export default function Page() {
       ].join('\n'),
       'text/csv;charset=utf-8',
     )
+  }
+
+  function exportJson() {
+    downloadText(
+      'crm.json',
+      JSON.stringify({ version: 1, contacts }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
+  async function importJson(file: File | null) {
+    if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown
+      const list = parseContactsJson(parsed)
+      if (!list?.length) {
+        setImportMsg('JSON 無效或無有效聯絡人，資料未變更')
+        return
+      }
+      setContacts(mergeContacts(contacts, list))
+      setImportMsg(`已合併匯入 ${list.length} 筆`)
+    } catch {
+      setImportMsg('讀取或解析失敗，資料未變更')
+    }
   }
 
   function startEdit(c: Contact) {
@@ -170,6 +242,22 @@ export default function Page() {
           <button type="button" className="btn ghost sm" onClick={exportCsv}>
             匯出 CSV
           </button>
+          <button type="button" className="btn ghost sm" disabled={!contacts.length} onClick={exportJson}>
+            匯出 JSON
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
+            匯入 JSON
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void importJson(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
           <button
             type="button"
             className="btn ghost sm"
@@ -180,6 +268,11 @@ export default function Page() {
         </div>
       }
     >
+      {importMsg && (
+        <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+          {importMsg}
+        </p>
+      )}
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         <span className="metric">聯絡人 {stats.total}</span>
         <span className="tag">今日需跟進 {stats.dueSoon}</span>

@@ -3,7 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('workout-tracker')!
 
@@ -113,8 +113,38 @@ export default function Page() {
     setCustomEx('')
   }
 
+  function exportJson() {
+    downloadText(
+      'workouts.json',
+      JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), workouts: items }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
+  function exportCsv() {
+    const header = '日期,動作,組數,次數,重量kg,容量,備註'
+    const rows = items.map((w) =>
+      [w.date, w.exercise, w.sets, w.reps, w.weight, volume(w), w.note ?? '']
+        .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+        .join(','),
+    )
+    downloadText('workouts.csv', `\uFEFF${[header, ...rows].join('\n')}`, 'text/csv;charset=utf-8')
+  }
+
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row">
+          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportCsv}>
+            匯出 CSV
+          </button>
+          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportJson}>
+            匯出 JSON
+          </button>
+        </div>
+      }
+    >
       <div className="panel stack">
         <div className="label">動作庫（點選預設）</div>
         <div className="row">

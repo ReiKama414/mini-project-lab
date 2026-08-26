@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, limitText, isNonEmpty, charCount, cn } from '../../lib/utils'
 
@@ -36,6 +36,8 @@ export default function Page() {
   const [newKey, setNewKey] = useLocalStorage('lab:feature-flags:draft-key', 'flag_new')
   const [evalUser, setEvalUser] = useLocalStorage('lab:feature-flags:eval-user', 'user_42')
   const [evalEnv, setEvalEnv] = useLocalStorage<Env>('lab:feature-flags:eval-env', 'prod')
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [importMsg, setImportMsg] = useState('')
 
   function log(key: string, action: string, detail: string) {
     setAudit((xs) => [{ id: uid('a'), at: Date.now(), key, action, detail }, ...xs].slice(0, 100))
@@ -77,15 +79,92 @@ export default function Page() {
     )
   }
 
+  function exportFlags() {
+    downloadText(
+      'feature-flags.json',
+      JSON.stringify({ exportedAt: new Date().toISOString(), flags }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
+  function importFlags(file: File | null) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const raw = JSON.parse(String(reader.result || '')) as unknown
+        const list = Array.isArray(raw)
+          ? raw
+          : raw && typeof raw === 'object' && Array.isArray((raw as { flags?: unknown }).flags)
+            ? (raw as { flags: unknown[] }).flags
+            : null
+        if (!list) {
+          setImportMsg('格式錯誤：需為 flags 陣列或 { flags: [] }')
+          return
+        }
+        const next: Flag[] = []
+        for (const row of list) {
+          if (!row || typeof row !== 'object') continue
+          const r = row as Partial<Flag>
+          const key = String(r.key || '').trim().slice(0, KEY_MAX)
+          if (!key) continue
+          const env = ENVS.includes(r.env as Env) ? (r.env as Env) : 'dev'
+          const pct = typeof r.pct === 'number' && Number.isFinite(r.pct) ? Math.min(100, Math.max(0, Math.round(r.pct))) : 0
+          next.push({
+            id: typeof r.id === 'string' ? r.id : uid('f'),
+            key,
+            on: !!r.on,
+            pct,
+            desc: String(r.desc || '').slice(0, 200) || '匯入的 flag',
+            env,
+          })
+        }
+        if (!next.length) {
+          setImportMsg('沒有可匯入的 flag')
+          return
+        }
+        setFlags(next)
+        log('*', 'import', `${next.length} flags`)
+        setImportMsg(`已匯入 ${next.length} 個 flag`)
+      } catch {
+        setImportMsg('JSON 解析失敗')
+      }
+    }
+    reader.readAsText(file)
+  }
+
   return (
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm ghost" onClick={exportAudit} disabled={!audit.length}>
-          匯出稽核
-        </button>
+        <div className="row">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              importFlags(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
+          <button type="button" className="btn sm ghost" onClick={() => fileRef.current?.click()}>
+            匯入 Flags
+          </button>
+          <button type="button" className="btn sm ghost" onClick={exportFlags} disabled={!flags.length}>
+            匯出 Flags
+          </button>
+          <button type="button" className="btn sm ghost" onClick={exportAudit} disabled={!audit.length}>
+            匯出稽核
+          </button>
+        </div>
       }
     >
+      {importMsg && (
+        <p className="muted" style={{ marginBottom: 8, fontSize: 13 }}>
+          {importMsg}
+        </p>
+      )}
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <span className="label" style={{ margin: 0 }}>

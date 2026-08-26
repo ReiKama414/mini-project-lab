@@ -1,8 +1,8 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
+import { charCount, downloadText, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
 
 const meta = getProject('shopping-list')!
 
@@ -40,6 +40,26 @@ function normalizeItems(raw: unknown): Item[] {
   })
 }
 
+function parseShoppingJson(raw: unknown): Item[] | null {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { items?: unknown }).items)
+      ? (raw as { items: unknown[] }).items
+      : null
+  if (!list) return null
+  const normalized = normalizeItems(list).filter((i) => isNonEmpty(i.name))
+  return normalized.slice(0, MAX_ITEMS)
+}
+
+function mergeItems(existing: Item[], incoming: Item[]): Item[] {
+  const byId = new Map(existing.map((i) => [i.id, i]))
+  for (const i of incoming) {
+    if (byId.has(i.id)) byId.set(i.id, { ...byId.get(i.id)!, ...i })
+    else byId.set(i.id, i)
+  }
+  return [...byId.values()].slice(0, MAX_ITEMS)
+}
+
 export default function Page() {
   const [stored, setStored] = useLocalStorage<unknown>('lab:shopping-list', [])
   const items = normalizeItems(stored)
@@ -51,6 +71,8 @@ export default function Page() {
   const [qty, setQty] = useState('1')
   const [filterAisle, setFilterAisle] = useState('all')
   const [copied, setCopied] = useState(false)
+  const [importMsg, setImportMsg] = useState('')
+  const importRef = useRef<HTMLInputElement>(null)
 
   const nameOk = isNonEmpty(name)
   const qtyOk = isNonEmpty(qty)
@@ -101,16 +123,59 @@ export default function Page() {
     setTimeout(() => setCopied(false), 1600)
   }
 
+  function exportJson() {
+    downloadText(
+      'shopping-list.json',
+      JSON.stringify({ version: 1, items }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
+  async function importJson(file: File | null) {
+    if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown
+      const list = parseShoppingJson(parsed)
+      if (!list?.length) {
+        setImportMsg('JSON 無效或無有效品項，資料未變更')
+        return
+      }
+      setItems(mergeItems(items, list))
+      setImportMsg(`已合併匯入 ${list.length} 項`)
+    } catch {
+      setImportMsg('讀取或解析失敗，資料未變更')
+    }
+  }
+
   return (
     <ProjectShell
       meta={meta}
       actions={
-        <button className="btn ghost sm" onClick={shareText}>
-          {copied ? '已複製！' : '複製分享文字'}
-        </button>
+        <div className="row">
+          <button type="button" className="btn ghost sm" onClick={shareText}>
+            {copied ? '已複製！' : '複製分享文字'}
+          </button>
+          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportJson}>
+            匯出 JSON
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
+            匯入 JSON
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void importJson(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
+        </div>
       }
     >
       <div className="panel stack">
+        {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
         <div className="row">
           <div className="metric" style={{ fontSize: 22 }}>
             未購 {pending}

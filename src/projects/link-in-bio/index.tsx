@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, charCount, isValidHttpUrl, limitText } from '../../lib/utils'
+import { escapeHtml } from '../../lib/sanitize'
 
 const meta = getProject('link-in-bio')!
 
@@ -74,6 +75,42 @@ export default function Page() {
     return lines.join('\n')
   }
 
+  function exportHtml() {
+    const avatarBlock =
+      avatarMode === 'emoji'
+        ? `<div style="width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:#fff3;margin:0 auto">${escapeHtml(avatarEmoji)}</div>`
+        : avatarMode === 'color'
+          ? `<div style="width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:${escapeHtml(avatarColor)};color:#fff;margin:0 auto">${escapeHtml(name.slice(0, 1))}</div>`
+          : avatarUpload
+            ? `<div style="width:72px;height:72px;border-radius:50%;background:center/cover no-repeat url(${JSON.stringify(avatarUpload)});margin:0 auto"></div>`
+            : ''
+    const html = `<!doctype html><html lang="zh-Hant"><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(name)}</title>
+<body style="margin:0;font-family:system-ui,sans-serif;background:${escapeHtml(bg)};color:${escapeHtml(fg)};min-height:100vh;display:flex;align-items:center;justify-content:center">
+<main style="width:100%;max-width:360px;padding:32px 20px;text-align:center">
+${avatarBlock}
+<h1 style="margin:16px 0 8px;font-size:1.5rem">${escapeHtml(name)}</h1>
+<p style="opacity:.85;margin:0 0 16px">${escapeHtml(bio)}</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px">
+${socials
+  .map(
+    (s) =>
+      `<a href="${escapeHtml(s.url)}" style="color:${escapeHtml(fg)};text-decoration:none;border:1px solid ${escapeHtml(fg)}44;padding:4px 10px;border-radius:999px;font-size:13px">${escapeHtml(s.icon)} ${escapeHtml(s.label)}</a>`,
+  )
+  .join('\n')}
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+${links
+  .map(
+    (l) =>
+      `<a href="${escapeHtml(l.url)}" style="display:block;padding:12px 16px;border-radius:10px;background:${escapeHtml(btnBg)};color:${escapeHtml(btnFg)};text-decoration:none;font-weight:600">${escapeHtml(l.label)}</a>`,
+  )
+  .join('\n')}
+</div>
+</main>
+</body></html>`
+    downloadText('link-in-bio.html', html, 'text/html;charset=utf-8')
+  }
+
   function onUpload(file: File | null) {
     if (!file) return
     const reader = new FileReader()
@@ -92,12 +129,14 @@ export default function Page() {
           <button type="button" className="btn ghost sm" onClick={() => void copyText(sharePageText())}>
             複製分享文字
           </button>
-          <button
-            type="button"
-            className="btn ghost sm"
-            onClick={() => downloadText('link-in-bio.txt', sharePageText())}
-          >
+          <button type="button" className="btn ghost sm" onClick={() => downloadText('link-in-bio.txt', sharePageText())}>
             匯出頁面文字
+          </button>
+          <button type="button" className="btn accent sm" onClick={exportHtml}>
+            匯出 HTML
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => window.print()}>
+            列印預覽
           </button>
         </div>
       }

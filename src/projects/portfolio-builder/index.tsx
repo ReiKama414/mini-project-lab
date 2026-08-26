@@ -90,6 +90,9 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
           <button type="button" className="btn accent sm" onClick={exportHtml}>
             匯出 HTML
           </button>
+          <button type="button" className="btn ghost sm" onClick={() => window.print()}>
+            列印預覽
+          </button>
         </div>
       }
     >

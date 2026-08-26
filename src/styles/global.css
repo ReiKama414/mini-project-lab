@@ -2788,7 +2788,8 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
     background: #fff !important;
   }
 
-  .resume-print-area {
+  .resume-print-area,
+  .invoice-print-area {
     display: block !important;
     box-shadow: none !important;
     border: none !important;

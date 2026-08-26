@@ -112,6 +112,14 @@ export default function Page() {
     downloadText('projects-tasks.csv', lines.join('\n'), 'text/csv;charset=utf-8')
   }
 
+  function exportJson() {
+    downloadText(
+      'projects-tasks.json',
+      JSON.stringify({ version: 1, projects, tasks }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
   function addPreset(p: (typeof TASK_PRESETS)[number]) {
     if (tasks.length >= MAX_TASKS || !dueOk) return
     setTasks((xs) => [
@@ -131,9 +139,14 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn ghost sm" onClick={exportCsv}>
-          匯出 CSV
-        </button>
+        <div className="row">
+          <button type="button" className="btn ghost sm" onClick={exportCsv}>
+            匯出 CSV
+          </button>
+          <button type="button" className="btn ghost sm" disabled={!tasks.length} onClick={exportJson}>
+            匯出 JSON
+          </button>
+        </div>
       }
     >
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>

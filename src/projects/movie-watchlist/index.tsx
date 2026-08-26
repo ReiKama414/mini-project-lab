@@ -19,6 +19,19 @@ type Movie = {
   notes: string
 }
 
+type ItunesMovie = {
+  trackId: number
+  trackName?: string
+  trackCensoredName?: string
+  releaseDate?: string
+  primaryGenreName?: string
+}
+
+type ItunesSearchResponse = {
+  resultCount: number
+  results: ItunesMovie[]
+}
+
 const GENRES = ['劇情', '喜劇', '動作', '科幻', '恐怖', '動畫', '紀錄片', '愛情', '驚悚']
 const STATUS_LABEL: Record<Status, string> = {
   want: '想看',
@@ -31,6 +44,28 @@ const MAX_TITLE = 120
 const MAX_YEAR = 4
 const MAX_NOTES = 1000
 const MAX_SEARCH = 80
+const MAX_ITUNES_Q = 80
+
+function mapItunesGenre(raw?: string): string | null {
+  if (!raw) return null
+  const g = raw.toLowerCase()
+  if (g.includes('comedy')) return '喜劇'
+  if (g.includes('action') || g.includes('adventure')) return '動作'
+  if (g.includes('sci') || g.includes('fantasy')) return '科幻'
+  if (g.includes('horror')) return '恐怖'
+  if (g.includes('animation') || g.includes('kids') || g.includes('family')) return '動畫'
+  if (g.includes('documentary')) return '紀錄片'
+  if (g.includes('romance') || g.includes('romantic')) return '愛情'
+  if (g.includes('thriller') || g.includes('suspense') || g.includes('mystery')) return '驚悚'
+  if (g.includes('drama')) return '劇情'
+  return null
+}
+
+function yearFromRelease(iso?: string): string {
+  if (!iso) return ''
+  const y = iso.slice(0, 4)
+  return /^\d{4}$/.test(y) ? y : ''
+}
 
 export default function Page() {
   const [movies, setMovies] = useLocalStorage<Movie[]>('lab:movie-watchlist', [])
@@ -40,6 +75,10 @@ export default function Page() {
   const [filter, setFilter] = useState<'all' | Status>('all')
   const [genreFilter, setGenreFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [itunesQ, setItunesQ] = useState('')
+  const [itunesResults, setItunesResults] = useState<ItunesMovie[]>([])
+  const [itunesLoading, setItunesLoading] = useState(false)
+  const [itunesError, setItunesError] = useState('')
 
   const titleOk = isNonEmpty(title)
   const yearNum = year.trim() ? parseNumber(year) : NaN
@@ -97,9 +136,96 @@ export default function Page() {
     )
   }
 
+  async function searchItunes() {
+    const term = itunesQ.trim()
+    if (!term) {
+      setItunesError('請輸入要搜尋的片名')
+      setItunesResults([])
+      return
+    }
+    setItunesLoading(true)
+    setItunesError('')
+    setItunesResults([])
+    try {
+      const params = new URLSearchParams({
+        term,
+        entity: 'movie',
+        limit: '8',
+        country: 'tw',
+      })
+      const res = await fetch(`https://itunes.apple.com/search?${params}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = (await res.json()) as ItunesSearchResponse
+      const list = data.results ?? []
+      setItunesResults(list)
+      if (!list.length) setItunesError('找不到符合的電影，請試試其他關鍵字')
+    } catch {
+      setItunesResults([])
+      setItunesError('無法連線 iTunes 搜尋（可能被網路或 CORS 阻擋），請改為手動填寫片名。')
+    } finally {
+      setItunesLoading(false)
+    }
+  }
+
+  function pickItunes(item: ItunesMovie) {
+    const name = item.trackCensoredName || item.trackName || ''
+    setTitle(limitText(name, MAX_TITLE))
+    setYear(yearFromRelease(item.releaseDate))
+    const mapped = mapItunesGenre(item.primaryGenreName)
+    setGenres(mapped ? [mapped] : [])
+    setItunesResults([])
+    setItunesError('')
+  }
+
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
+        <div className="label" style={{ margin: 0 }}>
+          iTunes 搜尋（選填）
+        </div>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <div className="stack" style={{ flex: 1, minWidth: 160, gap: 0 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋電影並帶入欄位…"
+              value={itunesQ}
+              maxLength={MAX_ITUNES_Q}
+              onChange={(e) => setItunesQ(limitText(e.target.value, MAX_ITUNES_Q))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void searchItunes()
+              }}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(itunesQ)} / {MAX_ITUNES_Q}
+              </span>
+            </div>
+          </div>
+          <button type="button" className="btn ghost" disabled={itunesLoading || !itunesQ.trim()} onClick={() => void searchItunes()}>
+            {itunesLoading ? '搜尋中…' : '搜尋'}
+          </button>
+        </div>
+        {itunesError && <p className="field-error">{itunesError}</p>}
+        {itunesResults.length > 0 && (
+          <ul className="list">
+            {itunesResults.map((r) => (
+              <li key={r.trackId} className="list-item row" style={{ cursor: 'pointer' }} onClick={() => pickItunes(r)}>
+                <div className="stack" style={{ flex: 1, gap: 2 }}>
+                  <strong>{r.trackCensoredName || r.trackName}</strong>
+                  <span className="muted">
+                    {yearFromRelease(r.releaseDate) || '年份未知'}
+                    {r.primaryGenreName ? ` · ${r.primaryGenreName}` : ''}
+                  </span>
+                </div>
+                <button type="button" className="btn sm teal" onClick={(e) => { e.stopPropagation(); pickItunes(r) }}>
+                  選用
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="grid-2">
           <div className="stack" style={{ gap: 0 }}>
             <input

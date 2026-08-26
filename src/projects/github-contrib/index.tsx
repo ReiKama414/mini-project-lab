@@ -145,6 +145,10 @@ export default function Page() {
 
   return (
     <ProjectShell meta={meta}>
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        非正式 GitHub 貢獻熱度圖：依公開 Events（近 100 筆）粗估或本機模擬，與官方 contribution graph 不同。
+        {stats.source === 'mock' && ' 目前顯示為模擬資料。'}
+      </p>
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <input
@@ -159,7 +163,7 @@ export default function Page() {
           <button type="button" className="btn accent" disabled={loading || !isNonEmpty(user)} onClick={() => void load()}>
             {loading ? '載入中…' : '分析'}
           </button>
-          <span className="tag">{stats.source === 'api' ? 'GitHub Events API' : 'Mock 資料'}</span>
+          <span className="tag">{stats.source === 'api' ? '公開 Events 粗估' : '模擬資料（非官方）'}</span>
           {stats.events !== undefined && <span className="muted">近 100 筆事件</span>}
         </div>
         <div className="field-meta">
@@ -186,7 +190,7 @@ export default function Page() {
       <div className="panel stack">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <span className="label" style={{ margin: 0 }}>
-            貢獻熱度圖 · {user || '—'}
+            示意熱度圖（非官方）· {user || '—'}
           </span>
           <span className="muted" style={{ fontSize: 12 }}>
             {hover ? `${hover.date} · ${hover.count} 次` : `最活躍日 ${stats.busiest}`}

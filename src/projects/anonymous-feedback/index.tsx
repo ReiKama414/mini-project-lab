@@ -126,6 +126,9 @@ export default function Page() {
         </button>
       }
     >
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機示範：資料僅存此瀏覽器，非真匿名跨裝置收集
+      </p>
       <div className="grid-3" style={{ marginBottom: 12 }}>
         {CATS.map((c) => (
           <div key={c} className="metric panel">

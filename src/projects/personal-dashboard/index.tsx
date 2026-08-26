@@ -1,9 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
-import { useEffect, useMemo, useState } from 'react'
-import { useLocalStorage } from '../../lib/storage'
-import { pick, randomInt, uid, charCount, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl } from '../../lib/utils'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { loadJSON, useLocalStorage } from '../../lib/storage'
+import { uid, charCount, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl } from '../../lib/utils'
 
 const meta = getProject('personal-dashboard')!
 
@@ -20,7 +20,93 @@ const MAX_CITY = 40
 const MAX_LABEL = 40
 const MAX_URL = 2048
 
-const CONDITIONS = ['晴朗', '多雲', '陰天', '小雨', '陣雨', '微風']
+const DEFAULT_WEATHER: Weather = {
+  city: '台北',
+  temp: 28,
+  condition: '多雲',
+  humidity: 72,
+  wind: 12,
+}
+
+/** 優先讀新 key；若無則沿用舊 weather.city，避免偏好遺失 */
+function initialCity(): string {
+  const saved = loadJSON<string | null>('lab:personal-dashboard:city', null)
+  if (typeof saved === 'string' && saved.trim()) return limitText(saved.trim(), MAX_CITY)
+  const weather = loadJSON<Weather | null>('lab:personal-dashboard:weather', null)
+  if (weather?.city?.trim()) return limitText(weather.city.trim(), MAX_CITY)
+  return DEFAULT_WEATHER.city
+}
+
+/** WMO Weather interpretation codes → 繁中短標籤 */
+function weatherLabelFromCode(code: number): string {
+  if (code === 0) return '晴朗'
+  if (code === 1) return '大致晴朗'
+  if (code === 2) return '局部多雲'
+  if (code === 3) return '陰天'
+  if (code === 45 || code === 48) return '霧'
+  if (code === 51 || code === 53 || code === 55) return '毛毛雨'
+  if (code === 56 || code === 57) return '凍毛毛雨'
+  if (code === 61) return '小雨'
+  if (code === 63) return '中雨'
+  if (code === 65) return '大雨'
+  if (code === 66 || code === 67) return '凍雨'
+  if (code === 71) return '小雪'
+  if (code === 73) return '中雪'
+  if (code === 75) return '大雪'
+  if (code === 77) return '雪粒'
+  if (code === 80) return '陣雨'
+  if (code === 81) return '強陣雨'
+  if (code === 82) return '暴雨'
+  if (code === 85) return '陣雪'
+  if (code === 86) return '強陣雪'
+  if (code === 95) return '雷雨'
+  if (code === 96 || code === 99) return '雷雹'
+  return '不明'
+}
+
+type GeocodeApi = {
+  results?: Array<{ name: string; latitude: number; longitude: number }>
+}
+
+type ForecastApi = {
+  current: {
+    temperature_2m: number
+    relative_humidity_2m: number
+    weather_code: number
+    wind_speed_10m: number
+  }
+}
+
+async function fetchWeatherForCity(city: string, signal?: AbortSignal): Promise<Omit<Weather, 'city'>> {
+  const geoParams = new URLSearchParams({
+    name: city,
+    count: '1',
+    language: 'zh',
+    format: 'json',
+  })
+  const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${geoParams}`, { signal })
+  if (!geoRes.ok) throw new Error(`地理編碼失敗（HTTP ${geoRes.status}）`)
+  const geo = (await geoRes.json()) as GeocodeApi
+  const place = geo.results?.[0]
+  if (!place) throw new Error('找不到此城市，請試試其他名稱')
+
+  const forecastParams = new URLSearchParams({
+    latitude: String(place.latitude),
+    longitude: String(place.longitude),
+    current: 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
+    timezone: 'auto',
+  })
+  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${forecastParams}`, { signal })
+  if (!res.ok) throw new Error(`天氣請求失敗（HTTP ${res.status}）`)
+  const data = (await res.json()) as ForecastApi
+  const cur = data.current
+  return {
+    temp: Math.round(cur.temperature_2m),
+    condition: weatherLabelFromCode(cur.weather_code),
+    humidity: Math.round(cur.relative_humidity_2m),
+    wind: Math.round(cur.wind_speed_10m),
+  }
+}
 
 export default function Page() {
   const [todos, setTodos] = useLocalStorage<Todo[]>('lab:personal-dashboard:todos', [
@@ -34,23 +120,52 @@ export default function Page() {
     { id: '2', label: 'Calendar', url: 'https://calendar.google.com' },
     { id: '3', label: 'Docs', url: 'https://docs.google.com' },
   ])
-  const [weather, setWeather] = useLocalStorage<Weather>('lab:personal-dashboard:weather', {
-    city: '台北',
-    temp: 28,
-    condition: '多雲',
-    humidity: 72,
-    wind: 12,
-  })
+  const [city, setCity] = useLocalStorage('lab:personal-dashboard:city', initialCity())
+  const [weather, setWeather] = useLocalStorage<Weather>('lab:personal-dashboard:weather', DEFAULT_WEATHER)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherError, setWeatherError] = useState('')
   const [now, setNow] = useState(new Date())
   const [draft, setDraft] = useState('')
   const [linkLabel, setLinkLabel] = useState('')
   const [linkUrl, setLinkUrl] = useState('https://')
   const [editTodo, setEditTodo] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const weatherAbort = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
+  }, [])
+
+  const refreshWeather = useCallback(async (cityName?: string) => {
+    const q = (cityName ?? city).trim()
+    if (!q) {
+      setWeatherError('請輸入城市名稱')
+      return
+    }
+    weatherAbort.current?.abort()
+    const ac = new AbortController()
+    weatherAbort.current = ac
+    setWeatherLoading(true)
+    setWeatherError('')
+    try {
+      const next = await fetchWeatherForCity(q, ac.signal)
+      if (ac.signal.aborted) return
+      setWeather({ city: q, ...next })
+      setCity(limitText(q, MAX_CITY))
+    } catch (e) {
+      if (ac.signal.aborted) return
+      setWeatherError(e instanceof Error ? e.message : '無法取得天氣資料')
+    } finally {
+      if (!ac.signal.aborted) setWeatherLoading(false)
+    }
+  }, [city, setCity, setWeather])
+
+  useEffect(() => {
+    void refreshWeather(city)
+    return () => weatherAbort.current?.abort()
+    // 僅在掛載時依已儲存城市載入
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const done = todos.filter((t) => t.done).length
@@ -76,16 +191,6 @@ export default function Page() {
     setDraft('')
   }
 
-  function refreshWeather() {
-    setWeather((w) => ({
-      ...w,
-      temp: randomInt(18, 34),
-      condition: pick(CONDITIONS),
-      humidity: randomInt(40, 95),
-      wind: randomInt(3, 28),
-    }))
-  }
-
   return (
     <ProjectShell meta={meta}>
       <div className="grid-3">
@@ -101,21 +206,41 @@ export default function Page() {
         <div className="panel stack">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <div className="label" style={{ margin: 0 }}>
-              天氣（模擬）
+              天氣
             </div>
-            <button type="button" className="btn sm ghost" onClick={refreshWeather}>
-              刷新
+            <button
+              type="button"
+              className="btn sm ghost"
+              disabled={weatherLoading || !city.trim()}
+              onClick={() => void refreshWeather()}
+            >
+              {weatherLoading ? '更新中…' : '刷新'}
             </button>
           </div>
           <div className="stack" style={{ gap: 0 }}>
-            <input className="field" value={weather.city} maxLength={MAX_CITY} onChange={(e) => setWeather((w) => ({ ...w, city: limitText(e.target.value, MAX_CITY) }))} />
-            <div className="field-meta"><span /><span>{charCount(weather.city)} / {MAX_CITY}</span></div>
+            <input
+              className="field"
+              value={city}
+              maxLength={MAX_CITY}
+              placeholder="城市（如：台北）"
+              onChange={(e) => {
+                const next = limitText(e.target.value, MAX_CITY)
+                setCity(next)
+                setWeather((w) => ({ ...w, city: next }))
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void refreshWeather()
+              }}
+            />
+            <div className="field-meta"><span /><span>{charCount(city)} / {MAX_CITY}</span></div>
           </div>
+          {weatherError && <p className="field-error">{weatherError}</p>}
           <div className="metric">
             {weather.temp}°C · {weather.condition}
           </div>
           <div className="muted">
             濕度 {weather.humidity}% · 風速 {weather.wind} km/h
+            {weatherLoading ? ' · 更新中…' : ' · Open-Meteo'}
           </div>
         </div>
         <div className="panel stack">

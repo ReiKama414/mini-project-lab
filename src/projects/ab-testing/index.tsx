@@ -173,6 +173,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機模擬／示範：曝光與轉換為本機計數，z-score 僅供粗略示意，非正式實驗平台。
+      </p>
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <label className="label">流量分配 · A {split}% / B {100 - split}%</label>
         <input

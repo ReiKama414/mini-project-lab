@@ -2,10 +2,11 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import {
   charCount,
+  downloadText,
   isNonEmpty,
   isValidHttpUrl,
   limitText,
@@ -25,6 +26,7 @@ type Bookmark = {
 }
 
 const FOLDERS = ['全部', '工作', '學習', '娛樂', '其他']
+const FOLDER_SET = new Set(FOLDERS.filter((f) => f !== '全部'))
 const MAX_ITEMS = 200
 const MAX_TITLE = 80
 const MAX_URL = 2048
@@ -42,6 +44,148 @@ function faviconUrl(url: string) {
 
 function letterAvatar(title: string) {
   return (title.trim()[0] || '?').toUpperCase()
+}
+
+function escHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function parseBookmarkRow(row: unknown): Bookmark | null {
+  if (!row || typeof row !== 'object') return null
+  const r = row as Record<string, unknown>
+  const title = typeof r.title === 'string' ? limitText(r.title.trim(), MAX_TITLE) : ''
+  const rawUrl = typeof r.url === 'string' ? r.url : ''
+  if (!title || !isValidHttpUrl(rawUrl)) return null
+  const folderRaw = typeof r.folder === 'string' ? r.folder.trim() : '其他'
+  const tags = Array.isArray(r.tags)
+    ? r.tags
+        .filter((t): t is string => typeof t === 'string')
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 20)
+    : []
+  return {
+    id: typeof r.id === 'string' && r.id ? r.id : uid('bm'),
+    title,
+    url: normalizeHttpUrl(limitText(rawUrl, MAX_URL)),
+    folder: FOLDER_SET.has(folderRaw) ? folderRaw : '其他',
+    tags,
+    createdAt:
+      typeof r.createdAt === 'number' && Number.isFinite(r.createdAt) ? r.createdAt : Date.now(),
+  }
+}
+
+function parseBookmarksJson(raw: unknown): Bookmark[] | null {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { bookmarks?: unknown }).bookmarks)
+      ? (raw as { bookmarks: unknown[] }).bookmarks
+      : null
+  if (!list) return null
+  const out: Bookmark[] = []
+  for (const row of list) {
+    const b = parseBookmarkRow(row)
+    if (b) out.push(b)
+  }
+  return out.slice(0, MAX_ITEMS)
+}
+
+function toNetscapeHtml(bookmarks: Bookmark[]) {
+  const byFolder = new Map<string, Bookmark[]>()
+  for (const b of bookmarks) {
+    const f = b.folder || '其他'
+    const list = byFolder.get(f) ?? []
+    list.push(b)
+    byFolder.set(f, list)
+  }
+  const lines = [
+    '<!DOCTYPE NETSCAPE-Bookmark-file-1>',
+    '<!-- This is an automatically generated file. -->',
+    '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
+    '<TITLE>Bookmarks</TITLE>',
+    '<H1>Bookmarks</H1>',
+    '<DL><p>',
+  ]
+  for (const [folder, list] of byFolder) {
+    lines.push(`    <DT><H3>${escHtml(folder)}</H3>`)
+    lines.push('    <DL><p>')
+    for (const b of list) {
+      const add = Math.floor(b.createdAt / 1000)
+      const tags = b.tags.length ? ` TAGS="${escHtml(b.tags.join(','))}"` : ''
+      lines.push(
+        `        <DT><A HREF="${escHtml(b.url)}" ADD_DATE="${add}"${tags}>${escHtml(b.title)}</A>`,
+      )
+    }
+    lines.push('    </DL><p>')
+  }
+  lines.push('</DL><p>')
+  return lines.join('\n')
+}
+
+function parseNetscapeHtml(html: string): Bookmark[] {
+  const out: Bookmark[] = []
+  let folder = '其他'
+  const folderRe = /<H3[^>]*>([^<]*)<\/H3>/gi
+  const linkRe = /<A\s+([^>]+)>([^<]*)<\/A>/gi
+  // Walk roughly by splitting on DT blocks
+  const chunks = html.split(/<DT>/i)
+  for (const chunk of chunks) {
+    folderRe.lastIndex = 0
+    linkRe.lastIndex = 0
+    const h3 = folderRe.exec(chunk)
+    if (h3?.[1]) {
+      const name = h3[1].trim()
+      folder = FOLDER_SET.has(name) ? name : '其他'
+    }
+    const a = linkRe.exec(chunk)
+    if (!a) continue
+    const attrs = a[1] ?? ''
+    const title = limitText((a[2] ?? '').trim() || '未命名', MAX_TITLE)
+    const hrefM = /HREF\s*=\s*"([^"]*)"/i.exec(attrs) || /HREF\s*=\s*'([^']*)'/i.exec(attrs)
+    const rawUrl = hrefM?.[1]?.trim() ?? ''
+    if (!title || !isValidHttpUrl(rawUrl)) continue
+    const addM = /ADD_DATE\s*=\s*"(\d+)"/i.exec(attrs)
+    const tagsM = /TAGS\s*=\s*"([^"]*)"/i.exec(attrs)
+    const addSec = addM ? Number(addM[1]) : NaN
+    out.push({
+      id: uid('bm'),
+      title,
+      url: normalizeHttpUrl(limitText(rawUrl, MAX_URL)),
+      folder,
+      tags: tagsM?.[1]
+        ? tagsM[1]
+            .split(/[,，]/)
+            .map((t) => t.trim())
+            .filter(Boolean)
+            .slice(0, 20)
+        : [],
+      createdAt: Number.isFinite(addSec) ? addSec * 1000 : Date.now(),
+    })
+  }
+  return out.slice(0, MAX_ITEMS)
+}
+
+/** Merge imported into existing by id (or url+title); never wipe on empty/invalid. */
+function mergeBookmarks(existing: Bookmark[], incoming: Bookmark[]): Bookmark[] {
+  const byId = new Map(existing.map((b) => [b.id, b]))
+  const byUrl = new Map(existing.map((b) => [b.url, b.id]))
+  for (const b of incoming) {
+    const urlId = byUrl.get(b.url)
+    if (byId.has(b.id)) {
+      byId.set(b.id, { ...byId.get(b.id)!, ...b, id: b.id })
+    } else if (urlId && byId.has(urlId)) {
+      const prev = byId.get(urlId)!
+      byId.set(urlId, { ...prev, ...b, id: urlId })
+    } else {
+      byId.set(b.id, b)
+      byUrl.set(b.url, b.id)
+    }
+  }
+  return [...byId.values()].slice(0, MAX_ITEMS)
 }
 
 export default function Page() {
@@ -71,6 +215,9 @@ export default function Page() {
   const [filterTag, setFilterTag] = useState('')
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
+  const [importMsg, setImportMsg] = useState('')
+  const jsonImportRef = useRef<HTMLInputElement>(null)
+  const htmlImportRef = useRef<HTMLInputElement>(null)
 
   const allTags = useMemo(() => {
     const set = new Set<string>()
@@ -163,9 +310,91 @@ export default function Page() {
     setFolder('工作')
   }
 
+  function exportJson() {
+    downloadText(
+      'bookmarks.json',
+      JSON.stringify({ version: 1, bookmarks: items }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
+  function exportHtml() {
+    downloadText('bookmarks.html', toNetscapeHtml(items), 'text/html;charset=utf-8')
+  }
+
+  async function importJsonFile(file: File | null) {
+    if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown
+      const list = parseBookmarksJson(parsed)
+      if (!list?.length) {
+        setImportMsg('JSON 無效或無有效書籤')
+        return
+      }
+      setItems(mergeBookmarks(items, list))
+      setImportMsg(`已合併匯入 ${list.length} 筆書籤（JSON）`)
+    } catch {
+      setImportMsg('JSON 讀取或解析失敗，資料未變更')
+    }
+  }
+
+  async function importHtmlFile(file: File | null) {
+    if (!file) return
+    try {
+      const list = parseNetscapeHtml(await file.text())
+      if (!list.length) {
+        setImportMsg('bookmarks.html 無有效連結')
+        return
+      }
+      setItems(mergeBookmarks(items, list))
+      setImportMsg(`已合併匯入 ${list.length} 筆書籤（HTML）`)
+    } catch {
+      setImportMsg('HTML 讀取失敗，資料未變更')
+    }
+  }
+
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row">
+          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportJson}>
+            匯出 JSON
+          </button>
+          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportHtml}>
+            匯出 bookmarks.html
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => jsonImportRef.current?.click()}>
+            匯入 JSON
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => htmlImportRef.current?.click()}>
+            匯入 HTML
+          </button>
+          <input
+            ref={jsonImportRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void importJsonFile(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
+          <input
+            ref={htmlImportRef}
+            type="file"
+            accept="text/html,.html,.htm"
+            hidden
+            onChange={(e) => {
+              void importHtmlFile(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
+        </div>
+      }
+    >
       <div className="panel stack">
+        {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
         <div className="grid-2">
           <div className="stack" style={{ gap: 0 }}>
             <input

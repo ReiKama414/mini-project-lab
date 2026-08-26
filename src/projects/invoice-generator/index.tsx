@@ -99,11 +99,14 @@ export default function Page() {
           <button type="button" className="btn accent sm" disabled={!canExport} onClick={() => downloadText(`${invNo}.md`, bodyMd(), 'text/markdown;charset=utf-8')}>
             下載 MD
           </button>
+          <button type="button" className="btn ghost sm" disabled={!canExport} onClick={() => window.print()}>
+            列印／另存 PDF
+          </button>
         </div>
       }
     >
       <div className="grid-2">
-        <div className="panel stack">
+        <div className="panel stack no-print">
           <label className="label">發票編號</label>
           <div className="stack" style={{ gap: 0 }}>
             <input className={`field${!invOk ? ' is-invalid' : ''}`} value={invNo} maxLength={MAX_TEXT} onChange={(e) => setInvNo(limitText(e.target.value, MAX_TEXT))} />
@@ -177,8 +180,8 @@ export default function Page() {
             </div>
           ))}
         </div>
-        <div className="panel stack">
-          <div className="label">預覽 · {currency}</div>
+        <div className="panel stack invoice-print-area">
+          <div className="muted no-print">預覽 · {currency}</div>
           <h3 style={{ margin: 0 }}>{invNo}</h3>
           <div className="muted">
             {from} → {client}

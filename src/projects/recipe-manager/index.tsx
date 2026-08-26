@@ -1,9 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('recipe-manager')!
 
@@ -34,6 +34,64 @@ function parseIngredients(raw: string) {
     .slice(0, 100)
 }
 
+function normalizeIngredients(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw
+      .filter((x): x is string => typeof x === 'string')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, 100)
+  }
+  if (typeof raw === 'string') return parseIngredients(raw)
+  return []
+}
+
+function parseRecipe(row: unknown): Recipe | null {
+  if (!row || typeof row !== 'object') return null
+  const r = row as Record<string, unknown>
+  const title = typeof r.title === 'string' ? limitText(r.title.trim(), MAX_TITLE) : ''
+  if (!title) return null
+  const category = typeof r.category === 'string' && CATEGORIES.includes(r.category) ? r.category : '其他'
+  const time = typeof r.time === 'number' && Number.isFinite(r.time) ? clamp(Math.round(r.time), 1, MAX_TIME) : 30
+  const baseServings =
+    typeof r.baseServings === 'number' && Number.isFinite(r.baseServings)
+      ? clamp(Math.round(r.baseServings), 1, MAX_SERVINGS)
+      : 2
+  return {
+    id: typeof r.id === 'string' && r.id ? r.id : uid('rcp'),
+    title,
+    category,
+    ingredients: normalizeIngredients(r.ingredients),
+    steps: typeof r.steps === 'string' ? limitText(r.steps, MAX_STEPS) : '',
+    time,
+    baseServings,
+  }
+}
+
+function parseRecipesJson(raw: unknown): Recipe[] | null {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as { recipes?: unknown }).recipes)
+      ? (raw as { recipes: unknown[] }).recipes
+      : null
+  if (!list) return null
+  const out: Recipe[] = []
+  for (const row of list) {
+    const r = parseRecipe(row)
+    if (r) out.push(r)
+  }
+  return out.slice(0, MAX_ITEMS)
+}
+
+function mergeRecipes(existing: Recipe[], incoming: Recipe[]): Recipe[] {
+  const byId = new Map(existing.map((r) => [r.id, r]))
+  for (const r of incoming) {
+    if (byId.has(r.id)) byId.set(r.id, { ...byId.get(r.id)!, ...r })
+    else byId.set(r.id, r)
+  }
+  return [...byId.values()].slice(0, MAX_ITEMS)
+}
+
 export default function Page() {
   const [recipes, setRecipes] = useLocalStorage<Recipe[]>('lab:recipe-manager', [])
   const [active, setActive] = useState<string | null>(null)
@@ -47,6 +105,8 @@ export default function Page() {
   const [catFilter, setCatFilter] = useState('all')
   const [servings, setServings] = useState(2)
   const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [importMsg, setImportMsg] = useState('')
+  const importRef = useRef<HTMLInputElement>(null)
 
   const time = parseNumber(timeStr)
   const baseServings = parseNumber(baseServingsStr)
@@ -108,12 +168,11 @@ export default function Page() {
   function openRecipe(id: string) {
     const r = recipes.find((x) => x.id === id)
     if (!r) return
-    // 舊資料 ingredients 可能是字串
-    const ingredients = Array.isArray(r.ingredients)
+    const ings = Array.isArray(r.ingredients)
       ? r.ingredients
       : parseIngredients(String(r.ingredients ?? ''))
     if (!Array.isArray(r.ingredients)) {
-      setRecipes(recipes.map((x) => (x.id === id ? { ...x, ingredients, baseServings: x.baseServings || 2 } : x)))
+      setRecipes(recipes.map((x) => (x.id === id ? { ...x, ingredients: ings, baseServings: x.baseServings || 2 } : x)))
     }
     setActive(id)
     setServings(r.baseServings || 2)
@@ -123,10 +182,73 @@ export default function Page() {
   const factor = current ? servings / Math.max(1, current.baseServings || 2) : 1
   const scaled = currentIngredients.map((line) => scaleLine(line, factor))
 
+  function exportJson() {
+    downloadText(
+      'recipes.json',
+      JSON.stringify({ version: 1, recipes }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
+  async function importJson(file: File | null) {
+    if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown
+      const list = parseRecipesJson(parsed)
+      if (!list?.length) {
+        setImportMsg('JSON 無效或無有效食譜，資料未變更')
+        return
+      }
+      setRecipes(mergeRecipes(recipes, list))
+      setImportMsg(`已合併匯入 ${list.length} 則食譜`)
+    } catch {
+      setImportMsg('讀取或解析失敗，資料未變更')
+    }
+  }
+
+  function downloadScaledIngredients() {
+    if (!current || !scaled.length) return
+    const body = [
+      `${current.title} · ${servings} 人份`,
+      `基準 ${current.baseServings || 2} 人份 · 約 ${current.time} 分鐘`,
+      '',
+      '【食材】',
+      ...scaled.map((l, i) => `${i + 1}. ${l}`),
+      '',
+      '【步驟】',
+      current.steps || '—',
+    ].join('\n')
+    const safe = current.title.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 40) || 'recipe'
+    downloadText(`${safe}-scaled.txt`, body)
+  }
+
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row">
+          <button type="button" className="btn ghost sm" disabled={!recipes.length} onClick={exportJson}>
+            匯出 JSON
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
+            匯入 JSON
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void importJson(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
+        </div>
+      }
+    >
       <div className="grid-2">
         <div className="panel stack">
+          {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
           <div className="stack" style={{ gap: 0 }}>
             <input
               className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`}
@@ -291,6 +413,14 @@ export default function Page() {
                 </button>
                 <button className="btn sm ghost" onClick={() => setServings(current.baseServings)}>
                   重置
+                </button>
+                <button
+                  type="button"
+                  className="btn sm teal"
+                  disabled={!scaled.length}
+                  onClick={downloadScaledIngredients}
+                >
+                  下載縮放食材
                 </button>
               </div>
               <div>

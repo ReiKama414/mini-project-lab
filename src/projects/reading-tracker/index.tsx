@@ -3,7 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('reading-tracker')!
 
@@ -21,6 +21,17 @@ type Book = {
   addedAt: string
 }
 
+type OlDoc = {
+  key: string
+  title?: string
+  author_name?: string[]
+  number_of_pages_median?: number
+}
+
+type OlSearchResponse = {
+  docs?: OlDoc[]
+}
+
 const STATUS_LABEL: Record<Status, string> = {
   want: '想讀',
   reading: '閱讀中',
@@ -32,6 +43,7 @@ const MAX_TITLE = 120
 const MAX_AUTHOR = 80
 const MAX_NOTES = 2000
 const MAX_PAGES = 100000
+const MAX_OL_Q = 80
 
 export default function Page() {
   const [books, setBooks] = useLocalStorage<Book[]>('lab:reading-tracker', [])
@@ -39,6 +51,10 @@ export default function Page() {
   const [author, setAuthor] = useState('')
   const [pagesStr, setPagesStr] = useState('300')
   const [filter, setFilter] = useState<'all' | Status>('all')
+  const [olQ, setOlQ] = useState('')
+  const [olResults, setOlResults] = useState<OlDoc[]>([])
+  const [olLoading, setOlLoading] = useState(false)
+  const [olError, setOlError] = useState('')
 
   const pages = parseNumber(pagesStr)
   const titleOk = isNonEmpty(title)
@@ -106,8 +122,73 @@ export default function Page() {
     )
   }
 
+  async function searchOpenLibrary() {
+    const q = olQ.trim()
+    if (!q) {
+      setOlError('請輸入書名或作者')
+      setOlResults([])
+      return
+    }
+    setOlLoading(true)
+    setOlError('')
+    setOlResults([])
+    try {
+      const params = new URLSearchParams({ q, limit: '8' })
+      const res = await fetch(`https://openlibrary.org/search.json?${params}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = (await res.json()) as OlSearchResponse
+      const docs = data.docs ?? []
+      setOlResults(docs)
+      if (!docs.length) setOlError('找不到符合的書籍')
+    } catch {
+      setOlResults([])
+      setOlError('無法連線 Open Library，請改為手動填寫。')
+    } finally {
+      setOlLoading(false)
+    }
+  }
+
+  function pickOl(doc: OlDoc) {
+    setTitle(limitText(doc.title?.trim() || '', MAX_TITLE))
+    const authorName = doc.author_name?.[0]?.trim() || ''
+    setAuthor(limitText(authorName, MAX_AUTHOR))
+    const n = doc.number_of_pages_median
+    if (typeof n === 'number' && n >= 1) {
+      setPagesStr(String(clamp(Math.round(n), 1, MAX_PAGES)))
+    }
+    setOlResults([])
+    setOlError('')
+  }
+
+  function exportJson() {
+    downloadText('reading-tracker.json', JSON.stringify(books, null, 2), 'application/json;charset=utf-8')
+  }
+
+  function exportCsv() {
+    const header = 'title,author,pages,current,status,notes,finishDate,addedAt'
+    const body = books
+      .map(
+        (b) =>
+          `${JSON.stringify(b.title)},${JSON.stringify(b.author)},${b.pages},${b.current},${b.status},${JSON.stringify(b.notes)},${JSON.stringify(b.finishDate ?? '')},${JSON.stringify(b.addedAt)}`,
+      )
+      .join('\n')
+    downloadText('reading-tracker.csv', `${header}\n${body}`, 'text/csv;charset=utf-8')
+  }
+
   return (
-    <ProjectShell meta={meta}>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row" style={{ gap: 8 }}>
+          <button type="button" className="btn ghost sm" disabled={!books.length} onClick={exportJson}>
+            匯出 JSON
+          </button>
+          <button type="button" className="btn ghost sm" disabled={!books.length} onClick={exportCsv}>
+            匯出 CSV
+          </button>
+        </div>
+      }
+    >
       <div className="panel stack">
         <div className="grid-3">
           <div className="metric">
@@ -129,6 +210,52 @@ export default function Page() {
             <div style={{ fontSize: 24 }}>{stats.pagesRead}</div>
           </div>
         </div>
+        <div className="label" style={{ margin: 0 }}>
+          Open Library 搜尋（選填）
+        </div>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <div className="stack" style={{ flex: 1, minWidth: 160, gap: 0 }}>
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋書名／作者並帶入…"
+              value={olQ}
+              maxLength={MAX_OL_Q}
+              onChange={(e) => setOlQ(limitText(e.target.value, MAX_OL_Q))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void searchOpenLibrary()
+              }}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(olQ)} / {MAX_OL_Q}
+              </span>
+            </div>
+          </div>
+          <button type="button" className="btn ghost" disabled={olLoading || !olQ.trim()} onClick={() => void searchOpenLibrary()}>
+            {olLoading ? '搜尋中…' : '搜尋'}
+          </button>
+        </div>
+        {olError && <p className="field-error">{olError}</p>}
+        {olResults.length > 0 && (
+          <ul className="list">
+            {olResults.map((doc) => (
+              <li key={doc.key} className="list-item row" style={{ cursor: 'pointer' }} onClick={() => pickOl(doc)}>
+                <div className="stack" style={{ flex: 1, gap: 2 }}>
+                  <strong>{doc.title || '（無書名）'}</strong>
+                  <span className="muted">
+                    {doc.author_name?.[0] || '未知作者'}
+                    {doc.number_of_pages_median ? ` · ${doc.number_of_pages_median} 頁` : ''}
+                  </span>
+                </div>
+                <button type="button" className="btn sm teal" onClick={(e) => { e.stopPropagation(); pickOl(doc) }}>
+                  選用
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="grid-2">
           <div className="stack" style={{ gap: 0 }}>
             <input

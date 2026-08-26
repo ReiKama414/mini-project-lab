@@ -18,12 +18,36 @@ const T = 70
 const D = 160
 const U = 300
 
+function decodeEntities(s: string) {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+}
+
+function metaContent(html: string, prop: string) {
+  const re1 = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']*)["']`,
+    'i',
+  )
+  const re2 = new RegExp(
+    `<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${prop}["']`,
+    'i',
+  )
+  const m = html.match(re1) || html.match(re2)
+  return m?.[1] ? decodeEntities(m[1].trim()) : ''
+}
+
 export default function Page() {
   const [title, setTitle] = useLocalStorage('lab:og-preview:title', 'Mini Project Lab')
   const [desc, setDesc] = useLocalStorage('lab:og-preview:desc', '本機優先的實用小工具集合')
   const [url, setUrl] = useLocalStorage('lab:og-preview:url', 'https://mini-project-lab-wheat.vercel.app')
   const [image, setImage] = useLocalStorage('lab:og-preview:image', 'https://picsum.photos/1200/630')
   const [copied, setCopied] = useState(false)
+  const [fetchMsg, setFetchMsg] = useState('')
+  const [fetching, setFetching] = useState(false)
   const urlOk = !isNonEmpty(url) || isValidHttpUrl(url)
   const imgOk = !isNonEmpty(image) || isValidHttpUrl(image)
 
@@ -37,10 +61,50 @@ export default function Page() {
     ].join('\n')
   }, [title, desc, url, image])
 
+  async function fetchFromUrl() {
+    const full = normalizeHttpUrl(url)
+    if (!isValidHttpUrl(full)) {
+      setFetchMsg('請先輸入有效網址')
+      return
+    }
+    setFetching(true)
+    setFetchMsg('抓取中…')
+    try {
+      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(full)}&t=${Date.now()}`
+      const res = await fetch(proxy)
+      if (!res.ok) throw new Error('proxy fail')
+      const data = (await res.json()) as { contents?: string }
+      const html = data.contents || ''
+      if (!html) throw new Error('empty')
+      const ogTitle =
+        metaContent(html, 'og:title') ||
+        html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ||
+        ''
+      const ogDesc =
+        metaContent(html, 'og:description') || metaContent(html, 'description') || ''
+      const ogImage = metaContent(html, 'og:image')
+      if (ogTitle) setTitle(limitText(decodeEntities(ogTitle), T))
+      if (ogDesc) setDesc(limitText(decodeEntities(ogDesc), D))
+      if (ogImage) {
+        const imgUrl = normalizeHttpUrl(ogImage)
+        if (isValidHttpUrl(imgUrl)) setImage(limitText(imgUrl, U))
+      }
+      setFetchMsg(
+        ogTitle || ogDesc || ogImage
+          ? '已填入抓到的 OG 欄位'
+          : '頁面無明顯 OG 標籤，欄位未變更',
+      )
+    } catch {
+      setFetchMsg('抓取失敗（CORS／代理限制），資料未變更')
+    } finally {
+      setFetching(false)
+    }
+  }
+
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        視覺示意預覽，非各社群平台真實渲染。實際外觀依平台裁切與快取而定。
+        視覺示意預覽，非各社群平台真實渲染。實際外觀依平台裁切與快取而定。可從網址抓取 og:title／description／image。
       </p>
       <div className="grid-2">
         <div className="panel stack">
@@ -88,7 +152,16 @@ export default function Page() {
             />
             {!imgOk && <p className="field-error">圖片網址無效</p>}
           </label>
+          {fetchMsg && <p className="muted" style={{ fontSize: 13 }}>{fetchMsg}</p>}
           <div className="row">
+            <button
+              type="button"
+              className="btn teal"
+              disabled={fetching || !urlOk || !isNonEmpty(url)}
+              onClick={() => void fetchFromUrl()}
+            >
+              {fetching ? '抓取中…' : '從網址抓取 OG'}
+            </button>
             <button
               type="button"
               className="btn accent"
