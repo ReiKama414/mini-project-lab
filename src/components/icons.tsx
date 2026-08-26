@@ -11,6 +11,7 @@ import {
   Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
+  Plus,
   Search,
   X,
 } from 'lucide-react'
@@ -48,6 +49,10 @@ export function IconCopy(props: LucideProps) {
 
 export function IconCalendar(props: LucideProps) {
   return <CalendarDays {...defaultProps} {...props} />
+}
+
+export function IconPlus(props: LucideProps) {
+  return <Plus {...defaultProps} {...props} />
 }
 
 export function IconClose(props: LucideProps) {

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, copyText, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -202,9 +203,8 @@ export default function Page() {
           <button type="button" className="btn sm teal" onClick={() => downloadText('schema.mmd', mermaid, 'text/plain;charset=utf-8')}>
             匯出 Mermaid
           </button>
-          <button type="button" className="btn accent sm" onClick={addTable}>
-            新增資料表
-          </button>
+          <AddButton type="button"  className="sm" onClick={addTable}>
+            新增資料表</AddButton>
         </div>
       }
     >

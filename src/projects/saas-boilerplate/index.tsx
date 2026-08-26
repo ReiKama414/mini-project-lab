@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, isNonEmpty, isValidEmail, charCount, clamp, parseNumber } from '../../lib/utils'
@@ -250,9 +251,8 @@ export default function Page() {
                     setDraft((d) => ({ ...d, mrr: clamp(n, 0, MRR_MAX) }))
                   }}
                 />
-                <button type="button" className="btn accent sm" onClick={addCustomer} disabled={!customerDraftOk}>
-                  新增
-                </button>
+                <AddButton type="button"  className="sm" onClick={addCustomer} disabled={!customerDraftOk}>
+                  新增</AddButton>
               </div>
               <div className="field-meta">
                 <span className={!customerDraftOk ? 'warn' : undefined}>

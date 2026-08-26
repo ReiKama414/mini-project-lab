@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn, charCount } from '../../lib/utils'
@@ -259,9 +260,8 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel stack">
           <div className="row">
-            <button
-              type="button"
-              className="btn accent sm"
+            <AddButton
+              className="sm"
               onClick={() => {
                 const id = uid('e')
                 setEps((xs) => [...xs, { id, method: 'GET', path: '/new', summary: 'New', desc: '說明', status: 200, response: '{ "ok": true }' }])
@@ -269,7 +269,7 @@ export default function Page() {
               }}
             >
               新增 endpoint
-            </button>
+            </AddButton>
           </div>
           <ul className="list">
             {eps.map((e) => (

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
@@ -208,9 +209,8 @@ export default function Page() {
               if (urlOk) setUrl(normalized)
             }}
           />
-          <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
-            新增
-          </button>
+          <AddButton type="button"  onClick={add} disabled={!canAdd}>
+            新增</AddButton>
         </div>
         <div className="field-meta">
           <span className={!canAdd ? 'warn' : undefined}>{canAdd ? '可新增' : '需名稱與有效 http(s) URL'}</span>

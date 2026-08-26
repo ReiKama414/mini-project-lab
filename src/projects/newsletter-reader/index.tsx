@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount } from '../../lib/utils'
@@ -122,9 +123,9 @@ export default function Page() {
         <span className="mono muted" style={{ fontSize: 12 }}>
           {charCount(q)}/{Q_MAX}
         </span>
-        <button
+        <AddButton
           type="button"
-          className="btn sm teal"
+          className="sm teal"
           onClick={() => {
             const n: NL = {
               id: uid('nl'),
@@ -143,7 +144,7 @@ export default function Page() {
           }}
         >
           新增
-        </button>
+        </AddButton>
       </div>
       <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
         <span className="muted">資料夾</span>

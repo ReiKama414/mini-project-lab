@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, downloadText, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -236,9 +237,8 @@ export default function Page() {
             placeholder="最新"
             title="最新版本"
           />
-          <button
+          <AddButton
             type="button"
-            className="btn accent"
             disabled={!isNonEmpty(name)}
             onClick={() => {
               if (!isNonEmpty(name)) return
@@ -257,7 +257,7 @@ export default function Page() {
             }}
           >
             新增
-          </button>
+          </AddButton>
         </div>
         <div className="field-meta">
           <span className={!isNonEmpty(name) ? 'warn' : undefined}>{!isNonEmpty(name) ? '請輸入套件名' : ' '}</span>

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -173,9 +174,8 @@ export default function Page() {
             />
             {pagesStr !== '' && !pagesOk && <p className="field-error">頁數須 ≥ 0</p>}
           </div>
-          <button className="btn accent" onClick={add} disabled={!canAdd} style={{ alignSelf: 'end' }}>
-            新增書籍
-          </button>
+          <AddButton  onClick={add} disabled={!canAdd} style={{ alignSelf: 'end' }}>
+            新增書籍</AddButton>
         </div>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 本，請先刪除再新增</p>}
       </div>

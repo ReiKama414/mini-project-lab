@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import {
@@ -237,9 +238,8 @@ export default function Page() {
               </button>
             </>
           ) : (
-            <button type="button" className="btn accent" onClick={add} disabled={!canSave}>
-              新增書籤
-            </button>
+            <AddButton type="button"  onClick={add} disabled={!canSave}>
+              新增書籤</AddButton>
           )}
         </div>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆書籤，請先刪除再新增</p>}

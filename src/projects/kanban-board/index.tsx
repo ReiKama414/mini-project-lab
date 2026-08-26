@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -150,9 +151,8 @@ export default function Page() {
             <option value="medium">中優先</option>
             <option value="low">低優先</option>
           </select>
-          <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
-            新增
-          </button>
+          <AddButton type="button"  onClick={add} disabled={!canAdd}>
+            新增</AddButton>
         </div>
 
         <div className="row">

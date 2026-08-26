@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, charCount, isValidHttpUrl, limitText } from '../../lib/utils'
 
@@ -183,9 +184,9 @@ export default function Page() {
 
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <span className="label">社群圖示列</span>
-            <button
+            <AddButton
               type="button"
-              className="btn sm ghost"
+              className="sm ghost"
               disabled={socials.length >= MAX_SOCIALS}
               onClick={() =>
                 setSocials((xs) =>
@@ -196,7 +197,7 @@ export default function Page() {
               }
             >
               新增
-            </button>
+            </AddButton>
           </div>
           {socials.map((s) => (
             <div key={s.id} className="row">
@@ -226,13 +227,13 @@ export default function Page() {
             </div>
           ))}
 
-          <button
+          <AddButton
             type="button"
-            className="btn ghost"
+            className="ghost"
             onClick={() => setLinks((xs) => xs.length >= MAX_LINKS ? xs : [...xs, { id: uid('l'), label: '新連結', url: 'https://' }])} disabled={links.length >= MAX_LINKS}
           >
             新增連結
-          </button>
+          </AddButton>
           {links.map((l, i) => (
             <div key={l.id} className="row">
               <div className="row">

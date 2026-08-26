@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import type { ProjectMeta } from '../registry'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -141,12 +142,10 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={() => loadFromText(raw)}>
             從文字載入
           </button>
-          <button type="button" className="btn ghost" onClick={addRow}>
-            新增列
-          </button>
-          <button type="button" className="btn ghost" onClick={addCol}>
-            新增欄
-          </button>
+          <AddButton type="button"  className="ghost" onClick={addRow}>
+            新增列</AddButton>
+          <AddButton type="button"  className="ghost" onClick={addCol}>
+            新增欄</AddButton>
           <button
             type="button"
             className="btn ghost"

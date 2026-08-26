@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, charCount, isNonEmpty, limitText } from '../../lib/utils'
@@ -164,9 +165,9 @@ export default function Page() {
             <div className="field-meta"><span className={!isNonEmpty(title) ? 'warn' : undefined}>{!isNonEmpty(title) ? '標題不可空白' : ' '}</span><span>{charCount(title)} / {MAX_TITLE}</span></div>
           </div>
           <div className="row">
-            <button
+            <AddButton
               type="button"
-              className="btn ghost"
+              className="ghost"
               disabled={qs.length >= MAX_QUESTIONS}
               onClick={() => {
                 if (qs.length >= MAX_QUESTIONS) return
@@ -174,7 +175,7 @@ export default function Page() {
               }}
             >
               新增題目
-            </button>
+            </AddButton>
             <span className="muted">
               {qs.length}/{MAX_QUESTIONS} 題
             </span>

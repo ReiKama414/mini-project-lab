@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, limitText, isNonEmpty, charCount, cn } from '../../lib/utils'
@@ -101,9 +102,8 @@ export default function Page() {
             onChange={(e) => setNewKey(limitText(e.target.value.replace(/[^a-zA-Z0-9_.:-]/g, ''), KEY_MAX))}
             style={{ width: 140 }}
           />
-          <button type="button" className="btn accent" onClick={addFlag} disabled={!isNonEmpty(newKey)}>
-            新增 Flag
-          </button>
+          <AddButton type="button"  onClick={addFlag} disabled={!isNonEmpty(newKey)}>
+            新增 Flag</AddButton>
         </div>
         <div className="field-meta">
           <span className={!isNonEmpty(newKey) ? 'warn' : undefined}>{isNonEmpty(newKey) ? '可新增' : '請輸入 flag key'}</span>

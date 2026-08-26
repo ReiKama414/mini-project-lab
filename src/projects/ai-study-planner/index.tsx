@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, limitText, charCount, isNonEmpty, clamp, parseNumber, cn } from '../../lib/utils'
@@ -228,9 +229,8 @@ export default function Page() {
               value={hours}
               onChange={(e) => setHours(clamp(parseNumber(e.target.value, 1), 1, HOURS_MAX))}
             />
-            <button type="button" className="btn accent" onClick={addSubject} disabled={!isNonEmpty(name)}>
-              新增
-            </button>
+            <AddButton type="button"  onClick={addSubject} disabled={!isNonEmpty(name)}>
+              新增</AddButton>
           </div>
           <div className="field-meta">
             <span className={!isNonEmpty(name) ? 'warn' : undefined}>

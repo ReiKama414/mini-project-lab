@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, downloadText, uid } from '../../lib/utils'
@@ -126,9 +127,9 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
-          <button className="btn accent" onClick={create} disabled={notes.length >= MAX_ITEMS}>
+          <AddButton onClick={create} disabled={notes.length >= MAX_ITEMS}>
             新增筆記
-          </button>
+          </AddButton>
           {notes.length >= MAX_ITEMS && <p className="field-error">已達上限 {MAX_ITEMS} 則筆記</p>}
           <div className="field-wrap">
             <input

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -241,9 +242,8 @@ export default function Page() {
               </span>
             </div>
           </div>
-          <button type="button" className="btn sm teal" onClick={addDeck} disabled={!canAddDeck}>
-            新增牌組
-          </button>
+          <AddButton type="button"  className="sm teal" onClick={addDeck} disabled={!canAddDeck}>
+            新增牌組</AddButton>
           <button type="button"
             className={`btn sm ${mode === 'study' ? 'accent' : 'ghost'}`}
             onClick={() => setMode('study')}
@@ -355,9 +355,9 @@ export default function Page() {
             </div>
           </div>
           <div className="row">
-            <button type="button" className="btn accent" onClick={saveCard} disabled={!canSaveCard}>
+            <AddButton type="button" onClick={saveCard} disabled={!canSaveCard}>
               {editingId ? '儲存修改' : '新增卡片'}
-            </button>
+            </AddButton>
             {cardsAtLimit && <p className="field-error">此牌組已達 {MAX_CARDS} 張上限</p>}
             {editingId && (
               <button type="button"

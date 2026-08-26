@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, copyText, uid, limitText, charCount, isNonEmpty, isValidEmail, cn } from '../../lib/utils'
 
@@ -348,13 +349,13 @@ export default function Page() {
           )}
           {section === 'exp' && (
             <>
-              <button
+              <AddButton
                 type="button"
-                className="btn ghost"
+                className="ghost"
                 onClick={() => setExps((xs) => [...xs, { id: uid('e'), role: '職稱', company: '公司', period: '2024 — 至今', detail: '成果…' }])}
               >
                 新增經歷
-              </button>
+              </AddButton>
               {exps.length === 0 ? (
                 <div className="list-item">
                   <p className="muted" style={{ margin: 0 }}>
@@ -415,13 +416,13 @@ export default function Page() {
           )}
           {section === 'edu' && (
             <>
-              <button
+              <AddButton
                 type="button"
-                className="btn ghost"
+                className="ghost"
                 onClick={() => setEdus((xs) => [...xs, { id: uid('ed'), school: '學校', degree: '學位', year: '2020' }])}
               >
                 新增學歷
-              </button>
+              </AddButton>
               {edus.length === 0 ? (
                 <div className="list-item">
                   <p className="muted" style={{ margin: 0 }}>

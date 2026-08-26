@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -220,9 +221,8 @@ export default function Page() {
             </div>
           </div>
         </div>
-        <button className="btn accent" onClick={add} disabled={!canAdd}>
-          新增支出
-        </button>
+        <AddButton  onClick={add} disabled={!canAdd}>
+          新增支出</AddButton>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
 
         {byCat.length > 0 && (

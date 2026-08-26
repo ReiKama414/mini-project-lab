@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, isValidEmail, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 
@@ -166,13 +167,13 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
           )}
           {section === 'projects' && (
             <>
-              <button
+              <AddButton
                 type="button"
-                className="btn ghost"
+                className="ghost"
                 onClick={() => setProjects((ps) => [...ps, { id: uid('p'), title: '新作品', desc: '描述…', link: '#', tags: '' }])}
               >
                 新增作品
-              </button>
+              </AddButton>
               {projects.map((p) => {
                 const linkOk = !isNonEmpty(p.link) || p.link === '#' || isValidHttpUrl(normalizeHttpUrl(p.link))
                 return (

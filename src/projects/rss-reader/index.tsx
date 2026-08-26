@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
@@ -206,9 +207,9 @@ export default function Page() {
           <input className={cn('field', !isNonEmpty(title) && 'is-invalid')} maxLength={TITLE_MAX} placeholder="標題" value={title} onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))} />
           <textarea className="field" rows={2} maxLength={SUMMARY_MAX} placeholder="摘要" value={summary} onChange={(e) => setSummary(limitText(e.target.value, SUMMARY_MAX))} />
           <div className="field-meta"><span className="field-hint">手動新增文章</span><span>{charCount(summary)}/{SUMMARY_MAX}</span></div>
-          <button
+          <AddButton
             type="button"
-            className="btn ghost"
+            className="ghost"
             onClick={() => {
               if (!isNonEmpty(title)) return
               const src = sources[0]
@@ -231,7 +232,7 @@ export default function Page() {
             disabled={!isNonEmpty(title)}
           >
             新增項目
-          </button>
+          </AddButton>
         </div>
         <div className="panel stack">
           <div className="row" style={{ flexWrap: 'wrap' }}>

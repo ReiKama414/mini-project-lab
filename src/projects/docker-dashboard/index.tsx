@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, pick, randomInt, uid } from '../../lib/utils'
@@ -147,9 +148,8 @@ export default function Page() {
           onChange={(e) => setNewImage(limitText(e.target.value, IMAGE_MAX))}
           style={{ flex: 1, minWidth: 160 }}
         />
-        <button type="button" className="btn accent" onClick={add} disabled={!isNonEmpty(newImage)}>
-          新增容器
-        </button>
+        <AddButton type="button"  onClick={add} disabled={!isNonEmpty(newImage)}>
+          新增容器</AddButton>
       </div>
       <div className="field-meta" style={{ marginBottom: 12 }}>
         <span className={!isNonEmpty(newImage) ? 'warn' : undefined}>

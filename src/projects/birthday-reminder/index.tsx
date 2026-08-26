@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -179,9 +180,8 @@ export default function Page() {
             {!dayOk && <p className="field-error">此月最多 {maxDay} 日</p>}
           </label>
         </div>
-        <button className="btn accent" onClick={add} disabled={!canAdd}>
-          新增生日
-        </button>
+        <AddButton  onClick={add} disabled={!canAdd}>
+          新增生日</AddButton>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 人</p>}
       </div>
 

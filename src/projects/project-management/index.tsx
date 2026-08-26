@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, charCount, isNonEmpty, limitText } from '../../lib/utils'
@@ -168,9 +169,7 @@ export default function Page() {
             ))}
           </select>
           <input className={`field${!dueOk ? ' is-invalid' : ''}`} type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-          <button
-            type="button"
-            className="btn accent"
+          <AddButton
             disabled={!canAddTask}
             onClick={() => {
               if (!canAddTask) return
@@ -182,7 +181,7 @@ export default function Page() {
             }}
           >
             新增任務
-          </button>
+          </AddButton>
         </div>
         {tasksAtLimit && <p className="field-error">已達上限 {MAX_TASKS} 個任務</p>}
         {!dueOk && <p className="field-error">請選擇有效期限</p>}
@@ -203,9 +202,8 @@ export default function Page() {
             <input className="field" placeholder="新專案名稱" value={newProject} maxLength={MAX_PROJECT_NAME} onChange={(e) => setNewProject(limitText(e.target.value, MAX_PROJECT_NAME))} />
             <div className="field-meta"><span className={projects.length >= MAX_PROJECTS ? 'warn' : undefined}>{projects.length >= MAX_PROJECTS ? `專案上限 ${MAX_PROJECTS}` : ' '}</span><span>{charCount(newProject)} / {MAX_PROJECT_NAME}</span></div>
           </div>
-          <button
-            type="button"
-            className="btn ghost"
+          <AddButton
+            className="ghost"
             disabled={!canAddProject}
             onClick={() => {
               if (!canAddProject) return
@@ -216,7 +214,7 @@ export default function Page() {
             }}
           >
             新增專案
-          </button>
+          </AddButton>
           <div className="field-wrap" style={{ flex: 1, minWidth: 120 }}>
             <input className="field" style={{ width: '100%' }} placeholder="搜尋任務…" value={q} maxLength={MAX_SEARCH} onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))} />
             <div className="field-meta"><span /><span>{charCount(q)} / {MAX_SEARCH}</span></div>

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { pick, randomInt, uid, charCount, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl } from '../../lib/utils'
@@ -140,9 +141,8 @@ export default function Page() {
               <input className={`field${draft.length > 0 && !draftOk ? ' is-invalid' : ''}`} style={{ width: '100%' }} value={draft} maxLength={MAX_TODO} placeholder="新增待辦" onChange={(e) => setDraft(limitText(e.target.value, MAX_TODO))} onKeyDown={(e) => e.key === 'Enter' && addTodo()} />
               <div className="field-meta"><span className={todosAtLimit ? 'warn' : undefined}>{todosAtLimit ? `待辦上限 ${MAX_TODOS}` : ' '}</span><span>{charCount(draft)} / {MAX_TODO}</span></div>
             </div>
-            <button type="button" className="btn accent" onClick={addTodo} disabled={!canAddTodo}>
-              新增
-            </button>
+            <AddButton type="button"  onClick={addTodo} disabled={!canAddTodo}>
+              新增</AddButton>
           </div>
           <ul className="list">
             {todos.map((t) => (

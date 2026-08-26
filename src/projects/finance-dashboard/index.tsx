@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -236,9 +237,8 @@ export default function Page() {
                 <option key={c}>{c}</option>
               ))}
             </select>
-            <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
-              新增
-            </button>
+            <AddButton type="button"  onClick={add} disabled={!canAdd}>
+              新增</AddButton>
           </div>
           <div className="label">支出分類</div>
           {Object.entries(byCat)

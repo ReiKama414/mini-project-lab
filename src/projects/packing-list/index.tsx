@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -136,9 +137,8 @@ export default function Page() {
                 <option key={c}>{c}</option>
               ))}
             </select>
-            <button className="btn accent" onClick={add} disabled={!canAdd}>
-              新增
-            </button>
+            <AddButton  onClick={add} disabled={!canAdd}>
+              新增</AddButton>
           </div>
           <div className="field-meta">
             <span className={atLimit || (!nameOk && custom.length > 0) ? 'warn' : undefined}>

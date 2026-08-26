@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -83,9 +84,8 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
-          <button type="button" className="btn accent" onClick={create}>
-            新增筆記
-          </button>
+          <AddButton type="button"  onClick={create}>
+            新增筆記</AddButton>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {FOLDERS.map((f) => (
               <button
