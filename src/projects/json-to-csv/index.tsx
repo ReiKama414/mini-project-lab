@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText, downloadText, uid } from '../../lib/utils'
@@ -330,13 +331,7 @@ export default function Page() {
                   >
                     還原輸入
                   </button>
-                  <button
-                    type="button"
-                    className="btn sm danger"
-                    onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))}
-                  >
-                    刪除
-                  </button>
+                  <DeleteButton onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))} label="刪除" />
                 </div>
               </li>
             ))}

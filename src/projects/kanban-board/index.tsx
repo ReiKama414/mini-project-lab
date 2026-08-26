@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -283,12 +284,7 @@ export default function Page() {
                             <button className="btn sm ghost" onClick={() => startEdit(c)}>
                               編輯
                             </button>
-                            <button
-                              className="btn sm ghost"
-                              onClick={() => setCards(cards.filter((x) => x.id !== c.id))}
-                            >
-                              刪除
-                            </button>
+                            <DeleteButton onClick={() => setCards(cards.filter((x) => x.id !== c.id))} label="刪除" />
                           </div>
                         </>
                       )}

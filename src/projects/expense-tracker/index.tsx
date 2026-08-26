@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -267,12 +268,7 @@ export default function Page() {
                 </span>
               </div>
               <span className="mono">${i.amount.toLocaleString()}</span>
-              <button
-                className="btn sm ghost"
-                onClick={() => setItems(items.filter((x) => x.id !== i.id))}
-              >
-                刪除
-              </button>
+              <DeleteButton onClick={() => setItems(items.filter((x) => x.id !== i.id))} label="刪除" />
             </li>
           ))}
           {!filtered.length && <p className="muted">此月份尚無支出</p>}

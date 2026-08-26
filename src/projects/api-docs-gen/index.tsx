@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn, charCount } from '../../lib/utils'
@@ -310,9 +311,7 @@ export default function Page() {
               <textarea className="field" rows={2} value={current.desc} onChange={(e) => update(current.id, { desc: limitText(e.target.value, DESC_MAX) })} />
               <textarea className="field mono" rows={3} placeholder="request body" value={current.body || ''} onChange={(e) => update(current.id, { body: limitText(e.target.value, BODY_MAX) })} />
               <textarea className="field mono" rows={3} placeholder="response" value={current.response || ''} onChange={(e) => update(current.id, { response: limitText(e.target.value, BODY_MAX) })} />
-              <button type="button" className="btn sm danger" onClick={() => setEps((xs) => xs.filter((x) => x.id !== current.id))}>
-                刪除
-              </button>
+              <DeleteButton onClick={() => setEps((xs) => xs.filter((x) => x.id !== current.id))} label="刪除" />
             </div>
           )}
         </div>

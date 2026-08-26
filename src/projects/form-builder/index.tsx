@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, charCount, isNonEmpty, limitText } from '../../lib/utils'
@@ -445,13 +446,7 @@ export default function Page() {
                       {s.values[f.id] || '（空）'}
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    className="btn sm danger"
-                    onClick={() => setSubmissions((xs) => xs.filter((x) => x.id !== s.id))}
-                  >
-                    刪除這筆
-                  </button>
+                  <DeleteButton onClick={() => setSubmissions((xs) => xs.filter((x) => x.id !== s.id))} label="刪除這筆" />
                 </li>
               ))}
             </ul>

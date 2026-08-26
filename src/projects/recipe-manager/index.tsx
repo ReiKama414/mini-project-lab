@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -314,15 +315,13 @@ export default function Page() {
                 <div className="label">步驟</div>
                 <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0 }}>{current.steps || '—'}</pre>
               </div>
-              <button
-                className="btn ghost"
+              <DeleteButton
                 onClick={() => {
                   setRecipes(recipes.filter((x) => x.id !== current.id))
                   setActive(null)
                 }}
-              >
-                刪除食譜
-              </button>
+                label="刪除食譜"
+              />
             </>
           ) : (
             <p className="muted">選擇一則食譜查看，並調整份量與勾選食材</p>

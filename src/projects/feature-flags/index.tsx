@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, limitText, isNonEmpty, charCount, cn } from '../../lib/utils'
@@ -173,16 +174,13 @@ export default function Page() {
                 <div className="progress">
                   <div style={{ width: `${f.on ? f.pct : 0}%`, height: 6, borderRadius: 4, background: 'var(--accent)' }} />
                 </div>
-                <button
-                  type="button"
-                  className="btn sm danger"
+                <DeleteButton
                   onClick={() => {
                     setFlags((xs) => xs.filter((x) => x.id !== f.id))
                     log(f.key, 'delete', '')
                   }}
-                >
-                  刪除
-                </button>
+                  label="刪除"
+                />
               </li>
             ))}
             {!visible.length && <li className="list-item muted">此環境尚無 flag</li>}

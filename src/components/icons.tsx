@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Search,
   SkipForward,
+  Trash2,
   X,
 } from 'lucide-react'
 
@@ -69,6 +70,10 @@ export function IconPause(props: LucideProps) {
 
 export function IconReset(props: LucideProps) {
   return <RotateCcw {...defaultProps} {...props} />
+}
+
+export function IconTrash(props: LucideProps) {
+  return <Trash2 {...defaultProps} {...props} />
 }
 
 export function IconSkip(props: LucideProps) {

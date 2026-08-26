@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -253,9 +254,7 @@ export default function Page() {
                     <span className="mono">
                       {w.sets}×{w.reps} @ {w.weight}kg
                     </span>
-                    <button className="btn sm ghost" onClick={() => setItems(items.filter((x) => x.id !== w.id))}>
-                      刪除
-                    </button>
+                    <DeleteButton onClick={() => setItems(items.filter((x) => x.id !== w.id))} label="刪除" />
                   </li>
                 )
               })}

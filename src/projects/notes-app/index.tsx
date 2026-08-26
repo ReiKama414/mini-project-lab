@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -200,16 +201,14 @@ export default function Page() {
                   建立 {new Date(current.createdAt).toLocaleString('zh-TW')} · 更新{' '}
                   {new Date(current.updatedAt).toLocaleString('zh-TW')}
                 </span>
-                <button type="button"
-                  className="btn ghost"
+                <DeleteButton
                   style={{ marginLeft: 'auto' }}
                   onClick={() => {
                     setNotes(notes.filter((n) => n.id !== current.id))
                     setActive(null)
                   }}
-                >
-                  刪除筆記
-                </button>
+                  label="刪除筆記"
+                />
               </div>
             </>
           ) : (

@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -168,12 +169,7 @@ export default function Page() {
                   <strong style={{ flex: 1 }}>{h.name}</strong>
                   <span className="tag">連續 {streak} 天</span>
                   <span className="tag">本週 {weekHits}/7</span>
-                  <button
-                    className="btn sm ghost"
-                    onClick={() => setHabits(habits.filter((x) => x.id !== h.id))}
-                  >
-                    刪除
-                  </button>
+                  <DeleteButton onClick={() => setHabits(habits.filter((x) => x.id !== h.id))} label="刪除" />
                 </div>
                 <div className="row" style={{ alignItems: 'center' }}>
                   {days.map((d) => (

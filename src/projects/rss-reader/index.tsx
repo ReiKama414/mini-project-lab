@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
@@ -275,9 +276,7 @@ export default function Page() {
                   <button type="button" className="btn sm ghost" onClick={() => setItems((xs) => xs.map((x) => (x.id === it.id ? { ...x, read: !x.read } : x)))}>
                     {it.read ? '標未讀' : '標已讀'}
                   </button>
-                  <button type="button" className="btn sm danger" onClick={() => setItems((xs) => xs.filter((x) => x.id !== it.id))}>
-                    刪除
-                  </button>
+                  <DeleteButton onClick={() => setItems((xs) => xs.filter((x) => x.id !== it.id))} label="刪除" />
                 </div>
               </li>
             ))}

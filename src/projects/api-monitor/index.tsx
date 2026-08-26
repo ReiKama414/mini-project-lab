@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
@@ -244,9 +245,7 @@ export default function Page() {
                     <button type="button" className="btn sm ghost" onClick={() => void checkOne(t.id, t.url, t.name)}>
                       Probe
                     </button>
-                    <button type="button" className="btn sm danger" onClick={() => setTargets((xs) => xs.filter((x) => x.id !== t.id))}>
-                      刪除
-                    </button>
+                    <DeleteButton onClick={() => setTargets((xs) => xs.filter((x) => x.id !== t.id))} label="刪除" />
                   </div>
                 </div>
                 <div className="row" style={{ alignItems: 'flex-end', height: 40, gap: 2 }}>

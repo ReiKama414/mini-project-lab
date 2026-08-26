@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
@@ -192,12 +193,7 @@ export default function Page() {
               <button type="button" className="btn sm accent" onClick={() => copyText(c.text)}>
                 複製
               </button>
-              <button type="button"
-                className="btn sm ghost"
-                onClick={() => setItems(items.filter((x) => x.id !== c.id))}
-              >
-                刪除
-              </button>
+              <DeleteButton onClick={() => setItems(items.filter((x) => x.id !== c.id))} label="刪除" />
             </li>
           ))}
           {!visible.length && <p className="muted">尚無符合的紀錄</p>}

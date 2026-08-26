@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, charCount, isNonEmpty, limitText } from '../../lib/utils'
@@ -267,9 +268,7 @@ export default function Page() {
               >
                 {editing === it.id ? '收合' : '回覆／備註'}
               </button>
-              <button type="button" className="btn sm danger" onClick={() => setItems((xs) => xs.filter((x) => x.id !== it.id))}>
-                審核刪除
-              </button>
+              <DeleteButton onClick={() => setItems((xs) => xs.filter((x) => x.id !== it.id))} label="審核刪除" />
             </div>
           </div>
         ))}

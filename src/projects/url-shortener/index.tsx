@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl, copyText, uid } from '../../lib/utils'
@@ -219,12 +220,7 @@ export default function Page() {
                 >
                   複製完整 URL
                 </button>
-                <button type="button"
-                  className="btn sm ghost"
-                  onClick={() => setLinks(links.filter((x) => x.id !== l.id))}
-                >
-                  刪除
-                </button>
+                <DeleteButton onClick={() => setLinks(links.filter((x) => x.id !== l.id))} label="刪除" />
               </div>
             </li>
           ))}

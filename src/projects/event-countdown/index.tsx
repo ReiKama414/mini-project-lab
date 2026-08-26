@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -203,9 +204,7 @@ export default function Page() {
                   >
                     歸檔
                   </button>
-                  <button className="btn sm ghost" onClick={() => setEvents(events.filter((x) => x.id !== e.id))}>
-                    刪除
-                  </button>
+                  <DeleteButton onClick={() => setEvents(events.filter((x) => x.id !== e.id))} label="刪除" />
                 </div>
                 <span className="muted">{new Date(e.at).toLocaleString('zh-TW')}</span>
                 {d.past ? (

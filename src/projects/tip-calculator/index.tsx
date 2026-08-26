@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, parseNumber, uid } from '../../lib/utils'
@@ -311,9 +312,7 @@ export default function Page() {
                 <button type="button" className="btn sm ghost" onClick={() => restore(h)}>
                   套用
                 </button>
-                <button type="button" className="btn sm danger" onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))}>
-                  刪除
-                </button>
+                <DeleteButton onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))} label="刪除" />
               </div>
             </li>
           ))}

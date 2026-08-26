@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, copyText, uid, limitText, charCount, isNonEmpty, isValidEmail, cn } from '../../lib/utils'
 
@@ -406,9 +407,7 @@ export default function Page() {
                         setExps((xs) => xs.map((x) => (x.id === e.id ? { ...x, detail: limitText(ev.target.value, DETAIL_MAX) } : x)))
                       }
                     />
-                    <button type="button" className="btn sm danger" onClick={() => setExps((xs) => xs.filter((x) => x.id !== e.id))}>
-                      刪除
-                    </button>
+                    <DeleteButton onClick={() => setExps((xs) => xs.filter((x) => x.id !== e.id))} label="刪除" />
                   </div>
                 ))
               )}
@@ -435,9 +434,7 @@ export default function Page() {
                     <input className="field" value={e.school} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, school: limitText(ev.target.value, FIELD_MAX) } : x)))} />
                     <input className="field" value={e.degree} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, degree: limitText(ev.target.value, FIELD_MAX) } : x)))} />
                     <input className="field" style={{ width: 80 }} value={e.year} onChange={(ev) => setEdus((xs) => xs.map((x) => (x.id === e.id ? { ...x, year: limitText(ev.target.value, 20) } : x)))} />
-                    <button type="button" className="btn sm danger" onClick={() => setEdus((xs) => xs.filter((x) => x.id !== e.id))}>
-                      ×
-                    </button>
+                    <DeleteButton onClick={() => setEdus((xs) => xs.filter((x) => x.id !== e.id))} label="刪除" />
                   </div>
                 ))
               )}

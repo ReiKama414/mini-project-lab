@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -372,17 +373,15 @@ export default function Page() {
               </button>
             )}
             {deck && decks.length > 1 && (
-              <button type="button"
-                className="btn ghost"
+              <DeleteButton
                 style={{ marginLeft: 'auto' }}
                 onClick={() => {
                   const next = decks.filter((d) => d.id !== deck.id)
                   setDecks(next)
                   selectDeck(next[0]!.id)
                 }}
-              >
-                刪除牌組
-              </button>
+                label="刪除牌組"
+              />
             )}
           </div>
           <ul className="list">

@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, downloadText, uid } from '../../lib/utils'
@@ -210,16 +211,14 @@ export default function Page() {
                 <button className="btn sm ghost" onClick={exportHtml}>
                   匯出 .html
                 </button>
-                <button
-                  className="btn sm ghost"
+                <DeleteButton
                   style={{ marginLeft: 'auto' }}
                   onClick={() => {
                     setNotes(notes.filter((n) => n.id !== current.id))
                     setActive(visible.find((n) => n.id !== current.id)?.id ?? null)
                   }}
-                >
-                  刪除
-                </button>
+                  label="刪除"
+                />
               </div>
 
               {tab === 'edit' && (

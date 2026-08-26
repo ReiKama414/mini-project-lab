@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import {
@@ -339,12 +340,7 @@ export default function Page() {
                 <button type="button" className="btn sm ghost" onClick={() => startEdit(b)}>
                   編輯
                 </button>
-                <button type="button"
-                  className="btn sm ghost"
-                  onClick={() => setItems(items.filter((x) => x.id !== b.id))}
-                >
-                  刪除
-                </button>
+                <DeleteButton onClick={() => setItems(items.filter((x) => x.id !== b.id))} label="刪除" />
               </li>
             )
           })}

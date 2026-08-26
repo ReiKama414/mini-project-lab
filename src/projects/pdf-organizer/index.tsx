@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useEffect, useRef, useState } from 'react'
 import { formatBytes } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -277,9 +278,7 @@ export default function Page() {
                 >
                   下移
                 </button>
-                <button type="button" className="btn sm ghost" onClick={() => removeAt(i)} disabled={busy || order.length <= 1}>
-                  刪除
-                </button>
+                <DeleteButton onClick={() => removeAt(i)} disabled={busy || order.length <= 1} label="刪除" />
               </div>
             </div>
           ))}

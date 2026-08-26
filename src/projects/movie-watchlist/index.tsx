@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -207,9 +208,7 @@ export default function Page() {
                   <option value="watching">觀看中</option>
                   <option value="watched">已看</option>
                 </select>
-                <button type="button" className="btn sm ghost" onClick={() => setMovies(movies.filter((x) => x.id !== m.id))}>
-                  刪除
-                </button>
+                <DeleteButton onClick={() => setMovies(movies.filter((x) => x.id !== m.id))} label="刪除" />
               </div>
               <div className="row">
                 <span className="muted">評分</span>

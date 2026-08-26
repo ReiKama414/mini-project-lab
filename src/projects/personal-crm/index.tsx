@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, charCount, isNonEmpty, isValidEmail, limitText } from '../../lib/utils'
@@ -353,9 +354,7 @@ export default function Page() {
                         複製 Email
                       </button>
                     )}
-                    <button type="button" className="btn sm danger" onClick={() => setContacts((xs) => xs.filter((x) => x.id !== c.id))}>
-                      刪除
-                    </button>
+                    <DeleteButton onClick={() => setContacts((xs) => xs.filter((x) => x.id !== c.id))} label="刪除" />
                   </div>
                 </li>
               )

@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, isNonEmpty, isValidEmail, charCount, clamp, parseNumber } from '../../lib/utils'
@@ -289,9 +290,7 @@ export default function Page() {
                           }
                         />
                       </div>
-                      <button type="button" className="btn sm danger" onClick={() => setCustomers((xs) => xs.filter((x) => x.id !== c.id))}>
-                        刪除
-                      </button>
+                      <DeleteButton onClick={() => setCustomers((xs) => xs.filter((x) => x.id !== c.id))} label="刪除" />
                     </div>
                     <div className="row">
                       <select

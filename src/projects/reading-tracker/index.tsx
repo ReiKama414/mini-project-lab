@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
@@ -212,9 +213,7 @@ export default function Page() {
                     <option value="reading">閱讀中</option>
                     <option value="done">已讀完</option>
                   </select>
-                  <button className="btn sm ghost" onClick={() => setBooks(books.filter((x) => x.id !== b.id))}>
-                    刪除
-                  </button>
+                  <DeleteButton onClick={() => setBooks(books.filter((x) => x.id !== b.id))} label="刪除" />
                 </div>
                 <div className="progress">
                   <span style={{ width: `${pct}%` }} />
