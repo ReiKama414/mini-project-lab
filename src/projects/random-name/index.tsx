@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, copyText, parseNumber, pick, randomInt } from '../../lib/utils'
+import { clamp, copyText, downloadText, parseNumber, pick, randomInt } from '../../lib/utils'
 
 const meta = getProject('random-name')!
 
@@ -134,6 +134,7 @@ export default function Page() {
   const [gender, setGender] = useLocalStorage<Gender>('lab:random-name:gender', 'any')
   const [category, setCategory] = useLocalStorage<Category>('lab:random-name:category', 'person')
   const [favorites, setFavorites] = useLocalStorage<string[]>('lab:random-name:favorites', [])
+  const [unique, setUnique] = useLocalStorage('lab:random-name:unique', false)
   const [names, setNames] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
   const [countError, setCountError] = useState('')
@@ -144,8 +145,28 @@ export default function Page() {
   function generate() {
     if (!countOk) return
     const n = clamp(count, COUNT_MIN, COUNT_MAX)
-    setNames(Array.from({ length: n }, () => makeName(category, lang, gender)))
+    if (!unique) {
+      setNames(Array.from({ length: n }, () => makeName(category, lang, gender)))
+      setCopied(false)
+      return
+    }
+    const seen = new Set<string>()
+    const out: string[] = []
+    const maxAttempts = Math.max(n * 80, 200)
+    for (let i = 0; i < maxAttempts && out.length < n; i++) {
+      const name = makeName(category, lang, gender)
+      if (seen.has(name)) continue
+      seen.add(name)
+      out.push(name)
+    }
+    setNames(out)
     setCopied(false)
+  }
+
+  function downloadCsv() {
+    if (!names.length) return
+    const rows = ['name', ...names.map((n) => `"${n.replace(/"/g, '""')}"`)]
+    downloadText('names.csv', rows.join('\n'), 'text/csv;charset=utf-8')
   }
 
   function regenerateOne(index: number) {
@@ -228,6 +249,10 @@ export default function Page() {
               </select>
             </label>
           </div>
+          <label className="row" style={{ gap: 6 }}>
+            <input type="checkbox" checked={unique} onChange={(e) => setUnique(e.target.checked)} />
+            本批不重複
+          </label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <button type="button" className="btn accent" onClick={generate} disabled={!countOk}>
               產生
@@ -237,6 +262,9 @@ export default function Page() {
             </button>
             <button type="button" className="btn ghost" disabled={!names.length} onClick={() => void copyAll()}>
               {copied ? '已複製' : '全部複製'}
+            </button>
+            <button type="button" className="btn ghost" disabled={!names.length} onClick={downloadCsv}>
+              下載 CSV
             </button>
           </div>
           <ul className="list">

@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, isNonEmpty, limitText, copyText } from '../../lib/utils'
+import { charCount, limitText, copyText } from '../../lib/utils'
 
 const meta = getProject('cron-generator')!
 
@@ -116,6 +116,61 @@ function describeCron(min: string, hour: string, dom: string, mon: string, dow: 
   return parts.join('；')
 }
 
+// Validate a single cron field token (supports *, ?, N, N-M, */N, N-M/S, lists).
+function validateFieldPart(part: string, min: number, max: number): string | null {
+  const v = part.trim()
+  if (!v) return '欄位不可空白'
+  if (v === '*' || v === '?') return null
+
+  const step = /^\*\/(\d+)$/.exec(v)
+  if (step) {
+    const n = Number(step[1])
+    if (!Number.isInteger(n) || n <= 0) return '步進必須為正整數'
+    if (n > max - min + 1) return `步進過大（上限約 ${max - min + 1}）`
+    return null
+  }
+
+  const rangeStep = /^(\d+)-(\d+)\/(\d+)$/.exec(v)
+  if (rangeStep) {
+    const a = Number(rangeStep[1])
+    const b = Number(rangeStep[2])
+    const s = Number(rangeStep[3])
+    if (![a, b, s].every(Number.isInteger)) return '範圍／步進須為整數'
+    if (a < min || b > max || a > b) return `範圍需在 ${min}–${max} 且由小到大`
+    if (s <= 0) return '步進必須為正整數'
+    return null
+  }
+
+  if (/^\d+-\d+$/.test(v)) {
+    const [a, b] = v.split('-').map(Number)
+    if (!Number.isInteger(a) || !Number.isInteger(b)) return '範圍須為整數'
+    if (a! < min || b! > max || a! > b!) return `範圍需在 ${min}–${max} 且由小到大`
+    return null
+  }
+
+  if (/^\d+$/.test(v)) {
+    const n = Number(v)
+    if (!Number.isInteger(n) || n < min || n > max) return `數值需在 ${min}–${max}`
+    return null
+  }
+
+  return '不支援的語法（可用 *、數字、範圍、列表、*/n）'
+}
+
+function validateCronField(value: string, min: number, max: number): string | null {
+  const v = value.trim()
+  if (!v) return '不可空白'
+  if (v.includes(',')) {
+    const parts = v.split(',')
+    for (const p of parts) {
+      const err = validateFieldPart(p, min, max)
+      if (err) return err
+    }
+    return null
+  }
+  return validateFieldPart(v, min, max)
+}
+
 export default function Page() {
   const [min, setMin] = useLocalStorage('lab:cron-generator:min', '0')
   const [hour, setHour] = useLocalStorage('lab:cron-generator:hour', '9')
@@ -123,9 +178,33 @@ export default function Page() {
   const [mon, setMon] = useLocalStorage('lab:cron-generator:mon', '*')
   const [dow, setDow] = useLocalStorage('lab:cron-generator:dow', '*')
 
+  const fields = useMemo(
+    () =>
+      [
+        { label: '分（0–59）', val: min, set: setMin, minN: 0, maxN: 59 },
+        { label: '時（0–23）', val: hour, set: setHour, minN: 0, maxN: 23 },
+        { label: '日（1–31）', val: dom, set: setDom, minN: 1, maxN: 31 },
+        { label: '月（1–12）', val: mon, set: setMon, minN: 1, maxN: 12 },
+        { label: '週（0–6，0=日）', val: dow, set: setDow, minN: 0, maxN: 6 },
+      ] as const,
+    [min, hour, dom, mon, dow],
+  )
+
+  const fieldErrors = useMemo(
+    () => fields.map((f) => validateCronField(f.val, f.minN, f.maxN)),
+    [fields],
+  )
+  const hasError = fieldErrors.some(Boolean)
+
   const expr = useMemo(() => `${min} ${hour} ${dom} ${mon} ${dow}`, [min, hour, dom, mon, dow])
-  const human = useMemo(() => describeCron(min, hour, dom, mon, dow), [min, hour, dom, mon, dow])
-  const upcoming = useMemo(() => nextRuns(min, hour, dom, mon, dow, 5), [min, hour, dom, mon, dow])
+  const human = useMemo(
+    () => (hasError ? '請先修正欄位語法' : describeCron(min, hour, dom, mon, dow)),
+    [min, hour, dom, mon, dow, hasError],
+  )
+  const upcoming = useMemo(
+    () => (hasError ? [] : nextRuns(min, hour, dom, mon, dow, 5)),
+    [min, hour, dom, mon, dow, hasError],
+  )
 
   function applyExpr(e: string) {
     const [a, b, c, d, f] = e.split(/\s+/)
@@ -148,27 +227,19 @@ export default function Page() {
           ))}
         </div>
         <div className="grid-3">
-          {(
-            [
-              ['分（0–59）', min, setMin],
-              ['時（0–23）', hour, setHour],
-              ['日（1–31）', dom, setDom],
-              ['月（1–12）', mon, setMon],
-              ['週（0–6，0=日）', dow, setDow],
-            ] as const
-          ).map(([label, val, set]) => (
-            <label key={label} className="stack">
-              <span className="label">{label}</span>
+          {fields.map((f, i) => (
+            <label key={f.label} className="stack">
+              <span className="label">{f.label}</span>
               <input
-                className={`field mono${!isNonEmpty(val) ? ' is-invalid' : ''}`}
-                value={val}
+                className={`field mono${fieldErrors[i] ? ' is-invalid' : ''}`}
+                value={f.val}
                 maxLength={FIELD_MAX}
-                onChange={(e) => set(limitText(e.target.value, FIELD_MAX))}
+                onChange={(e) => f.set(limitText(e.target.value, FIELD_MAX))}
               />
               <div className="field-meta">
-                <span>{charCount(val)} / {FIELD_MAX}</span>
+                <span>{charCount(f.val)} / {FIELD_MAX}</span>
               </div>
-              {!isNonEmpty(val) && <p className="field-error">不可空白</p>}
+              {fieldErrors[i] && <p className="field-error">{fieldErrors[i]}</p>}
             </label>
           ))}
         </div>
@@ -178,15 +249,21 @@ export default function Page() {
             <code className="mono" style={{ fontSize: 22 }}>
               {expr}
             </code>
-            <button type="button" className="btn sm accent" onClick={() => void copyText(expr)}>
+            <button type="button" className="btn sm accent" disabled={hasError} onClick={() => void copyText(expr)}>
               複製
             </button>
           </div>
         </div>
         <div className="metric">
-          <div className="muted">人類可讀說明（繁中）</div>
+          <div className="muted">說明（繁中）</div>
           <p style={{ margin: '8px 0 0', fontSize: 16 }}>{human}</p>
-          <button type="button" className="btn sm ghost" style={{ marginTop: 8 }} onClick={() => void copyText(human)}>
+          <button
+            type="button"
+            className="btn sm ghost"
+            style={{ marginTop: 8 }}
+            disabled={hasError}
+            onClick={() => void copyText(human)}
+          >
             複製說明
           </button>
         </div>
@@ -202,7 +279,11 @@ export default function Page() {
                 <span className="muted">週{DOW_NAMES[d.getDay()]}</span>
               </li>
             ))}
-            {!upcoming.length && <p className="muted">無法在一年內找到符合的時間，請檢查表達式。</p>}
+            {!upcoming.length && (
+              <p className="muted">
+                {hasError ? '欄位語法有誤，修正後即可預覽下次執行時間。' : '無法在一年內找到符合的時間，請檢查表達式。'}
+              </p>
+            )}
           </ul>
         </div>
         <p className="muted" style={{ fontSize: 12 }}>

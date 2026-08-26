@@ -7,8 +7,9 @@ import { clamp, copyText, hexToRgb, limitText, rgbToHex, rgbToHsl } from '../../
 const meta = getProject('hex-rgb-hsl')!
 
 const HEX_MAX = 7
-const RGB_TEXT_MAX = 32
-const HSL_TEXT_MAX = 32
+const RGB_TEXT_MAX = 48
+const HSL_TEXT_MAX = 48
+const RECENT_MAX = 12
 
 function hslToRgb(h: number, s: number, l: number) {
   h = ((h % 360) + 360) % 360
@@ -61,8 +62,33 @@ function shadeHex(hex: string, lightDelta: number) {
   return rgbToHex(out.r, out.g, out.b)
 }
 
+function parseRgbCss(text: string): { r: number; g: number; b: number } | null {
+  const css = text.match(/rgba?\(\s*([\d.]+)\s*[,/\s]\s*([\d.]+)\s*[,/\s]\s*([\d.]+)/i)
+  const plain = text.match(/^\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*$/)
+  const m = css || plain
+  if (!m) return null
+  return {
+    r: clamp(Math.round(Number(m[1])), 0, 255),
+    g: clamp(Math.round(Number(m[2])), 0, 255),
+    b: clamp(Math.round(Number(m[3])), 0, 255),
+  }
+}
+
+function parseHslCss(text: string): { h: number; s: number; l: number } | null {
+  const css = text.match(/hsla?\(\s*([\d.]+)\s*[,/\s]\s*([\d.]+)%?\s*[,/\s]\s*([\d.]+)%?/i)
+  const plain = text.match(/^\s*([\d.]+)\s*,\s*([\d.]+)%?\s*,\s*([\d.]+)%?\s*$/)
+  const m = css || plain
+  if (!m) return null
+  return {
+    h: clamp(Math.round(Number(m[1])), 0, 360),
+    s: clamp(Math.round(Number(m[2])), 0, 100),
+    l: clamp(Math.round(Number(m[3])), 0, 100),
+  }
+}
+
 export default function Page() {
   const [hex, setHex] = useLocalStorage('lab:hex-rgb-hsl:hex', '#e9a319')
+  const [recent, setRecent] = useLocalStorage<string[]>('lab:hex-rgb-hsl:recent', [])
   const [r, setR] = useState(233)
   const [g, setG] = useState(163)
   const [b, setB] = useState(25)
@@ -79,10 +105,14 @@ export default function Page() {
   useEffect(() => {
     const rgb = parseHex(hex)
     if (!rgb) return
-    applyRgb(rgb.r, rgb.g, rgb.b)
+    applyRgb(rgb.r, rgb.g, rgb.b, false)
   }, [])
 
-  function applyRgb(nr: number, ng: number, nb: number) {
+  function pushRecent(hx: string) {
+    setRecent((xs) => [hx, ...xs.filter((x) => x !== hx)].slice(0, RECENT_MAX))
+  }
+
+  function applyRgb(nr: number, ng: number, nb: number, trackRecent = true) {
     setR(nr)
     setG(ng)
     setB(nb)
@@ -98,6 +128,7 @@ export default function Page() {
     setHexError('')
     setRgbError('')
     setHslError('')
+    if (trackRecent) pushRecent(hx)
   }
 
   function fromHex(v: string) {
@@ -114,26 +145,23 @@ export default function Page() {
   function fromRgbText(v: string) {
     const next = limitText(v, RGB_TEXT_MAX)
     setRgbInput(next)
-    const m = next.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
-    if (!m) {
-      setRgbError('格式需為 r, g, b')
+    const parsed = parseRgbCss(next)
+    if (!parsed) {
+      setRgbError('格式需為 r, g, b 或 rgb(...)')
       return
     }
-    applyRgb(clamp(+m[1]!, 0, 255), clamp(+m[2]!, 0, 255), clamp(+m[3]!, 0, 255))
+    applyRgb(parsed.r, parsed.g, parsed.b)
   }
 
   function fromHslText(v: string) {
     const next = limitText(v, HSL_TEXT_MAX)
     setHslInput(next)
-    const m = next.match(/(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?/)
-    if (!m) {
-      setHslError('格式需為 h, s%, l%')
+    const parsed = parseHslCss(next)
+    if (!parsed) {
+      setHslError('格式需為 h, s%, l% 或 hsl(...)')
       return
     }
-    const nh = clamp(+m[1]!, 0, 360)
-    const ns = clamp(+m[2]!, 0, 100)
-    const nl = clamp(+m[3]!, 0, 100)
-    const rgb = hslToRgb(nh, ns, nl)
+    const rgb = hslToRgb(parsed.h, parsed.s, parsed.l)
     applyRgb(rgb.r, rgb.g, rgb.b)
   }
 
@@ -155,6 +183,7 @@ export default function Page() {
               value={preview}
               onChange={(e) => fromHex(e.target.value)}
               style={{ width: 64, height: 64, border: 'none', cursor: 'pointer', borderRadius: 8 }}
+              aria-label="色票選擇器"
             />
             <div
               style={{
@@ -164,6 +193,8 @@ export default function Page() {
                 background: preview,
                 border: '1px solid var(--border)',
               }}
+              role="img"
+              aria-label={`目前顏色 ${preview}`}
             />
           </div>
           <label className="stack">
@@ -186,7 +217,7 @@ export default function Page() {
             {hexError && <p className="field-error">{hexError}</p>}
           </label>
           <label className="stack">
-            <span className="label">RGB（r, g, b）</span>
+            <span className="label">RGB（r, g, b 或 rgb(...)）</span>
             <div className="row">
               <input
                 className={`field mono${rgbError ? ' is-invalid' : ''}`}
@@ -194,6 +225,7 @@ export default function Page() {
                 value={rgbInput}
                 maxLength={RGB_TEXT_MAX}
                 onChange={(e) => fromRgbText(e.target.value)}
+                placeholder="rgb(233, 163, 25)"
               />
               <button className="btn ghost sm" onClick={() => void copyText(`rgb(${r}, ${g}, ${b})`)}>
                 複製
@@ -205,7 +237,7 @@ export default function Page() {
             {rgbError && <p className="field-error">{rgbError}</p>}
           </label>
           <label className="stack">
-            <span className="label">HSL（h, s%, l%）</span>
+            <span className="label">HSL（h, s%, l% 或 hsl(...)）</span>
             <div className="row">
               <input
                 className={`field mono${hslError ? ' is-invalid' : ''}`}
@@ -213,6 +245,7 @@ export default function Page() {
                 value={hslInput}
                 maxLength={HSL_TEXT_MAX}
                 onChange={(e) => fromHslText(e.target.value)}
+                placeholder="hsl(40, 84%, 51%)"
               />
               <button className="btn ghost sm" onClick={() => void copyText(`hsl(${h}, ${s}%, ${l}%)`)}>
                 複製
@@ -300,7 +333,9 @@ export default function Page() {
             {shades.map((hx) => (
               <button
                 key={hx}
+                type="button"
                 className="btn sm ghost"
+                aria-label={`套用色階 ${hx}`}
                 style={{
                   background: hx,
                   color: (() => {
@@ -318,8 +353,40 @@ export default function Page() {
               </button>
             ))}
           </div>
+          <h3>最近使用（{recent.length}）</h3>
+          {recent.length > 0 ? (
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              {recent.map((hx) => (
+                <button
+                  key={hx}
+                  type="button"
+                  className="btn sm ghost"
+                  aria-label={`套用最近顏色 ${hx}`}
+                  style={{
+                    background: hx,
+                    color: (() => {
+                      const c = parseHex(hx)
+                      if (!c) return '#111'
+                      return contrastRatio(c.r, c.g, c.b, 'white') > 3 ? '#111' : '#fff'
+                    })(),
+                    minWidth: 88,
+                  }}
+                  onClick={() => fromHex(hx)}
+                >
+                  {hx}
+                </button>
+              ))}
+              <button type="button" className="btn sm ghost" onClick={() => setRecent([])}>
+                清空
+              </button>
+            </div>
+          ) : (
+            <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+              變更顏色後會自動記錄於此（本機）。
+            </p>
+          )}
           <p className="muted" style={{ fontSize: 12 }}>
-            點色階可套用並複製 HEX。上次顏色：{hex}
+            可直接貼上 <code>rgb(...)</code>／<code>hsl(...)</code>。上次顏色：{hex}
           </p>
         </div>
       </div>

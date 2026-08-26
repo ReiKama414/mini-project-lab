@@ -87,10 +87,10 @@ export default function Page() {
         if (next[k] == null) next[k] = FALLBACK[k]!
       }
       setRates(next)
-      setAsOf(`即時 ${data.date}（Frankfurter）`)
+      setAsOf(`即時 ${data.date} · 資料來源 Frankfurter`)
     } catch (e) {
       setRates(FALLBACK)
-      setAsOf('示範匯率（離線）')
+      setAsOf('示範匯率 · 資料來源內建 fallback')
       setError(e instanceof Error ? e.message : '載入失敗，已改用示範匯率')
     } finally {
       setLoading(false)
@@ -211,6 +211,9 @@ export default function Page() {
         <span className="tag">收藏 {favorites.length}</span>
         {error && <span className="tag" style={{ background: 'var(--rose-soft)', color: 'var(--rose)' }}>{error}</span>}
       </div>
+      <p className="muted" style={{ marginTop: -4, marginBottom: 12, fontSize: 13 }}>
+        匯率僅供參考，不構成投資、外匯或其他財務建議。實際交易請以銀行／券商報價為準。
+      </p>
 
       <div className="grid-2">
         <div className="panel stack">
@@ -310,6 +313,9 @@ export default function Page() {
             </button>
             <span className="muted mono">{rateText}</span>
           </div>
+          <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+            目前匯率來源：{asOf.includes('Frankfurter') ? 'Frankfurter' : '內建 fallback'}
+          </p>
 
           <div className="metric">
             <div className="muted">換算結果</div>

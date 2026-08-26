@@ -207,13 +207,16 @@ export default function Page() {
           <button type="button" className="btn accent sm" onClick={() => downloadText('resume.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
             匯出 Markdown
           </button>
+          <button type="button" className="btn ghost sm" onClick={() => window.print()}>
+            列印／另存 PDF
+          </button>
           <button type="button" className="btn ghost sm" onClick={() => saveSnapshot()}>
             存快照
           </button>
         </div>
       }
     >
-      <div className="panel stack" style={{ marginBottom: 12 }}>
+      <div className="panel stack no-print" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {STEPS.map((s) => (
             <button key={s.id} type="button" className={`btn sm ${section === s.id ? 'accent' : 'ghost'}`} onClick={() => setSection(s.id)}>
@@ -237,7 +240,7 @@ export default function Page() {
       </div>
 
       <div className="grid-2">
-        <div className="panel stack">
+        <div className="panel stack no-print">
           {section === 'basic' && (
             <>
               <div className="row">
@@ -442,9 +445,12 @@ export default function Page() {
           )}
           {section === 'preview' && (
             <div className="stack">
-              <p className="muted">右側為即時預覽。可複製 Markdown 或存快照版本。</p>
+              <p className="muted">右側為即時預覽。可複製 Markdown、列印／另存 PDF，或存快照版本。</p>
               <button type="button" className="btn accent" onClick={() => downloadText('resume.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
                 下載履歷.md
+              </button>
+              <button type="button" className="btn ghost" onClick={() => window.print()}>
+                列印／另存 PDF
               </button>
             </div>
           )}
@@ -468,8 +474,8 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="panel stack">
-          <div className="muted">預覽</div>
+        <div className="panel stack resume-print-area">
+          <div className="muted no-print">預覽</div>
           {!name.trim() && !title.trim() && !summary.trim() && exps.length === 0 ? (
             <div className="list-item stack">
               <strong>履歷還是空的</strong>
@@ -539,7 +545,7 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="panel stack" style={{ marginTop: 12 }}>
+      <div className="panel stack no-print" style={{ marginTop: 12 }}>
         <div className="row">
           <div className="label">版本快照／收藏</div>
           <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => { setHistory([]); setFavId('') }}>

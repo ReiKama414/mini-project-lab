@@ -1,6 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, limitText, copyText } from '../../lib/utils'
 
@@ -10,6 +10,27 @@ const PATTERN_MAX = 500
 const TEXT_MAX = 20_000
 const REPL_MAX = 500
 const FLAGS_MAX = 10
+
+const PRESETS = [
+  {
+    label: 'Email',
+    pattern: '\\b[\\w.-]+@[\\w.-]+\\.\\w+\\b',
+    flags: 'g',
+    text: '聯絡：ada@example.com 與 lin@lab.tw\n錯誤：not-an-email',
+  },
+  {
+    label: 'URL',
+    pattern: 'https?:\\/\\/[^\\s<>"\']+',
+    flags: 'gi',
+    text: '文件 https://example.com/docs 與 http://lab.tw/a?x=1\n不是網址：ftp://skip',
+  },
+  {
+    label: 'ISO 日期',
+    pattern: '\\b\\d{4}-\\d{2}-\\d{2}(?:[T ]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:?\\d{2})?)?\\b',
+    flags: 'g',
+    text: '截止 2026-08-26、會議 2026-08-26T19:00:00+08:00\n無效：26/08/2026',
+  },
+] as const
 
 const CHEATSHEET = [
   { syn: '.', desc: '任意字元（除換行，除非 s）' },
@@ -32,6 +53,39 @@ const FLAG_OPTS = [
   { f: 'u', label: 'Unicode u' },
 ]
 
+type MatchHit = {
+  match: string
+  index: number
+  groups: string[]
+  named?: Record<string, string>
+}
+
+function buildHighlightNodes(text: string, matches: MatchHit[]): ReactNode[] {
+  if (!matches.length) return [text]
+  const nodes: ReactNode[] = []
+  let last = 0
+  matches.forEach((hit, i) => {
+    if (hit.index > last) nodes.push(text.slice(last, hit.index))
+    nodes.push(<mark key={`m-${i}-${hit.index}`}>{hit.match}</mark>)
+    last = hit.index + hit.match.length
+  })
+  if (last < text.length) nodes.push(text.slice(last))
+  return nodes
+}
+
+function buildHighlightPlain(text: string, matches: MatchHit[]): string {
+  if (!matches.length) return text
+  let out = ''
+  let last = 0
+  for (const hit of matches) {
+    out += text.slice(last, hit.index)
+    out += hit.match
+    last = hit.index + hit.match.length
+  }
+  out += text.slice(last)
+  return out
+}
+
 export default function Page() {
   const [pattern, setPattern] = useLocalStorage('lab:regex-tester:pattern', '\\b[\\w.-]+@[\\w.-]+\\.\\w+\\b')
   const [flags, setFlags] = useLocalStorage('lab:regex-tester:flags', 'g')
@@ -47,12 +101,28 @@ export default function Page() {
     setFlags((prev) => (prev.includes(f) ? prev.replace(f, '') : prev + f))
   }
 
+  function applyPreset(p: (typeof PRESETS)[number]) {
+    setPattern(p.pattern)
+    setFlags(p.flags)
+    setText(p.text)
+    setMode('match')
+  }
+
   const result = useMemo(() => {
     try {
-      if (!pattern) return { ok: true as const, matches: [], highlighted: text, replaced: text, count: 0 }
+      if (!pattern) {
+        return {
+          ok: true as const,
+          matches: [] as MatchHit[],
+          highlighted: [text] as ReactNode[],
+          plain: text,
+          replaced: text,
+          count: 0,
+        }
+      }
       const flagSet = flags.includes('g') ? flags : `${flags}g`
       const reMatch = new RegExp(pattern, flagSet)
-      const matches: { match: string; index: number; groups: string[]; named?: Record<string, string> }[] = []
+      const matches: MatchHit[] = []
       let m: RegExpExecArray | null
       while ((m = reMatch.exec(text)) !== null) {
         matches.push({
@@ -67,14 +137,8 @@ export default function Page() {
         }
       }
 
-      let highlighted = ''
-      let last = 0
-      for (const hit of matches) {
-        highlighted += text.slice(last, hit.index)
-        highlighted += `⟦${hit.match}⟧`
-        last = hit.index + hit.match.length
-      }
-      highlighted += text.slice(last)
+      const highlighted = buildHighlightNodes(text, matches)
+      const plain = buildHighlightPlain(text, matches)
 
       let replaced = text
       if (mode === 'replace') {
@@ -82,7 +146,7 @@ export default function Page() {
         replaced = text.replace(reRepl, replacement)
       }
 
-      return { ok: true as const, matches, highlighted, replaced, count: matches.length }
+      return { ok: true as const, matches, highlighted, plain, replaced, count: matches.length }
     } catch (e) {
       return { ok: false as const, error: e instanceof Error ? e.message : '無效正規式' }
     }
@@ -99,6 +163,16 @@ export default function Page() {
             <button className={`btn sm ${mode === 'replace' ? 'accent' : 'ghost'}`} onClick={() => setMode('replace')}>
               取代
             </button>
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <span className="muted" style={{ fontSize: 12, alignSelf: 'center' }}>
+              預設：
+            </span>
+            {PRESETS.map((p) => (
+              <button key={p.label} type="button" className="btn sm ghost" onClick={() => applyPreset(p)}>
+                {p.label}
+              </button>
+            ))}
           </div>
           <label className="stack">
             <span className="label">Pattern</span>
@@ -170,8 +244,8 @@ export default function Page() {
                 <pre className="mono" style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
                   {result.highlighted}
                 </pre>
-                <button className="btn sm ghost" onClick={() => void copyText(result.highlighted)}>
-                  複製標示結果
+                <button className="btn sm ghost" onClick={() => void copyText(result.plain)}>
+                  複製原文（不含標記）
                 </button>
               </div>
               {mode === 'replace' && (

@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { HomePage } from './pages/HomePage'
+import { ShortRedirect } from './pages/ShortRedirect'
 import { getProject } from './projects/registry'
 
 /**
@@ -47,6 +48,7 @@ function ProjectRoute() {
 export default function App() {
   return (
     <Routes>
+      <Route path="s/:code" element={<ShortRedirect />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="p/:slug" element={<ProjectRoute />} />

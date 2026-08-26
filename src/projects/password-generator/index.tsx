@@ -59,6 +59,7 @@ export default function Page() {
   })
   const [excludeAmbiguous, setExcludeAmbiguous] = useLocalStorage('lab:password-generator:ambiguous', true)
   const [batch, setBatch] = useLocalStorage('lab:password-generator:batch', 1)
+  const [saveHistory, setSaveHistory] = useLocalStorage('lab:password-generator:saveHistory', false)
   const [pwd, setPwd] = useState('')
   const [batchList, setBatchList] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
@@ -126,6 +127,7 @@ export default function Page() {
     setPwd(results[0]!)
     setBatchList(results)
     setCopied(false)
+    if (!saveHistory) return
     setHistory((h) =>
       [
         ...results.map((p) => ({
@@ -249,6 +251,15 @@ export default function Page() {
               onChange={() => setExcludeAmbiguous(!excludeAmbiguous)}
             />
             排除易混淆字元（0 O I l 1）
+          </label>
+
+          <label className="row">
+            <input
+              type="checkbox"
+              checked={saveHistory}
+              onChange={() => setSaveHistory(!saveHistory)}
+            />
+            儲存產生歷史（明文，不建議）
           </label>
 
           <div className="row" style={{ flexWrap: 'wrap' }}>

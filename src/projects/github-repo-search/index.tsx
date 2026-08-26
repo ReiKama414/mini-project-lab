@@ -8,6 +8,7 @@ const meta = getProject('github-repo-search')!
 
 const Q_MAX = 200
 const LANG_MAX = 40
+const MAX_FAVS = 50
 
 type Repo = {
   id: number
@@ -22,8 +23,23 @@ type Repo = {
   license: { spdx_id: string } | null
 }
 
+type FavRepo = {
+  full_name: string
+  html_url: string
+  stargazers: number
+}
+
 const LANGS = ['', 'TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'Swift']
 const PER_PAGE = 10
+
+function rateLimitFromHeaders(headers: Headers): { remaining: number | null; reset: number | null } {
+  const rem = headers.get('x-ratelimit-remaining')
+  const reset = headers.get('x-ratelimit-reset')
+  return {
+    remaining: rem != null && rem !== '' ? Number(rem) : null,
+    reset: reset != null && reset !== '' ? Number(reset) : null,
+  }
+}
 
 export default function Page() {
   const [q, setQ] = useLocalStorage('lab:github-repo-search:q', 'react typescript')
@@ -33,17 +49,36 @@ export default function Page() {
     'lab:github-repo-search:sort',
     'stars',
   )
+  const [favs, setFavs] = useLocalStorage<FavRepo[]>('lab:github-repo-search:favs', [])
   const [repos, setRepos] = useState<Repo[]>([])
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [rateRemaining, setRateRemaining] = useState<number | null>(null)
+  const [rateReset, setRateReset] = useState<number | null>(null)
 
   function buildQuery() {
     const parts = [q.trim()]
     if (language) parts.push(`language:${language}`)
     if (minStars > 0) parts.push(`stars:>=${minStars}`)
     return parts.filter(Boolean).join(' ')
+  }
+
+  function isFav(fullName: string) {
+    return favs.some((f) => f.full_name === fullName)
+  }
+
+  function toggleFav(repo: { full_name: string; html_url: string; stargazers_count: number }) {
+    setFavs((prev) => {
+      const exists = prev.some((f) => f.full_name === repo.full_name)
+      if (exists) return prev.filter((f) => f.full_name !== repo.full_name)
+      if (prev.length >= MAX_FAVS) return prev
+      return [
+        { full_name: repo.full_name, html_url: repo.html_url, stargazers: repo.stargazers_count },
+        ...prev,
+      ]
+    })
   }
 
   async function search(nextPage = 1, append = false) {
@@ -56,8 +91,17 @@ export default function Page() {
         `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}` +
         `&sort=${sort}&order=desc&per_page=${PER_PAGE}&page=${nextPage}`
       const res = await fetch(url)
+      const rl = rateLimitFromHeaders(res.headers)
+      if (rl.remaining != null) setRateRemaining(rl.remaining)
+      if (rl.reset != null) setRateReset(rl.reset)
       if (!res.ok) {
-        if (res.status === 403) throw new Error('API 速率限制，請稍後再試')
+        if (res.status === 403 || res.status === 429) {
+          throw new Error(
+            rl.remaining === 0
+              ? 'GitHub API 速率已用盡（搜尋 API 限制較嚴），請稍後再試。'
+              : '請求被拒絕（可能觸及速率限制），請稍後再試。',
+          )
+        }
         throw new Error(`API 錯誤 ${res.status}`)
       }
       const data = (await res.json()) as { items: Repo[]; total_count: number }
@@ -87,7 +131,7 @@ export default function Page() {
             onChange={(e) => setQ(limitText(e.target.value, Q_MAX))}
             onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(q) && search(1, false)}
           />
-          <button className="btn accent" onClick={() => search(1, false)} disabled={loading || !isNonEmpty(q)}>
+          <button type="button" className="btn accent" onClick={() => search(1, false)} disabled={loading || !isNonEmpty(q)}>
             {loading && page === 1 ? '搜尋中…' : '搜尋'}
           </button>
         </div>
@@ -95,6 +139,14 @@ export default function Page() {
           <span className={!isNonEmpty(q) ? 'warn' : undefined}>{isNonEmpty(q) ? '可搜尋' : '請輸入關鍵字'}</span>
           <span>{charCount(q)}/{Q_MAX}</span>
         </div>
+        {rateRemaining != null && (
+          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+            API 剩餘額度：{rateRemaining}
+            {rateReset != null && rateRemaining === 0
+              ? ` · 約於 ${new Date(rateReset * 1000).toLocaleTimeString('zh-TW')} 重置`
+              : ''}
+          </p>
+        )}
 
         <div className="grid-3">
           <label className="stack" style={{ gap: 4 }}>
@@ -152,6 +204,30 @@ export default function Page() {
           </p>
         )}
 
+        {favs.length > 0 && (
+          <div className="stack" style={{ gap: 8 }}>
+            <div className="row">
+              <span className="label">收藏（{favs.length}/{MAX_FAVS}）</span>
+              <button type="button" className="btn sm ghost" onClick={() => setFavs([])}>
+                清空收藏
+              </button>
+            </div>
+            <ul className="list">
+              {favs.map((f) => (
+                <li key={f.full_name} className="list-item">
+                  <a href={f.html_url} target="_blank" rel="noreferrer" style={{ fontWeight: 600, flex: 1 }}>
+                    {f.full_name}
+                  </a>
+                  <span className="tag">★ {f.stargazers.toLocaleString()}</span>
+                  <button type="button" className="btn sm ghost" onClick={() => setFavs((xs) => xs.filter((x) => x.full_name !== f.full_name))}>
+                    取消
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <ul className="list">
           {repos.map((r) => (
             <li
@@ -164,6 +240,14 @@ export default function Page() {
                   {r.full_name}
                 </a>
                 <span className="tag">★ {r.stargazers_count.toLocaleString()}</span>
+                <button
+                  type="button"
+                  className={`btn sm ${isFav(r.full_name) ? 'teal' : 'ghost'}`}
+                  onClick={() => toggleFav(r)}
+                  disabled={!isFav(r.full_name) && favs.length >= MAX_FAVS}
+                >
+                  {isFav(r.full_name) ? '已收藏' : '收藏'}
+                </button>
               </div>
               <p className="muted" style={{ margin: 0 }}>
                 {r.description || '（無描述）'}
@@ -181,6 +265,7 @@ export default function Page() {
 
         {canLoadMore && (
           <button
+            type="button"
             className="btn teal"
             disabled={loading}
             onClick={() => search(page + 1, true)}

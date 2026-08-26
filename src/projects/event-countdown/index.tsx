@@ -1,7 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
@@ -52,10 +52,20 @@ export default function Page() {
   const [now, setNow] = useState(Date.now())
   const [showArchive, setShowArchive] = useState(false)
   const [sort, setSort] = useState<'soon' | 'far' | 'name'>('soon')
+  const [remindMsg, setRemindMsg] = useState('')
+  const [scheduled, setScheduled] = useState<Record<string, boolean>>({})
+  const timersRef = useRef<Map<string, number>>(new Map())
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      for (const t of timersRef.current.values()) window.clearTimeout(t)
+      timersRef.current.clear()
+    }
   }, [])
 
   const titleOk = isNonEmpty(title)
@@ -94,6 +104,47 @@ export default function Page() {
         !e.archived && new Date(e.at).getTime() <= now ? { ...e, archived: true } : e,
       ),
     )
+  }
+
+  async function scheduleReminder(e: EventItem & { t: number }) {
+    const delay = e.t - Date.now()
+    if (delay <= 0) {
+      setRemindMsg('活動已過期，無法提醒')
+      return
+    }
+    if (delay > 24 * 60 * 60 * 1000) {
+      setRemindMsg('僅支援 24 小時內的活動提醒')
+      return
+    }
+    if (typeof Notification === 'undefined') {
+      setRemindMsg('此瀏覽器不支援通知')
+      return
+    }
+    let perm = Notification.permission
+    if (perm === 'default') {
+      perm = await Notification.requestPermission()
+    }
+    if (perm !== 'granted') {
+      setRemindMsg('未取得通知權限')
+      return
+    }
+    const prev = timersRef.current.get(e.id)
+    if (prev != null) window.clearTimeout(prev)
+    const tid = window.setTimeout(() => {
+      new Notification(e.title, {
+        body: `時間到了：${new Date(e.at).toLocaleString('zh-TW')}`,
+      })
+      timersRef.current.delete(e.id)
+      setScheduled((s) => {
+        const next = { ...s }
+        delete next[e.id]
+        return next
+      })
+    }, delay)
+    timersRef.current.set(e.id, tid)
+    setScheduled((s) => ({ ...s, [e.id]: true }))
+    const mins = Math.max(1, Math.round(delay / 60000))
+    setRemindMsg(`已排程「${e.title}」提醒（約 ${mins} 分鐘後）`)
   }
 
   return (
@@ -176,11 +227,13 @@ export default function Page() {
             封存區 ({archived.length})
           </button>
         </div>
+        {remindMsg && <p className="muted" style={{ fontSize: 13 }}>{remindMsg}</p>}
 
         <ul className="list">
           {active.map((e) => {
             const d = diffParts(e.t, now)
             const colorMeta = COLORS.find((c) => c.id === e.color)
+            const within24h = !d.past && e.t - now <= 24 * 60 * 60 * 1000
             return (
               <li
                 key={e.id}
@@ -197,6 +250,15 @@ export default function Page() {
                   <span className="tag" style={{ background: colorMeta?.bg }}>
                     {colorMeta?.label}
                   </span>
+                  {within24h && (
+                    <button
+                      type="button"
+                      className={`btn sm ${scheduled[e.id] ? 'teal' : 'ghost'}`}
+                      onClick={() => void scheduleReminder(e)}
+                    >
+                      {scheduled[e.id] ? '已排程提醒' : '通知提醒'}
+                    </button>
+                  )}
                   <button
                     className="btn sm ghost"
                     style={{ marginLeft: 'auto' }}

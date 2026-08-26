@@ -4,7 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, uid, downloadText } from '../../lib/utils'
 
 const meta = getProject('notes-app')!
 
@@ -201,8 +201,18 @@ export default function Page() {
                   建立 {new Date(current.createdAt).toLocaleString('zh-TW')} · 更新{' '}
                   {new Date(current.updatedAt).toLocaleString('zh-TW')}
                 </span>
-                <DeleteButton
+                <button
+                  type="button"
+                  className="btn sm ghost"
                   style={{ marginLeft: 'auto' }}
+                  onClick={() => {
+                    const name = `${(current.title || 'note').replace(/[\\/:*?"<>|]/g, '_')}.txt`
+                    downloadText(name, current.body, 'text/plain;charset=utf-8')
+                  }}
+                >
+                  下載 .txt
+                </button>
+                <DeleteButton
                   onClick={() => {
                     setNotes(notes.filter((n) => n.id !== current.id))
                     setActive(null)

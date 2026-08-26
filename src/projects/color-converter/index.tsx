@@ -64,6 +64,7 @@ function shadeHex(hex: string, lightDelta: number) {
 
 export default function Page() {
   const [hex, setHex] = useLocalStorage('lab:color-converter:hex', '#2a9d8f')
+  const [favorites, setFavorites] = useLocalStorage<string[]>('lab:color-converter:favorites', [])
   const [r, setR] = useState(42)
   const [g, setG] = useState(157)
   const [b, setB] = useState(143)
@@ -121,6 +122,16 @@ export default function Page() {
     [hexNorm],
   )
 
+  function toggleFavorite() {
+    if (!valid) return
+    setFavorites((xs) => {
+      const next = xs.includes(hexNorm) ? xs.filter((x) => x !== hexNorm) : [hexNorm, ...xs]
+      return next.slice(0, 12)
+    })
+  }
+
+  const isFav = valid && favorites.includes(hexNorm)
+
   return (
     <ProjectShell meta={meta}>
       <div className="grid-2">
@@ -162,7 +173,17 @@ export default function Page() {
               background: valid ? hexNorm : '#ccc',
               border: '1px solid var(--border)',
             }}
+            role="img"
+            aria-label={valid ? `目前顏色 ${hexNorm}` : '無效顏色'}
           />
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <button type="button" className={`btn sm ${isFav ? 'teal' : 'ghost'}`} disabled={!valid} onClick={toggleFavorite}>
+              {isFav ? '已收藏' : '加入收藏'}
+            </button>
+            <span className="muted" style={{ fontSize: 12 }}>
+              收藏最多 12 色（本機）
+            </span>
+          </div>
           <div className="grid-3">
             {(
               [
@@ -270,7 +291,9 @@ export default function Page() {
             {shades.map((s) => (
               <button
                 key={s.d}
+                type="button"
                 title={s.hex}
+                aria-label={`色階 ${s.d >= 0 ? '+' : ''}${s.d}%：${s.hex}`}
                 onClick={() => fromHex(s.hex)}
                 style={{
                   flex: 1,
@@ -286,11 +309,50 @@ export default function Page() {
           </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {shades.map((s) => (
-              <button key={s.d} className="btn sm ghost" onClick={() => void copyText(s.hex)}>
+              <button
+                key={s.d}
+                type="button"
+                className="btn sm ghost"
+                aria-label={`複製色階 ${s.hex}`}
+                onClick={() => void copyText(s.hex)}
+              >
                 {s.hex}
               </button>
             ))}
           </div>
+          <h3 style={{ margin: '8px 0 0' }}>收藏色票（{favorites.length}/12）</h3>
+          {favorites.length > 0 ? (
+            <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+              {favorites.map((fav) => (
+                <button
+                  key={fav}
+                  type="button"
+                  className="btn sm ghost"
+                  aria-label={`套用收藏色 ${fav}`}
+                  title={fav}
+                  onClick={() => fromHex(fav)}
+                  style={{
+                    background: fav,
+                    color: (() => {
+                      const c = parseHex(fav)
+                      if (!c) return '#111'
+                      return contrastRatio(c.r, c.g, c.b, 'white') > 3 ? '#111' : '#fff'
+                    })(),
+                    minWidth: 88,
+                  }}
+                >
+                  {fav}
+                </button>
+              ))}
+              <button type="button" className="btn sm ghost" onClick={() => setFavorites([])}>
+                清空收藏
+              </button>
+            </div>
+          ) : (
+            <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+              點「加入收藏」把目前顏色存到本機色票。
+            </p>
+          )}
         </div>
       </div>
     </ProjectShell>

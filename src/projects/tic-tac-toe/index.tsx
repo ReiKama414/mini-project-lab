@@ -153,6 +153,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機對戰，無網路聯機
+      </p>
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         <span className="metric">總場 {stats.total}</span>
         <span className="tag">X 勝率 {stats.winRate}%</span>

@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
+import { marked } from 'marked'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, downloadText, uid } from '../../lib/utils'
 import { sanitizeHtml } from '../../lib/sanitize'
@@ -17,28 +18,8 @@ const MAX_MD = 50000
 const MAX_SEARCH = 80
 
 function mdToHtml(src: string) {
-  let html = src.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  html = html.replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) => `<pre><code>${String(code).trim()}</code></pre>`)
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>')
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>')
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>')
-  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
-  html = html.replace(/~~(.+?)~~/g, '<del>$1</del>')
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
-  html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
-  html = html.replace(/^\- (.+)$/gm, '<li>$1</li>')
-  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-  return html
-    .split(/\n\n+/)
-    .map((b) => {
-      const t = b.trim()
-      if (/^<(h[1-3]|ul|pre|blockquote)/.test(t)) return b
-      return `<p>${b.replace(/\n/g, '<br/>')}</p>`
-    })
-    .join('\n')
+  const raw = marked.parse(src, { async: false })
+  return typeof raw === 'string' ? raw : String(raw)
 }
 
 const DEMO_MD = `# Markdown 筆記

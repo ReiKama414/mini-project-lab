@@ -123,6 +123,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機規則／模板示範，非雲端 LLM
+      </p>
       <div className="grid-2">
         <div className="panel stack">
           <label className="label">會議標題</label>

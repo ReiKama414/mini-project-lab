@@ -12,6 +12,8 @@ const PCT_MAX = 100
 const PEOPLE_MIN = 1
 const PEOPLE_MAX = 50
 
+type TipBase = 'pre-tax' | 'post-tax'
+
 type HistoryItem = {
   id: string
   at: number
@@ -20,6 +22,7 @@ type HistoryItem = {
   tax: number
   people: number
   roundUp: boolean
+  tipBase?: TipBase
   tipAmt: number
   taxAmt: number
   total: number
@@ -35,14 +38,15 @@ export default function Page() {
   const [tax, setTax] = useLocalStorage('lab:tip-calculator:tax', 0)
   const [people, setPeople] = useLocalStorage('lab:tip-calculator:people', 2)
   const [roundUp, setRoundUp] = useLocalStorage('lab:tip-calculator:roundUp', false)
+  const [tipBase, setTipBase] = useLocalStorage<TipBase>('lab:tip-calculator:tipBase', 'post-tax')
   const [history, setHistory] = useLocalStorage<HistoryItem[]>('lab:tip-calculator:history', [])
   const [error, setError] = useState('')
 
   const calc = useMemo(() => {
     const taxAmt = (bill * tax) / 100
-    const sub = bill + taxAmt
-    const tipAmt = (sub * tip) / 100
-    let total = sub + tipAmt
+    const tipOn = tipBase === 'pre-tax' ? bill : bill + taxAmt
+    const tipAmt = (tipOn * tip) / 100
+    let total = bill + taxAmt + tipAmt
     if (roundUp) total = Math.ceil(total)
     const n = Math.max(1, people)
     const baseEach = Math.floor((total / n) * 100) / 100
@@ -54,13 +58,13 @@ export default function Page() {
       const taxShare = Math.round((taxAmt / n) * 100) / 100
       return { person: i + 1, billShare, taxShare, tipShare, amount }
     })
-    return { taxAmt, tipAmt, total, sub, rows, n, perPerson: baseEach }
-  }, [bill, tip, tax, people, roundUp])
+    return { taxAmt, tipAmt, total, tipOn, rows, n, perPerson: baseEach }
+  }, [bill, tip, tax, people, roundUp, tipBase])
 
   const summary = [
     `帳單 $${bill.toFixed(2)}`,
     `稅 $${calc.taxAmt.toFixed(2)}（${tax}%）`,
-    `小費 $${calc.tipAmt.toFixed(2)}（${tip}%）`,
+    `小費 $${calc.tipAmt.toFixed(2)}（${tip}% · ${tipBase === 'pre-tax' ? '稅前' : '稅後'}）`,
     roundUp ? '總額已進位' : null,
     `總計 $${calc.total.toFixed(2)}`,
     `${calc.n} 人分帳`,
@@ -98,6 +102,7 @@ export default function Page() {
           tax,
           people: calc.n,
           roundUp,
+          tipBase,
           tipAmt: calc.tipAmt,
           taxAmt: calc.taxAmt,
           total: calc.total,
@@ -114,6 +119,7 @@ export default function Page() {
     setTax(clamp(item.tax, 0, PCT_MAX))
     setPeople(clamp(item.people, PEOPLE_MIN, PEOPLE_MAX))
     setRoundUp(item.roundUp)
+    setTipBase(item.tipBase === 'pre-tax' ? 'pre-tax' : 'post-tax')
     setError('')
   }
 
@@ -218,6 +224,29 @@ export default function Page() {
           總額無條件進位到整數
         </label>
 
+        <div>
+          <div className="label">小費計算基準</div>
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`btn sm ${tipBase === 'pre-tax' ? 'accent' : 'ghost'}`}
+              onClick={() => setTipBase('pre-tax')}
+            >
+              稅前小計
+            </button>
+            <button
+              type="button"
+              className={`btn sm ${tipBase === 'post-tax' ? 'accent' : 'ghost'}`}
+              onClick={() => setTipBase('post-tax')}
+            >
+              稅後小計
+            </button>
+          </div>
+          <p className="field-hint">
+            目前以 ${calc.tipOn.toFixed(2)}（{tipBase === 'pre-tax' ? '帳單稅前' : '帳單＋稅'}）計算小費
+          </p>
+        </div>
+
         <div className="grid-3">
           <div className="metric">
             <div className="muted">稅金</div>
@@ -301,7 +330,8 @@ export default function Page() {
                 <strong>${h.total.toFixed(2)}</strong>
                 <span className="muted">
                   {' '}
-                  · 帳單 ${h.bill.toFixed(2)} · 小費 {h.tip}% · {h.people} 人
+                  · 帳單 ${h.bill.toFixed(2)} · 小費 {h.tip}%（
+                  {(h.tipBase ?? 'post-tax') === 'pre-tax' ? '稅前' : '稅後'}）· {h.people} 人
                   {h.roundUp ? ' · 進位' : ''}
                 </span>
                 <div className="muted mono" style={{ fontSize: 12 }}>

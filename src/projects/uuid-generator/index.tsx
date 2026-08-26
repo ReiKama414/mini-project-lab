@@ -11,19 +11,45 @@ const COUNT_MIN = 1
 const COUNT_MAX = 500
 const CHECK_MAX = 64
 
-type UuidVersion = 'v4'
+type HistoryEntry = { id: string; at: number }
 
 function formatUuid(id: string, hyphen: boolean, upper: boolean) {
   let s = hyphen ? id : id.replace(/-/g, '')
   return upper ? s.toUpperCase() : s.toLowerCase()
 }
 
+function normalizeHistory(raw: unknown): HistoryEntry[] {
+  if (!Array.isArray(raw)) return []
+  const out: HistoryEntry[] = []
+  for (const item of raw) {
+    if (typeof item === 'string' && item) {
+      out.push({ id: item, at: 0 })
+      continue
+    }
+    if (item && typeof item === 'object' && 'id' in item) {
+      const id = String((item as HistoryEntry).id)
+      if (!id) continue
+      const at = Number((item as HistoryEntry).at)
+      out.push({ id, at: Number.isFinite(at) ? at : 0 })
+    }
+  }
+  return out
+}
+
+function formatHistoryAt(at: number) {
+  if (!at) return ''
+  return new Date(at).toLocaleString('zh-TW', { hour12: false })
+}
+
 export default function Page() {
   const [count, setCount] = useLocalStorage('lab:uuid-generator:count', 5)
   const [hyphen, setHyphen] = useLocalStorage('lab:uuid-generator:hyphen', true)
   const [upper, setUpper] = useLocalStorage('lab:uuid-generator:upper', false)
-  const [version, setVersion] = useLocalStorage<UuidVersion>('lab:uuid-generator:version', 'v4')
-  const [history, setHistory] = useLocalStorage<string[]>('lab:uuid-generator:history', [])
+  const [historyRaw, setHistoryRaw] = useLocalStorage<HistoryEntry[] | string[]>(
+    'lab:uuid-generator:history',
+    [],
+  )
+  const history = useMemo(() => normalizeHistory(historyRaw), [historyRaw])
   const [list, setList] = useState<string[]>([])
   const [checkInput, setCheckInput] = useState('')
   const [copied, setCopied] = useState(false)
@@ -35,7 +61,12 @@ export default function Page() {
   )
 
   const historyDisplay = useMemo(
-    () => history.map((id) => formatUuid(id, hyphen, upper)),
+    () =>
+      history.map((entry) => ({
+        ...entry,
+        display: formatUuid(entry.id, hyphen, upper),
+        atLabel: formatHistoryAt(entry.at),
+      })),
     [history, hyphen, upper],
   )
 
@@ -52,16 +83,23 @@ export default function Page() {
     }
   }, [checkInput])
 
-  function makeOne() {
-    if (version === 'v4') return uuidv4()
-    return uuidv4()
+  function setHistory(next: HistoryEntry[] | ((prev: HistoryEntry[]) => HistoryEntry[])) {
+    setHistoryRaw((prev) => {
+      const current = normalizeHistory(prev)
+      return typeof next === 'function' ? next(current) : next
+    })
   }
 
   function generate(append = false) {
     const n = clamp(Number.isFinite(count) ? count : COUNT_MIN, COUNT_MIN, COUNT_MAX)
-    const next = Array.from({ length: n }, () => makeOne())
+    const next = Array.from({ length: n }, () => uuidv4())
+    const at = Date.now()
     setList((prev) => (append ? [...prev, ...next].slice(-COUNT_MAX) : next))
-    setHistory((h) => [...next, ...h.filter((x) => !next.includes(x))].slice(0, 40))
+    setHistory((h) => {
+      const entries = next.map((id) => ({ id, at }))
+      const ids = new Set(next)
+      return [...entries, ...h.filter((x) => !ids.has(x.id))].slice(0, 40)
+    })
     setCopied(false)
   }
 
@@ -82,37 +120,25 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="grid-2">
         <div className="panel stack">
-          <div className="grid-2">
-            <label className="stack">
-              <span className="label">數量（{COUNT_MIN}–{COUNT_MAX}）</span>
-              <input
-                className="field"
-                type="number"
-                min={COUNT_MIN}
-                max={COUNT_MAX}
-                value={count}
-                onChange={(e) => {
-                  const n = parseNumber(e.target.value)
-                  if (!Number.isFinite(n)) return
-                  setCount(clamp(n, COUNT_MIN, COUNT_MAX))
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') generate(false)
-                }}
-              />
-              <p className="field-hint">單次最多 {COUNT_MAX} 組</p>
-            </label>
-            <label className="stack">
-              <span className="label">版本</span>
-              <select
-                className="field"
-                value={version}
-                onChange={(e) => setVersion(e.target.value as UuidVersion)}
-              >
-                <option value="v4">UUID v4（隨機）</option>
-              </select>
-            </label>
-          </div>
+          <label className="stack">
+            <span className="label">數量（{COUNT_MIN}–{COUNT_MAX}）</span>
+            <input
+              className="field"
+              type="number"
+              min={COUNT_MIN}
+              max={COUNT_MAX}
+              value={count}
+              onChange={(e) => {
+                const n = parseNumber(e.target.value)
+                if (!Number.isFinite(n)) return
+                setCount(clamp(n, COUNT_MIN, COUNT_MAX))
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') generate(false)
+              }}
+            />
+            <p className="field-hint">單次最多 {COUNT_MAX} 組 · UUID v4（加密亂數）</p>
+          </label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <label className="row" style={{ gap: 6 }}>
               <input type="checkbox" checked={hyphen} onChange={(e) => setHyphen(e.target.checked)} />
@@ -125,7 +151,7 @@ export default function Page() {
           </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <button type="button" className="btn accent" onClick={() => generate(false)}>
-              產生 {version}
+              產生 v4
             </button>
             <button type="button" className="btn teal" onClick={() => generate(true)}>
               追加一批
@@ -199,12 +225,19 @@ export default function Page() {
               </button>
             </div>
             <ul className="list">
-              {historyDisplay.slice(0, 12).map((id, i) => (
-                <li key={`${history[i]}-${i}`} className="list-item">
-                  <span className="mono" style={{ flex: 1, wordBreak: 'break-all', fontSize: 12 }}>
-                    {id}
-                  </span>
-                  <button type="button" className="btn sm ghost" onClick={() => void copyOne(id)}>
+              {historyDisplay.slice(0, 12).map((entry, i) => (
+                <li key={`${entry.id}-${entry.at}-${i}`} className="list-item" style={{ alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span className="mono" style={{ display: 'block', wordBreak: 'break-all', fontSize: 12 }}>
+                      {entry.display}
+                    </span>
+                    {entry.atLabel && (
+                      <span className="muted" style={{ fontSize: 11 }}>
+                        {entry.atLabel}
+                      </span>
+                    )}
+                  </div>
+                  <button type="button" className="btn sm ghost" onClick={() => void copyOne(entry.display)}>
                     複製
                   </button>
                 </li>
@@ -215,7 +248,7 @@ export default function Page() {
               <button
                 type="button"
                 className="btn ghost sm"
-                onClick={() => void copyText(historyDisplay.join('\n'))}
+                onClick={() => void copyText(historyDisplay.map((e) => e.display).join('\n'))}
               >
                 複製全部歷史
               </button>

@@ -26,11 +26,12 @@ function makeCode(len = 6) {
 }
 
 function shortPath(code: string) {
-  return `/#/s/${code}`
+  return `/s/${code}`
 }
 
 function fullShortUrl(code: string) {
-  return `${window.location.origin}${window.location.pathname.replace(/\/$/, '')}${shortPath(code)}`
+  const base = `${window.location.origin}${window.location.pathname.replace(/\/$/, '')}`
+  return `${base}${shortPath(code)}`
 }
 
 export default function Page() {
@@ -97,8 +98,8 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted">
-          本機短網址對照表，資料存在瀏覽器。複製格式為{' '}
-          <span className="mono">/#/s/短碼</span>（示範用，不會實際路由轉址）。
+          本機短網址：複製 <span className="mono">/s/短碼</span>{' '}
+          後在同瀏覽器開啟會自動轉址並累計點擊（資料僅存於此裝置）。
         </p>
 
         <div className="grid-3">

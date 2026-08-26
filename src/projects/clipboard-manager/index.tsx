@@ -1,9 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, copyText, downloadText, uid } from '../../lib/utils'
 
 const meta = getProject('clipboard-manager')!
 
@@ -27,6 +27,29 @@ function guessCategory(text: string): Category {
   return '一般'
 }
 
+function isCategory(v: unknown): v is Category {
+  return typeof v === 'string' && (CATS as string[]).includes(v)
+}
+
+function parseClips(raw: unknown): Clip[] | null {
+  if (!Array.isArray(raw)) return null
+  const out: Clip[] = []
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const r = row as Record<string, unknown>
+    const text = typeof r.text === 'string' ? limitText(r.text, TEXT_MAX) : ''
+    if (!text) continue
+    out.push({
+      id: typeof r.id === 'string' ? r.id : uid('clip'),
+      text,
+      category: isCategory(r.category) ? r.category : guessCategory(text),
+      pinned: Boolean(r.pinned),
+      createdAt: typeof r.createdAt === 'number' && Number.isFinite(r.createdAt) ? r.createdAt : Date.now(),
+    })
+  }
+  return out.slice(0, 80)
+}
+
 export default function Page() {
   const [items, setItems] = useLocalStorage<Clip[]>('lab:clipboard-manager', [])
   const [text, setText] = useState('')
@@ -35,6 +58,8 @@ export default function Page() {
   const [q, setQ] = useState('')
   const [onlyPinned, setOnlyPinned] = useState(false)
   const [error, setError] = useState('')
+  const [importMsg, setImportMsg] = useState('')
+  const importRef = useRef<HTMLInputElement>(null)
 
   const canAdd = isNonEmpty(text)
 
@@ -81,6 +106,26 @@ export default function Page() {
     setItems(items.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)))
   }
 
+  function exportJson() {
+    downloadText('clipboard.json', JSON.stringify(items, null, 2), 'application/json;charset=utf-8')
+  }
+
+  async function importJson(file: File | null) {
+    if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown
+      const clips = parseClips(parsed)
+      if (!clips) {
+        setImportMsg('JSON 格式無效，需為剪貼陣列')
+        return
+      }
+      setItems(clips)
+      setImportMsg(`已匯入 ${clips.length} 筆`)
+    } catch {
+      setImportMsg('讀取或解析失敗')
+    }
+  }
+
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
@@ -122,10 +167,27 @@ export default function Page() {
           <button type="button" className="btn teal" onClick={pasteFromSystem}>
             讀取系統剪貼簿
           </button>
+          <button type="button" className="btn ghost" onClick={exportJson} disabled={!items.length}>
+            匯出 JSON
+          </button>
+          <button type="button" className="btn ghost" onClick={() => importRef.current?.click()}>
+            匯入 JSON
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void importJson(e.target.files?.[0] ?? null)
+              e.target.value = ''
+            }}
+          />
           <span className="muted" style={{ marginLeft: 'auto', fontSize: 13 }}>
             Ctrl/⌘ + Enter 快速加入
           </span>
         </div>
+        {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
 
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {(['全部', ...CATS] as const).map((f) => (

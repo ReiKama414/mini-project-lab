@@ -104,6 +104,7 @@ export default function Page() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [histFilter, setHistFilter] = useState('')
+  const [dragging, setDragging] = useState(false)
 
   const filteredHistory = useMemo(() => {
     const q = histFilter.trim().toLowerCase()
@@ -183,6 +184,26 @@ export default function Page() {
     downloadText('data.csv', body, 'text/csv;charset=utf-8')
   }
 
+  async function loadJsonFile(file: File | null) {
+    if (!file) return
+    const isJson =
+      file.type === 'application/json' ||
+      file.type === 'text/json' ||
+      /\.json$/i.test(file.name) ||
+      file.type === '' ||
+      file.type === 'text/plain'
+    if (!isJson) {
+      setError('請拖放 .json 檔案')
+      return
+    }
+    try {
+      setInput(limitText(await file.text(), JSON_MAX))
+      setError('')
+    } catch {
+      setError('讀取檔案失敗')
+    }
+  }
+
   return (
     <ProjectShell
       meta={meta}
@@ -238,16 +259,29 @@ export default function Page() {
           </div>
 
           <label className="stack">
-            <span className="label">JSON 物件陣列</span>
+            <span className="label">JSON 物件陣列（可拖放 .json）</span>
             <textarea
               className={`field mono${error ? ' is-invalid' : ''}`}
               rows={12}
               value={input}
               maxLength={JSON_MAX}
               onChange={(e) => setInput(limitText(e.target.value, JSON_MAX))}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragging(true)
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragging(false)
+                const f = e.dataTransfer.files?.[0] ?? null
+                void loadJsonFile(f)
+              }}
+              style={dragging ? { outline: '2px dashed var(--accent, #f0734a)' } : undefined}
             />
             <div className="field-meta">
               <span>{charCount(input).toLocaleString()} / {JSON_MAX.toLocaleString()}</span>
+              <span className="muted">{dragging ? '放開以載入' : '拖放 .json 填入'}</span>
             </div>
           </label>
 

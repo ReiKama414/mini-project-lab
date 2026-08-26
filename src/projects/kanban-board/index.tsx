@@ -59,6 +59,8 @@ export default function Page() {
   const [editTitle, setEditTitle] = useState('')
   const [editDetail, setEditDetail] = useState('')
   const [editPriority, setEditPriority] = useState<Priority>('medium')
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overCol, setOverCol] = useState<Col | null>(null)
 
   const titleOk = isNonEmpty(text)
   const editTitleOk = isNonEmpty(editTitle)
@@ -122,6 +124,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
+        <p className="muted">可拖曳卡片至其他欄位，或使用按鈕移動。看板會自動儲存在本機。</p>
         <div className="row">
           <div className="field-wrap" style={{ flex: 1 }}>
             <input
@@ -152,8 +155,9 @@ export default function Page() {
             <option value="medium">中優先</option>
             <option value="low">低優先</option>
           </select>
-          <AddButton type="button"  onClick={add} disabled={!canAdd}>
-            新增</AddButton>
+          <AddButton type="button" onClick={add} disabled={!canAdd}>
+            新增
+          </AddButton>
         </div>
 
         <div className="row">
@@ -171,8 +175,29 @@ export default function Page() {
         <div className="kanban">
           {COLS.map((col) => {
             const overWip = col.wip != null && counts[col.id] > col.wip
+            const isDropTarget = overCol === col.id && dragId != null
             return (
-              <div key={col.id} className="kanban-col">
+              <div
+                key={col.id}
+                className={`kanban-col${isDropTarget ? ' is-drag-over' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  if (overCol !== col.id) setOverCol(col.id)
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    if (overCol === col.id) setOverCol(null)
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const from = dragId || e.dataTransfer.getData('text/plain')
+                  if (from) move(from, col.id)
+                  setDragId(null)
+                  setOverCol(null)
+                }}
+              >
                 <h3>
                   {col.label}{' '}
                   <span className="muted">
@@ -187,109 +212,144 @@ export default function Page() {
                     const rank = { high: 0, medium: 1, low: 2 }
                     return rank[a.priority] - rank[b.priority]
                   })
-                  .map((c) => (
-                    <div
-                      key={c.id}
-                      className="list-item"
-                      style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}
-                    >
-                      {editing === c.id ? (
-                        <div className="stack" style={{ gap: 8 }}>
-                          <div className="stack" style={{ gap: 0 }}>
-                            <input
-                              className={`field${!editTitleOk ? ' is-invalid' : ''}`}
-                              value={editTitle}
-                              maxLength={MAX_TITLE}
-                              onChange={(e) => setEditTitle(limitText(e.target.value, MAX_TITLE))}
-                            />
-                            <div className="field-meta">
-                              <span className={!editTitleOk ? 'warn' : undefined}>
-                                {!editTitleOk ? '標題不可空白' : '\u00a0'}
-                              </span>
-                              <span>
-                                {charCount(editTitle)} / {MAX_TITLE}
-                              </span>
+                  .map((c) => {
+                    const isDragging = dragId === c.id
+                    return (
+                      <div
+                        key={c.id}
+                        className={`list-item${isDragging ? ' is-dragging' : ''}`}
+                        style={{
+                          flexDirection: 'column',
+                          gap: 8,
+                          alignItems: 'stretch',
+                          cursor: editing === c.id ? 'default' : 'grab',
+                        }}
+                        draggable={editing !== c.id}
+                        onDragStart={(e) => {
+                          if (editing === c.id) {
+                            e.preventDefault()
+                            return
+                          }
+                          setDragId(c.id)
+                          e.dataTransfer.effectAllowed = 'move'
+                          e.dataTransfer.setData('text/plain', c.id)
+                        }}
+                        onDragEnd={() => {
+                          setDragId(null)
+                          setOverCol(null)
+                        }}
+                      >
+                        {editing === c.id ? (
+                          <div className="stack" style={{ gap: 8 }}>
+                            <div className="stack" style={{ gap: 0 }}>
+                              <input
+                                className={`field${!editTitleOk ? ' is-invalid' : ''}`}
+                                value={editTitle}
+                                maxLength={MAX_TITLE}
+                                onChange={(e) => setEditTitle(limitText(e.target.value, MAX_TITLE))}
+                              />
+                              <div className="field-meta">
+                                <span className={!editTitleOk ? 'warn' : undefined}>
+                                  {!editTitleOk ? '標題不可空白' : '\u00a0'}
+                                </span>
+                                <span>
+                                  {charCount(editTitle)} / {MAX_TITLE}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="stack" style={{ gap: 0 }}>
-                            <textarea
+                            <div className="stack" style={{ gap: 0 }}>
+                              <textarea
+                                className="field"
+                                rows={2}
+                                placeholder="詳情（選填）"
+                                value={editDetail}
+                                maxLength={MAX_DETAIL}
+                                onChange={(e) => setEditDetail(limitText(e.target.value, MAX_DETAIL))}
+                              />
+                              <div className="field-meta">
+                                <span />
+                                <span>
+                                  {charCount(editDetail)} / {MAX_DETAIL}
+                                </span>
+                              </div>
+                            </div>
+                            <select
                               className="field"
-                              rows={2}
-                              placeholder="詳情（選填）"
-                              value={editDetail}
-                              maxLength={MAX_DETAIL}
-                              onChange={(e) => setEditDetail(limitText(e.target.value, MAX_DETAIL))}
-                            />
-                            <div className="field-meta">
-                              <span />
-                              <span>
-                                {charCount(editDetail)} / {MAX_DETAIL}
-                              </span>
+                              value={editPriority}
+                              onChange={(e) => setEditPriority(e.target.value as Priority)}
+                            >
+                              <option value="high">高</option>
+                              <option value="medium">中</option>
+                              <option value="low">低</option>
+                            </select>
+                            <div className="row">
+                              <button className="btn sm accent" onClick={saveEdit} disabled={!editTitleOk}>
+                                儲存
+                              </button>
+                              <button className="btn sm ghost" onClick={() => setEditing(null)}>
+                                取消
+                              </button>
                             </div>
                           </div>
-                          <select
-                            className="field"
-                            value={editPriority}
-                            onChange={(e) => setEditPriority(e.target.value as Priority)}
-                          >
-                            <option value="high">高</option>
-                            <option value="medium">中</option>
-                            <option value="low">低</option>
-                          </select>
-                          <div className="row">
-                            <button className="btn sm accent" onClick={saveEdit} disabled={!editTitleOk}>
-                              儲存
-                            </button>
-                            <button className="btn sm ghost" onClick={() => setEditing(null)}>
-                              取消
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="row">
-                            <strong style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</strong>
-                            <span
-                              className="tag"
-                              style={{
-                                background:
-                                  c.priority === 'high'
-                                    ? 'var(--rose-soft)'
-                                    : c.priority === 'medium'
-                                      ? 'var(--amber-soft)'
-                                      : 'var(--teal-soft)',
-                              }}
-                            >
-                              {PRIORITY_LABEL[c.priority]}
-                            </span>
-                          </div>
-                          {c.detail && (
-                            <span className="muted" style={{ fontSize: 13 }}>
-                              {c.detail}
-                            </span>
-                          )}
-                          <span className="muted" style={{ fontSize: 11 }}>
-                            {new Date(c.createdAt).toLocaleDateString('zh-TW')}
-                          </span>
-                          <div className="row" style={{ flexWrap: 'wrap' }}>
-                            {COLS.filter((x) => x.id !== c.col).map((x) => (
-                              <button
-                                key={x.id}
-                                className="btn sm ghost"
-                                onClick={() => move(c.id, x.id)}
+                        ) : (
+                          <>
+                            <div className="row">
+                              <strong
+                                style={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
                               >
-                                → {x.label}
+                                {c.title}
+                              </strong>
+                              <span
+                                className="tag"
+                                style={{
+                                  background:
+                                    c.priority === 'high'
+                                      ? 'var(--rose-soft)'
+                                      : c.priority === 'medium'
+                                        ? 'var(--amber-soft)'
+                                        : 'var(--teal-soft)',
+                                }}
+                              >
+                                {PRIORITY_LABEL[c.priority]}
+                              </span>
+                            </div>
+                            {c.detail && (
+                              <span className="muted" style={{ fontSize: 13 }}>
+                                {c.detail}
+                              </span>
+                            )}
+                            <span className="muted" style={{ fontSize: 11 }}>
+                              {new Date(c.createdAt).toLocaleDateString('zh-TW')}
+                            </span>
+                            <div className="row" style={{ flexWrap: 'wrap' }}>
+                              {COLS.filter((x) => x.id !== c.col).map((x) => (
+                                <button
+                                  key={x.id}
+                                  className="btn sm ghost"
+                                  onClick={() => move(c.id, x.id)}
+                                >
+                                  → {x.label}
+                                </button>
+                              ))}
+                              <button className="btn sm ghost" onClick={() => startEdit(c)}>
+                                編輯
                               </button>
-                            ))}
-                            <button className="btn sm ghost" onClick={() => startEdit(c)}>
-                              編輯
-                            </button>
-                            <DeleteButton onClick={() => setCards(cards.filter((x) => x.id !== c.id))} label="刪除" />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                              <DeleteButton
+                                onClick={() => setCards(cards.filter((x) => x.id !== c.id))}
+                                label="刪除"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  })}
               </div>
             )
           })}

@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, copyText, parseNumber } from '../../lib/utils'
+import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
 
 const meta = getProject('random-number')!
 
@@ -12,6 +12,12 @@ const COUNT_MIN = 1
 const COUNT_MAX = 200
 const DEC_MIN = 0
 const DEC_MAX = 8
+
+type HistoryItem = {
+  line: string
+  min: number
+  max: number
+}
 
 function cryptoInt(min: number, max: number) {
   const lo = Math.ceil(min)
@@ -37,6 +43,28 @@ function cryptoFloat(min: number, max: number, decimals: number) {
   return Math.round(v * f) / f
 }
 
+function normalizeHistory(raw: unknown): HistoryItem[] {
+  if (!Array.isArray(raw)) return []
+  const out: HistoryItem[] = []
+  for (const item of raw) {
+    if (typeof item === 'string' && item) {
+      out.push({ line: item, min: 1, max: 100 })
+      continue
+    }
+    if (item && typeof item === 'object' && 'line' in item) {
+      const row = item as HistoryItem
+      const line = String(row.line)
+      if (!line) continue
+      out.push({
+        line,
+        min: Number.isFinite(row.min) ? row.min : 1,
+        max: Number.isFinite(row.max) ? row.max : 100,
+      })
+    }
+  }
+  return out
+}
+
 export default function Page() {
   const [min, setMin] = useLocalStorage('lab:random-number:min', 1)
   const [max, setMax] = useLocalStorage('lab:random-number:max', 100)
@@ -46,8 +74,19 @@ export default function Page() {
   const [decimals, setDecimals] = useLocalStorage('lab:random-number:decimals', 2)
   const [results, setResults] = useState<(number | string)[]>([])
   const [error, setError] = useState('')
-  const [history, setHistory] = useLocalStorage<string[]>('lab:random-number:history', [])
+  const [historyRaw, setHistoryRaw] = useLocalStorage<HistoryItem[] | string[]>(
+    'lab:random-number:history',
+    [],
+  )
+  const history = normalizeHistory(historyRaw)
   const [copied, setCopied] = useState(false)
+
+  function setHistory(next: HistoryItem[] | ((prev: HistoryItem[]) => HistoryItem[])) {
+    setHistoryRaw((prev) => {
+      const current = normalizeHistory(prev)
+      return typeof next === 'function' ? next(current) : next
+    })
+  }
 
   function generate() {
     const loRaw = Number.isFinite(min) ? min : NaN
@@ -94,7 +133,7 @@ export default function Page() {
       }
       setResults(out)
       const line = out.join(', ')
-      setHistory([line, ...history.filter((h) => h !== line)].slice(0, 12))
+      setHistory((h) => [{ line, min: lo, max: hi }, ...h.filter((x) => x.line !== line)].slice(0, 12))
     } catch {
       setError('產生失敗')
       setResults([])
@@ -109,6 +148,19 @@ export default function Page() {
     }
     setError('')
     set(clamp(n, RANGE_MIN, RANGE_MAX))
+  }
+
+  function applyRange(item: HistoryItem) {
+    setMin(clamp(item.min, RANGE_MIN, RANGE_MAX))
+    setMax(clamp(item.max, RANGE_MIN, RANGE_MAX))
+    setError('')
+  }
+
+  async function copyResults() {
+    if (!results.length) return
+    await copyText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   const text = results.join(', ')
@@ -193,15 +245,15 @@ export default function Page() {
             <button className="btn accent" onClick={generate} disabled={error === '請輸入有效數字'}>
               產生
             </button>
+            <button className="btn ghost" disabled={!results.length} onClick={() => void copyResults()}>
+              {copied ? '已複製' : '複製'}
+            </button>
             <button
               className="btn ghost"
               disabled={!results.length}
-              onClick={async () => {
-                await copyText(text)
-                setCopied(true)
-              }}
+              onClick={() => downloadText('numbers.txt', results.join('\n'))}
             >
-              {copied ? '已複製' : '複製'}
+              下載 .txt
             </button>
           </div>
           {error && <p className="field-error">{error}</p>}
@@ -218,11 +270,19 @@ export default function Page() {
           <h3>歷史紀錄</h3>
           <ul className="list">
             {history.map((h, i) => (
-              <li key={`${h}-${i}`} className="list-item">
-                <code className="mono" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {h}
-                </code>
-                <button className="btn ghost sm" onClick={() => void copyText(h)}>
+              <li key={`${h.line}-${i}`} className="list-item" style={{ alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <code className="mono" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {h.line}
+                  </code>
+                  <span className="muted" style={{ fontSize: 11 }}>
+                    範圍 {h.min}–{h.max}
+                  </span>
+                </div>
+                <button className="btn ghost sm" onClick={() => applyRange(h)}>
+                  套用範圍
+                </button>
+                <button className="btn ghost sm" onClick={() => void copyText(h.line)}>
                   複製
                 </button>
               </li>

@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import jsQR from 'jsqr'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, isNonEmpty, limitText, uid } from '../../lib/utils'
 
@@ -15,6 +16,16 @@ type Decoded = {
   summary: string
   details: { label: string; value: string }[]
   actions: { label: string; href?: string; copy?: string }[]
+}
+
+type BarcodeDetectorLike = {
+  detect: (source: ImageBitmapSource) => Promise<{ rawValue: string }[]>
+}
+
+type BarcodeDetectorCtor = new (options?: { formats: string[] }) => BarcodeDetectorLike
+
+function getBarcodeDetector(): BarcodeDetectorCtor | undefined {
+  return (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector
 }
 
 function decodePayload(raw: string): Decoded {
@@ -126,6 +137,27 @@ function decodePayload(raw: string): Decoded {
   }
 }
 
+async function tryBarcodeDetector(source: ImageBitmapSource): Promise<string | null> {
+  const Ctor = getBarcodeDetector()
+  if (!Ctor) return null
+  try {
+    const detector = new Ctor({ formats: ['qr_code'] })
+    const codes = await detector.detect(source)
+    const value = codes[0]?.rawValue?.trim()
+    return value || null
+  } catch {
+    return null
+  }
+}
+
+function decodeWithJsQR(imageData: ImageData): string | null {
+  const code = jsQR(imageData.data, imageData.width, imageData.height, {
+    inversionAttempts: 'attemptBoth',
+  })
+  const value = code?.data?.trim()
+  return value || null
+}
+
 export default function Page() {
   const [payload, setPayload] = useLocalStorage(
     'lab:qr-scanner:payload',
@@ -133,50 +165,199 @@ export default function Page() {
   )
   const [history, setHistory] = useLocalStorage<HistoryItem[]>('lab:qr-scanner:history', [])
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [uploadNote, setUploadNote] = useState('')
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [cameraOn, setCameraOn] = useState(false)
+  const [cameraSupported] = useState(
+    () => typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia,
+  )
+  const [barcodeFast] = useState(() => !!getBarcodeDetector())
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const scanRafRef = useRef<number | null>(null)
+  const lastScanRef = useRef('')
+  const previewUrlRef = useRef<string | null>(null)
+  const applyPayloadRef = useRef<(text: string) => void>(() => {})
+
   const decoded = decodePayload(payload)
 
-  function remember(text: string) {
-    const d = decodePayload(text)
-    if (d.type === 'empty') return
-    setHistory([
-      { id: uid('qr'), text, type: d.summary, at: Date.now() },
-      ...history.filter((h) => h.text !== text),
-    ].slice(0, 30))
+  const remember = useCallback(
+    (text: string) => {
+      const d = decodePayload(text)
+      if (d.type === 'empty') return
+      setHistory((prev) =>
+        [
+          { id: uid('qr'), text, type: d.summary, at: Date.now() },
+          ...prev.filter((h) => h.text !== text),
+        ].slice(0, 30),
+      )
+    },
+    [setHistory],
+  )
+
+  const applyPayload = useCallback(
+    (text: string) => {
+      const clipped = limitText(text, PAYLOAD_MAX)
+      setPayload(clipped)
+      remember(clipped)
+    },
+    [remember, setPayload],
+  )
+
+  applyPayloadRef.current = applyPayload
+
+  function revokePreview() {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current)
+      previewUrlRef.current = null
+    }
   }
 
-  function applyPayload(text: string) {
-    setPayload(text)
-    remember(text)
+  async function decodeCanvas(canvas: HTMLCanvasElement): Promise<string | null> {
+    const fromBd = await tryBarcodeDetector(canvas)
+    if (fromBd) return fromBd
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return null
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    return decodeWithJsQR(imageData)
   }
 
-  function onFile(file: File | null) {
+  async function onFile(file: File | null) {
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setUploadNote('請上傳圖片檔')
+      setError('請上傳圖片檔')
+      setStatus('')
       return
     }
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-    setUploadNote(
-      '已將圖片繪製到畫布。相機即時掃描與影像解碼需額外函式庫（如 jsQR）；此處可改為手動貼上解碼結果。',
-    )
 
-    const img = new Image()
-    img.onload = () => {
+    setBusy(true)
+    setError('')
+    setStatus('正在解碼圖片…')
+
+    revokePreview()
+    const url = URL.createObjectURL(file)
+    previewUrlRef.current = url
+    setPreviewUrl(url)
+
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image()
+        el.onload = () => resolve(el)
+        el.onerror = () => reject(new Error('圖片載入失敗'))
+        el.src = url
+      })
+
       const canvas = canvasRef.current
-      if (!canvas) return
-      const maxW = 360
+      if (!canvas) throw new Error('畫布尚未就緒')
+
+      const maxW = 720
       const scale = Math.min(1, maxW / img.width)
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
+      canvas.width = Math.max(1, Math.round(img.width * scale))
+      canvas.height = Math.max(1, Math.round(img.height * scale))
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) throw new Error('無法取得畫布內容')
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+      let text = await tryBarcodeDetector(img)
+      if (!text) text = await decodeCanvas(canvas)
+
+      if (text) {
+        applyPayload(text)
+        setStatus(barcodeFast && getBarcodeDetector() ? '解碼成功' : '解碼成功（jsQR）')
+        setError('')
+      } else {
+        setStatus('')
+        setError('未偵測到 QR Code，請換一張更清晰的圖片或改為手動貼上內容')
+      }
+    } catch (err) {
+      setStatus('')
+      setError(err instanceof Error ? err.message : '解碼失敗')
+    } finally {
+      setBusy(false)
     }
-    img.src = url
   }
+
+  const stopCamera = useCallback(() => {
+    if (scanRafRef.current != null) {
+      cancelAnimationFrame(scanRafRef.current)
+      scanRafRef.current = null
+    }
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+    setCameraOn(false)
+  }, [])
+
+  function tickScan() {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas || video.readyState < 2) {
+      scanRafRef.current = requestAnimationFrame(tickScan)
+      return
+    }
+
+    const w = video.videoWidth
+    const h = video.videoHeight
+    if (w > 0 && h > 0) {
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, w, h)
+        const imageData = ctx.getImageData(0, 0, w, h)
+        const text = decodeWithJsQR(imageData)
+        if (text && text !== lastScanRef.current) {
+          lastScanRef.current = text
+          applyPayloadRef.current(text)
+          setStatus('相機掃描成功')
+          setError('')
+        }
+      }
+    }
+
+    scanRafRef.current = requestAnimationFrame(tickScan)
+  }
+
+  async function startCamera() {
+    if (!cameraSupported) {
+      setError('此瀏覽器不支援相機')
+      return
+    }
+    setBusy(true)
+    setError('')
+    setStatus('正在開啟相機…')
+    lastScanRef.current = ''
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      })
+      streamRef.current = stream
+      const video = videoRef.current
+      if (!video) throw new Error('預覽元件尚未就緒')
+      video.srcObject = stream
+      await video.play()
+      setCameraOn(true)
+      setPreviewUrl(null)
+      setStatus('相機掃描中…將 QR 對準畫面')
+      if (scanRafRef.current != null) cancelAnimationFrame(scanRafRef.current)
+      scanRafRef.current = requestAnimationFrame(tickScan)
+    } catch {
+      stopCamera()
+      setStatus('')
+      setError('無法開啟相機，請允許權限或以圖片上傳代替')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  useEffect(() => () => {
+    stopCamera()
+    revokePreview()
+  }, [stopCamera])
 
   const samples = [
     'https://github.com',
@@ -192,25 +373,58 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel stack">
           <p className="muted">
-            相機掃描需額外解碼函式庫，此示範以手動貼上 / 範例為主；可上傳圖片預覽畫布內容。
+            上傳含 QR 的圖片即可自動解碼；支援相機即時掃描
+            {barcodeFast ? '（BarcodeDetector 加速）' : '（jsQR）'}。也可手動貼上內容。
           </p>
 
           <label className="stack">
-            <span className="label">上傳 QR 圖片（預覽）</span>
+            <span className="label">上傳 QR 圖片</span>
             <input
               className="field"
               type="file"
               accept="image/*"
-              onChange={(e) => onFile(e.target.files?.[0] || null)}
+              disabled={busy || cameraOn}
+              onChange={(e) => {
+                void onFile(e.target.files?.[0] || null)
+                e.target.value = ''
+              }}
             />
           </label>
-          {uploadNote && <p className="muted">{uploadNote}</p>}
+
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {cameraSupported && !cameraOn && (
+              <button className="btn accent" type="button" disabled={busy} onClick={() => void startCamera()}>
+                開啟相機掃描
+              </button>
+            )}
+            {cameraOn && (
+              <button className="btn ghost" type="button" onClick={stopCamera}>
+                關閉相機
+              </button>
+            )}
+          </div>
+
+          {busy && <p className="muted">處理中…</p>}
+          {status && !error && <p className="muted">{status}</p>}
+          {error && <p className="field-error">{error}</p>}
+
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            style={{
+              maxWidth: '100%',
+              borderRadius: 8,
+              display: cameraOn ? 'block' : 'none',
+              background: '#111',
+            }}
+          />
           <canvas
             ref={canvasRef}
             style={{
               maxWidth: '100%',
               borderRadius: 8,
-              display: previewUrl ? 'block' : 'none',
+              display: previewUrl && !cameraOn ? 'block' : 'none',
               background: '#111',
             }}
           />

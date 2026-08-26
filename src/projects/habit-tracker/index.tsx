@@ -21,14 +21,22 @@ function todayKey() {
   return toKey(new Date())
 }
 
-function last7() {
+function lastN(n: number) {
   const days: string[] = []
-  for (let i = 6; i >= 0; i--) {
+  for (let i = n - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
     days.push(toKey(d))
   }
   return days
+}
+
+function last7() {
+  return lastN(7)
+}
+
+function last30() {
+  return lastN(30)
 }
 
 /** 連續打卡天數：從今天往回算 */
@@ -58,6 +66,7 @@ export default function Page() {
   ])
   const [name, setName] = useState('')
   const days = useMemo(() => last7(), [])
+  const days30 = useMemo(() => last30(), [])
   const today = todayKey()
 
   const nameOk = isNonEmpty(name)
@@ -158,6 +167,7 @@ export default function Page() {
         <ul className="list">
           {habits.map((h) => {
             const weekHits = days.filter((d) => h.checks.includes(d)).length
+            const monthHits = days30.filter((d) => h.checks.includes(d)).length
             const streak = calcStreak(h.checks)
             return (
               <li
@@ -169,12 +179,14 @@ export default function Page() {
                   <strong style={{ flex: 1 }}>{h.name}</strong>
                   <span className="tag">連續 {streak} 天</span>
                   <span className="tag">本週 {weekHits}/7</span>
+                  <span className="tag">30 日 {monthHits}/30</span>
                   <DeleteButton onClick={() => setHabits(habits.filter((x) => x.id !== h.id))} label="刪除" />
                 </div>
                 <div className="row" style={{ alignItems: 'center' }}>
                   {days.map((d) => (
                     <button
                       key={d}
+                      type="button"
                       className={`btn sm ${h.checks.includes(d) ? 'teal' : 'ghost'}`}
                       style={{ width: 40, placeContent: 'center' }}
                       onClick={() => toggle(h.id, d)}
@@ -186,6 +198,43 @@ export default function Page() {
                 </div>
                 <div className="progress">
                   <span style={{ width: `${(weekHits / 7) * 100}%` }} />
+                </div>
+                <div>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                    近 30 日熱力圖（點擊可打卡／取消）
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(10, 1fr)',
+                      gap: 4,
+                      maxWidth: 280,
+                    }}
+                  >
+                    {days30.map((d) => {
+                      const on = h.checks.includes(d)
+                      const isToday = d === today
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          title={`${d}${on ? ' · 已打卡' : ''}`}
+                          onClick={() => toggle(h.id, d)}
+                          aria-label={`${d}${on ? ' 已打卡' : ' 未打卡'}`}
+                          style={{
+                            width: '100%',
+                            aspectRatio: '1',
+                            border: isToday ? '2px solid var(--accent, #f0734a)' : '1px solid var(--line)',
+                            borderRadius: 4,
+                            padding: 0,
+                            cursor: 'pointer',
+                            background: on ? 'var(--teal, #2a9d8f)' : 'var(--surface, #fff)',
+                            opacity: on ? 1 : 0.55,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
                 </div>
               </li>
             )

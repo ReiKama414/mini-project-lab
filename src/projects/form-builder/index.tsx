@@ -84,6 +84,8 @@ export default function Page() {
   const [error, setError] = useState('')
   const [tab, setTab] = useState<Tab>('build')
   const [okMsg, setOkMsg] = useState('')
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
 
   function add(type: FieldType) {
     if (fields.length >= MAX_FIELDS) return
@@ -118,6 +120,20 @@ export default function Page() {
       const tmp = next[i]!
       next[i] = next[j]!
       next[j] = tmp
+      return next
+    })
+  }
+
+  function reorderFields(fromId: string, toId: string) {
+    if (fromId === toId) return
+    setFields((fs) => {
+      const from = fs.findIndex((f) => f.id === fromId)
+      const to = fs.findIndex((f) => f.id === toId)
+      if (from < 0 || to < 0) return fs
+      const next = [...fs]
+      const [item] = next.splice(from, 1)
+      if (!item) return fs
+      next.splice(to, 0, item)
       return next
     })
   }
@@ -255,59 +271,110 @@ export default function Page() {
               </p>
             </div>
           ) : (
-            fields.map((f, i) => (
-              <div key={f.id} className="list-item stack">
-                <div className="row" style={{ flexWrap: 'wrap' }}>
-                  <span className="mono muted">{i + 1}</span>
-                  <input
-                    className="field"
-                    style={{ flex: 1, minWidth: 120 }}
-                    value={f.label}
-                    maxLength={MAX_LABEL}
-                    onChange={(e) =>
-                      setFields((fs) =>
-                        fs.map((x) =>
-                          x.id === f.id ? { ...x, label: limitText(e.target.value, MAX_LABEL) } : x,
-                        ),
-                      )
-                    }
-                  />
-                  <span className="tag">{TYPE_LABEL[f.type]}</span>
-                  <label className="row">
-                    <input
-                      type="checkbox"
-                      checked={f.required}
-                      onChange={() => setFields((fs) => fs.map((x) => (x.id === f.id ? { ...x, required: !x.required } : x)))}
-                    />
-                    必填
-                  </label>
-                  <button type="button" className="btn sm ghost" disabled={i === 0} onClick={() => moveField(f.id, -1)}>
-                    ↑
-                  </button>
-                  <button type="button" className="btn sm ghost" disabled={i === fields.length - 1} onClick={() => moveField(f.id, 1)}>
-                    ↓
-                  </button>
-                  <button type="button" className="btn sm danger" onClick={() => setFields((fs) => fs.filter((x) => x.id !== f.id))}>
-                    刪
-                  </button>
-                </div>
-                {f.type === 'select' && (
-                  <input
-                    className="field"
-                    value={f.options || ''}
-                    placeholder="選項，逗號分隔"
-                    maxLength={MAX_OPTIONS}
-                    onChange={(e) =>
-                      setFields((fs) =>
-                        fs.map((x) =>
-                          x.id === f.id ? { ...x, options: limitText(e.target.value, MAX_OPTIONS) } : x,
-                        ),
-                      )
-                    }
-                  />
-                )}
-              </div>
-            ))
+            <>
+              <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                可拖曳欄位重新排序，或使用 ↑↓ 按鈕。
+              </p>
+              {fields.map((f, i) => {
+                const isDragging = dragId === f.id
+                const isOver = overId === f.id && dragId !== f.id
+                return (
+                  <div
+                    key={f.id}
+                    className="list-item stack"
+                    draggable
+                    onDragStart={(e) => {
+                      setDragId(f.id)
+                      e.dataTransfer.effectAllowed = 'move'
+                      e.dataTransfer.setData('text/plain', f.id)
+                    }}
+                    onDragEnd={() => {
+                      setDragId(null)
+                      setOverId(null)
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      if (overId !== f.id) setOverId(f.id)
+                    }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node) && overId === f.id) {
+                        setOverId(null)
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      const from = dragId || e.dataTransfer.getData('text/plain')
+                      if (from) reorderFields(from, f.id)
+                      setDragId(null)
+                      setOverId(null)
+                    }}
+                    style={{
+                      cursor: 'grab',
+                      opacity: isDragging ? 0.45 : 1,
+                      outline: isOver ? '2px solid var(--accent, #f0734a)' : undefined,
+                      outlineOffset: isOver ? 2 : undefined,
+                      background: isOver ? 'var(--teal-soft, #e8f5f2)' : undefined,
+                      transition: 'opacity 0.15s, background 0.15s',
+                    }}
+                  >
+                    <div className="row" style={{ flexWrap: 'wrap' }}>
+                      <span className="mono muted" title="拖曳排序" style={{ cursor: 'grab', userSelect: 'none' }}>
+                        ⋮⋮ {i + 1}
+                      </span>
+                      <input
+                        className="field"
+                        style={{ flex: 1, minWidth: 120 }}
+                        value={f.label}
+                        maxLength={MAX_LABEL}
+                        draggable={false}
+                        onChange={(e) =>
+                          setFields((fs) =>
+                            fs.map((x) =>
+                              x.id === f.id ? { ...x, label: limitText(e.target.value, MAX_LABEL) } : x,
+                            ),
+                          )
+                        }
+                      />
+                      <span className="tag">{TYPE_LABEL[f.type]}</span>
+                      <label className="row">
+                        <input
+                          type="checkbox"
+                          checked={f.required}
+                          onChange={() => setFields((fs) => fs.map((x) => (x.id === f.id ? { ...x, required: !x.required } : x)))}
+                        />
+                        必填
+                      </label>
+                      <button type="button" className="btn sm ghost" disabled={i === 0} onClick={() => moveField(f.id, -1)}>
+                        ↑
+                      </button>
+                      <button type="button" className="btn sm ghost" disabled={i === fields.length - 1} onClick={() => moveField(f.id, 1)}>
+                        ↓
+                      </button>
+                      <button type="button" className="btn sm danger" onClick={() => setFields((fs) => fs.filter((x) => x.id !== f.id))}>
+                        刪
+                      </button>
+                    </div>
+                    {f.type === 'select' && (
+                      <input
+                        className="field"
+                        value={f.options || ''}
+                        placeholder="選項，逗號分隔"
+                        maxLength={MAX_OPTIONS}
+                        draggable={false}
+                        onChange={(e) =>
+                          setFields((fs) =>
+                            fs.map((x) =>
+                              x.id === f.id ? { ...x, options: limitText(e.target.value, MAX_OPTIONS) } : x,
+                            ),
+                          )
+                        }
+                      />
+                    )}
+                  </div>
+                )
+              })}
+            </>
           )}
           <button type="button" className="btn accent" disabled={!fields.length} onClick={() => setTab('preview')}>
             下一步：預覽 →

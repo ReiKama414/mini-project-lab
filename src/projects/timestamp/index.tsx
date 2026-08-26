@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, isNonEmpty, limitText, parseNumber, copyText } from '../../lib/utils'
+import { charCount, isNonEmpty, limitText, parseNumber, copyText, downloadText } from '../../lib/utils'
 
 const meta = getProject('timestamp')!
 
@@ -22,15 +22,17 @@ function fmt(ms: number, withTz: boolean) {
   })
 }
 
+function defaultFromDate() {
+  const d = new Date()
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 16)
+}
+
 export default function Page() {
   const [now, setNow] = useState(() => Date.now())
   const [unit, setUnit] = useLocalStorage<'sec' | 'ms'>('lab:timestamp:unit', 'sec')
   const [ts, setTs] = useLocalStorage('lab:timestamp:ts', String(Math.floor(Date.now() / 1000)))
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date()
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
-    return d.toISOString().slice(0, 16)
-  })
+  const [fromDate, setFromDate] = useLocalStorage('lab:timestamp:fromDate', defaultFromDate())
   const [batchIn, setBatchIn] = useLocalStorage(
     'lab:timestamp:batch',
     `${Math.floor(Date.now() / 1000)}\n${Date.now()}`,
@@ -49,6 +51,13 @@ export default function Page() {
 
   const liveSec = Math.floor(now / 1000)
   const displayNow = unit === 'sec' ? liveSec : now
+
+  function fillNow() {
+    const n = Date.now()
+    setTs(String(unit === 'sec' ? Math.floor(n / 1000) : n))
+    setFromDate(defaultFromDate())
+    setError('')
+  }
 
   function convertOne() {
     if (!isNonEmpty(ts)) {
@@ -110,6 +119,19 @@ export default function Page() {
       })
   }, [batchIn])
 
+  function downloadBatch() {
+    if (!batchRows.length) return
+    const lines = [
+      'timestamp,local,iso,relative',
+      ...batchRows.map((r) => {
+        if (!r.ok) return `${r.line},,,${r.msg}`
+        const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
+        return `${r.line},${esc(r.local)},${esc(r.iso)},${esc(r.relative)}`
+      }),
+    ]
+    downloadText('timestamps.csv', lines.join('\n'), 'text/csv;charset=utf-8')
+  }
+
   return (
     <ProjectShell meta={meta}>
       <div className="grid-2">
@@ -120,6 +142,9 @@ export default function Page() {
             </button>
             <button className={`btn sm ${unit === 'ms' ? 'accent' : 'ghost'}`} onClick={() => setUnit('ms')}>
               毫秒
+            </button>
+            <button className="btn sm teal" onClick={fillNow}>
+              填入現在
             </button>
             <span className="muted" style={{ fontSize: 12 }}>
               時區：{tz}（{offsetStr}）
@@ -176,7 +201,12 @@ export default function Page() {
           {error && <p className="field-error">{error}</p>}
         </div>
         <div className="panel stack">
-          <h3>批次轉換</h3>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0 }}>批次轉換</h3>
+            <button className="btn sm ghost" disabled={!batchRows.length} onClick={downloadBatch}>
+              下載結果
+            </button>
+          </div>
           <p className="muted" style={{ fontSize: 12 }}>
             每行一個時間戳；&lt; 1e12 視為秒，否則視為毫秒。
           </p>

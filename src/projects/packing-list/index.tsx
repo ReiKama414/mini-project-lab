@@ -1,13 +1,14 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
-import { useState } from 'react'
-import { useLocalStorage } from '../../lib/storage'
+import { useMemo, useState } from 'react'
+import { loadJSON, useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 
 const meta = getProject('packing-list')!
 
 type PackItem = { id: string; name: string; packed: boolean; category: string }
+type Trip = { id: string; name: string; items: PackItem[]; tripType: string }
 
 const TEMPLATES: Record<string, { category: string; name: string }[]> = {
   週末旅遊: [
@@ -59,43 +60,112 @@ const TEMPLATES: Record<string, { category: string; name: string }[]> = {
 const CATS = ['證件', '衣物', '盥洗', '電子', '其他']
 const MAX_ITEMS = 200
 const MAX_NAME = 80
+const MAX_TRIPS = 20
+const MAX_TRIP_NAME = 40
+
+function migrateTrips(): Trip[] {
+  const saved = loadJSON<Trip[] | null>('lab:packing-list:trips', null)
+  if (Array.isArray(saved) && saved.length > 0) {
+    return saved
+      .filter((t): t is Trip => t != null && typeof t === 'object' && typeof t.id === 'string')
+      .map((t) => ({
+        id: t.id,
+        name: typeof t.name === 'string' && t.name.trim() ? limitText(t.name, MAX_TRIP_NAME) : '未命名旅程',
+        items: Array.isArray(t.items) ? t.items : [],
+        tripType: typeof t.tripType === 'string' ? t.tripType : '',
+      }))
+      .slice(0, MAX_TRIPS)
+  }
+  const oldItems = loadJSON<PackItem[]>('lab:packing-list', [])
+  const oldType = loadJSON<string>('lab:packing-list:trip', '')
+  return [
+    {
+      id: 'trip_default',
+      name: (typeof oldType === 'string' && oldType.trim()) || '我的旅程',
+      items: Array.isArray(oldItems) ? oldItems : [],
+      tripType: typeof oldType === 'string' ? oldType : '',
+    },
+  ]
+}
+
+function getInitialActiveId(trips: Trip[]) {
+  const saved = loadJSON<string>('lab:packing-list:activeId', '')
+  if (saved && trips.some((t) => t.id === saved)) return saved
+  return trips[0]?.id || ''
+}
 
 export default function Page() {
-  const [items, setItems] = useLocalStorage<PackItem[]>('lab:packing-list', [])
-  const [tripType, setTripType] = useLocalStorage<string>('lab:packing-list:trip', '')
+  const [trips, setTrips] = useLocalStorage<Trip[]>('lab:packing-list:trips', migrateTrips())
+  const [activeId, setActiveId] = useLocalStorage<string>('lab:packing-list:activeId', getInitialActiveId(trips))
   const [custom, setCustom] = useState('')
   const [customCat, setCustomCat] = useState(CATS[0]!)
   const [merge, setMerge] = useState(true)
+  const [renameDraft, setRenameDraft] = useState('')
+
+  const active = useMemo(
+    () => trips.find((t) => t.id === activeId) ?? trips[0] ?? null,
+    [trips, activeId],
+  )
+  const items = active?.items ?? []
+  const tripType = active?.tripType ?? ''
 
   const nameOk = isNonEmpty(custom)
   const atLimit = items.length >= MAX_ITEMS
-  const canAdd = nameOk && !atLimit
+  const canAdd = nameOk && !atLimit && !!active
+
+  function patchActive(patch: Partial<Pick<Trip, 'name' | 'items' | 'tripType'>>) {
+    if (!active) return
+    setTrips((xs) => xs.map((t) => (t.id === active.id ? { ...t, ...patch } : t)))
+  }
 
   function applyTemplate(key: string) {
+    if (!active) return
     const list = TEMPLATES[key] || []
     const mapped = list.map((x) => ({ id: uid('pk'), name: x.name, packed: false, category: x.category }))
     if (merge && items.length) {
       const existing = new Set(items.map((i) => i.name))
       const extras = mapped.filter((m) => !existing.has(m.name))
-      const next = [...items, ...extras].slice(0, MAX_ITEMS)
-      setItems(next)
-      if (items.length + extras.length > MAX_ITEMS) {
-        /* soft truncate */
-      }
+      patchActive({ items: [...items, ...extras].slice(0, MAX_ITEMS), tripType: key })
     } else {
-      setItems(mapped.slice(0, MAX_ITEMS))
+      patchActive({ items: mapped.slice(0, MAX_ITEMS), tripType: key })
     }
-    setTripType(key)
   }
 
   function add() {
-    if (!canAdd) return
-    setItems([...items, { id: uid('pk'), name: custom.trim(), packed: false, category: customCat }])
+    if (!canAdd || !active) return
+    patchActive({
+      items: [...items, { id: uid('pk'), name: custom.trim(), packed: false, category: customCat }],
+    })
     setCustom('')
   }
 
   function toggleAll(packed: boolean) {
-    setItems(items.map((i) => ({ ...i, packed })))
+    patchActive({ items: items.map((i) => ({ ...i, packed })) })
+  }
+
+  function createTrip() {
+    if (trips.length >= MAX_TRIPS) return
+    const n: Trip = {
+      id: uid('trip'),
+      name: `旅程 ${trips.length + 1}`,
+      items: [],
+      tripType: '',
+    }
+    setTrips([...trips, n])
+    setActiveId(n.id)
+    setRenameDraft(n.name)
+  }
+
+  function deleteTrip(id: string) {
+    if (trips.length <= 1) return
+    const next = trips.filter((t) => t.id !== id)
+    setTrips(next)
+    if (activeId === id) setActiveId(next[0]!.id)
+  }
+
+  function saveTripName() {
+    if (!active || !isNonEmpty(renameDraft)) return
+    patchActive({ name: limitText(renameDraft.trim(), MAX_TRIP_NAME) })
   }
 
   const packed = items.filter((i) => i.packed).length
@@ -109,6 +179,52 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
+        <div className="label">已儲存旅程（{trips.length}/{MAX_TRIPS}）</div>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          {trips.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`btn sm ${active?.id === t.id ? 'accent' : 'ghost'}`}
+              onClick={() => {
+                setActiveId(t.id)
+                setRenameDraft(t.name)
+              }}
+            >
+              {t.name}
+            </button>
+          ))}
+          <button type="button" className="btn sm teal" onClick={createTrip} disabled={trips.length >= MAX_TRIPS}>
+            新增旅程
+          </button>
+        </div>
+        {active && (
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <input
+              className="field"
+              style={{ flex: 1, minWidth: 140 }}
+              value={renameDraft || active.name}
+              maxLength={MAX_TRIP_NAME}
+              onFocus={() => setRenameDraft(active.name)}
+              onChange={(e) => setRenameDraft(limitText(e.target.value, MAX_TRIP_NAME))}
+              onBlur={saveTripName}
+              onKeyDown={(e) => e.key === 'Enter' && saveTripName()}
+              placeholder="旅程名稱"
+            />
+            <button type="button" className="btn sm ghost" onClick={saveTripName}>
+              重新命名
+            </button>
+            <button
+              type="button"
+              className="btn sm danger"
+              disabled={trips.length <= 1}
+              onClick={() => deleteTrip(active.id)}
+            >
+              刪除此旅程
+            </button>
+          </div>
+        )}
+
         <div className="label">旅程類型預設</div>
         <div className="row">
           {Object.keys(TEMPLATES).map((k) => (
@@ -137,8 +253,9 @@ export default function Page() {
                 <option key={c}>{c}</option>
               ))}
             </select>
-            <AddButton  onClick={add} disabled={!canAdd}>
-              新增</AddButton>
+            <AddButton onClick={add} disabled={!canAdd}>
+              新增
+            </AddButton>
           </div>
           <div className="field-meta">
             <span className={atLimit || (!nameOk && custom.length > 0) ? 'warn' : undefined}>
@@ -165,7 +282,7 @@ export default function Page() {
               <button className="btn sm ghost" onClick={() => toggleAll(false)}>
                 全部取消
               </button>
-              <button className="btn sm ghost" onClick={() => setItems([])}>
+              <button className="btn sm ghost" onClick={() => patchActive({ items: [] })}>
                 清空清單
               </button>
             </div>
@@ -192,11 +309,18 @@ export default function Page() {
                     <input
                       type="checkbox"
                       checked={i.packed}
-                      onChange={() => setItems(items.map((x) => (x.id === i.id ? { ...x, packed: !x.packed } : x)))}
+                      onChange={() =>
+                        patchActive({
+                          items: items.map((x) => (x.id === i.id ? { ...x, packed: !x.packed } : x)),
+                        })
+                      }
                     />
                     <span>{i.name}</span>
                   </label>
-                  <button className="btn sm ghost" onClick={() => setItems(items.filter((x) => x.id !== i.id))}>
+                  <button
+                    className="btn sm ghost"
+                    onClick={() => patchActive({ items: items.filter((x) => x.id !== i.id) })}
+                  >
                     刪
                   </button>
                 </li>

@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, parseNumber, uid } from '../../lib/utils'
+import { clamp, copyText, downloadText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('bmi-calculator')!
 
@@ -32,6 +32,7 @@ function category(bmi: number, asia: boolean) {
 }
 
 type Hist = { id: string; cm: number; kg: number; bmi: number; at: number }
+type Unit = 'metric' | 'imperial'
 
 function setClamped(
   raw: string,
@@ -49,16 +50,31 @@ function setClamped(
   set(clamp(n, min, max))
 }
 
+function cmToFtIn(cm: number) {
+  const totalInch = cm / 2.54
+  let ft = Math.floor(totalInch / 12)
+  let inch = Math.round(totalInch - ft * 12)
+  if (inch === 12) {
+    ft += 1
+    inch = 0
+  }
+  return {
+    ft: clamp(ft, FT_MIN, FT_MAX),
+    inch: clamp(inch, IN_MIN, IN_MAX),
+  }
+}
+
 export default function Page() {
-  const [unit, setUnit] = useLocalStorage<'metric' | 'imperial'>('lab:bmi:unit', 'metric')
+  const [unit, setUnit] = useLocalStorage<Unit>('lab:bmi:unit', 'metric')
   const [asia, setAsia] = useLocalStorage('lab:bmi:asia', true)
-  const [cm, setCm] = useState(170)
-  const [kg, setKg] = useState(65)
-  const [ft, setFt] = useState(5)
-  const [inch, setInch] = useState(7)
-  const [lb, setLb] = useState(143)
+  const [cm, setCm] = useLocalStorage('lab:bmi:cm', 170)
+  const [kg, setKg] = useLocalStorage('lab:bmi:kg', 65)
+  const [ft, setFt] = useLocalStorage('lab:bmi:ft', 5)
+  const [inch, setInch] = useLocalStorage('lab:bmi:inch', 7)
+  const [lb, setLb] = useLocalStorage('lab:bmi:lb', 143)
   const [history, setHistory] = useLocalStorage<Hist[]>('lab:bmi:history', [])
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const metric = useMemo(() => {
     if (unit === 'metric') return { cm, kg }
@@ -83,11 +99,50 @@ export default function Page() {
   const cat = category(bmi, asia)
   const canSave = Number.isFinite(bmi) && bmi > 0 && !error
 
+  function switchUnit(next: Unit) {
+    if (next === unit) return
+    if (next === 'imperial') {
+      const converted = cmToFtIn(cm)
+      setFt(converted.ft)
+      setInch(converted.inch)
+      setLb(clamp(Math.round(kg / 0.453592), LB_MIN, LB_MAX))
+    } else {
+      const totalInch = ft * 12 + inch
+      setCm(clamp(Math.round(totalInch * 2.54), CM_MIN, CM_MAX))
+      setKg(clamp(Math.round(lb * 0.453592 * 10) / 10, KG_MIN, KG_MAX))
+    }
+    setUnit(next)
+    setError('')
+  }
+
   function save() {
     if (!canSave) return
     setHistory(
       [{ id: uid('b'), cm: metric.cm, kg: metric.kg, bmi, at: Date.now() }, ...history].slice(0, 20),
     )
+  }
+
+  async function copyResult() {
+    if (!bmi) return
+    const text = [
+      `BMI ${bmi.toFixed(1)}`,
+      cat.label,
+      `${metric.cm.toFixed(0)} cm`,
+      `${metric.kg.toFixed(1)} kg`,
+    ].join(' · ')
+    await copyText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  function exportHistoryCsv() {
+    if (!history.length) return
+    const header = 'bmi,cm,kg,at'
+    const rows = history.map(
+      (h) =>
+        `${h.bmi.toFixed(2)},${h.cm.toFixed(1)},${h.kg.toFixed(2)},${new Date(h.at).toISOString()}`,
+    )
+    downloadText('bmi-history.csv', `\uFEFF${[header, ...rows].join('\n')}`, 'text/csv;charset=utf-8')
   }
 
   return (
@@ -96,14 +151,16 @@ export default function Page() {
         <div className="panel stack">
           <div className="row">
             <button
+              type="button"
               className={`btn sm ${unit === 'metric' ? 'accent' : 'ghost'}`}
-              onClick={() => setUnit('metric')}
+              onClick={() => switchUnit('metric')}
             >
               公制
             </button>
             <button
+              type="button"
               className={`btn sm ${unit === 'imperial' ? 'accent' : 'ghost'}`}
-              onClick={() => setUnit('imperial')}
+              onClick={() => switchUnit('imperial')}
             >
               英制
             </button>
@@ -203,13 +260,25 @@ export default function Page() {
           <div className="progress">
             <span style={{ width: `${Math.min(100, (bmi / 40) * 100)}%`, background: cat.color }} />
           </div>
-          <button className="btn accent" onClick={save} disabled={!canSave}>
-            儲存本次紀錄
-          </button>
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <button type="button" className="btn accent" onClick={save} disabled={!canSave}>
+              儲存本次紀錄
+            </button>
+            <button type="button" className="btn ghost" onClick={() => void copyResult()} disabled={!bmi}>
+              {copied ? '已複製' : '複製結果'}
+            </button>
+          </div>
         </div>
 
         <div className="panel stack">
-          <h3>歷史紀錄</h3>
+          <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0 }}>歷史紀錄</h3>
+            {!!history.length && (
+              <button type="button" className="btn ghost sm" onClick={exportHistoryCsv}>
+                匯出 CSV
+              </button>
+            )}
+          </div>
           <ul className="list">
             {history.map((h) => (
               <li key={h.id} className="list-item">
@@ -221,6 +290,7 @@ export default function Page() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   className="btn ghost sm"
                   onClick={() => setHistory(history.filter((x) => x.id !== h.id))}
                 >

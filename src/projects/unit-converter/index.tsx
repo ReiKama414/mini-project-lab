@@ -1,6 +1,7 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
+import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, parseNumber } from '../../lib/utils'
 
 const meta = getProject('unit-converter')!
@@ -67,34 +68,44 @@ const CAT_LABEL: Record<Category, string> = {
   data: '資料量',
 }
 
+type Prefs = { cat: Category; from: string; to: string; value: number }
+
 export default function Page() {
-  const [cat, setCat] = useState<Category>('length')
-  const [from, setFrom] = useState('m')
-  const [to, setTo] = useState('km')
-  const [value, setValue] = useState(1)
+  const [prefs, setPrefs] = useLocalStorage<Prefs>('lab:unit-converter', {
+    cat: 'length',
+    from: 'm',
+    to: 'km',
+    value: 1,
+  })
+  const cat = (UNITS[prefs.cat] ? prefs.cat : 'length') as Category
+  const units = UNITS[cat]
+  const from = units.some((u) => u.id === prefs.from) ? prefs.from : units[0]!.id
+  const to = units.some((u) => u.id === prefs.to) ? prefs.to : units[1]!.id
+  const value = Number.isFinite(prefs.value) ? prefs.value : 1
   const [error, setError] = useState('')
 
-  const units = UNITS[cat]
   const result = useMemo(() => {
     if (error || !Number.isFinite(value)) return NaN
     const a = units.find((u) => u.id === from)
     const b = units.find((u) => u.id === to)
     if (!a || !b) return 0
-    return b.fromBase(a.toBase(value))
-  }, [units, from, to, value, error])
+    let base = a.toBase(value)
+    if (cat === 'temp' && from === 'k' && value < 0) return NaN
+    if (cat === 'temp') base = Math.max(base, -273.15)
+    return b.fromBase(base)
+  }, [units, from, to, value, error, cat])
 
   const allResults = useMemo(() => {
-    if (error || !Number.isFinite(value)) return []
+    if (error || !Number.isFinite(value) || !Number.isFinite(result)) return []
     const a = units.find((u) => u.id === from)
     if (!a) return []
-    const base = a.toBase(value)
+    let base = a.toBase(value)
+    if (cat === 'temp') base = Math.max(base, -273.15)
     return units.map((u) => ({ id: u.id, label: u.label, value: u.fromBase(base) }))
-  }, [units, from, value, error])
+  }, [units, from, value, error, result, cat])
 
   function changeCat(c: Category) {
-    setCat(c)
-    setFrom(UNITS[c][0]!.id)
-    setTo(UNITS[c][1]!.id)
+    setPrefs({ cat: c, from: UNITS[c][0]!.id, to: UNITS[c][1]!.id, value })
   }
 
   function onValueChange(raw: string) {
@@ -103,8 +114,12 @@ export default function Page() {
       setError('請輸入有效數字')
       return
     }
+    if (cat === 'temp' && from === 'k' && n < 0) {
+      setError('克氏溫度不可為負')
+      return
+    }
     setError('')
-    setValue(clamp(n, VALUE_MIN, VALUE_MAX))
+    setPrefs({ cat, from, to, value: clamp(n, VALUE_MIN, VALUE_MAX) })
   }
 
   return (
@@ -138,7 +153,11 @@ export default function Page() {
           <div className="grid-2">
             <label className="stack">
               <span className="label">從</span>
-              <select className="field" value={from} onChange={(e) => setFrom(e.target.value)}>
+              <select
+                className="field"
+                value={from}
+                onChange={(e) => setPrefs({ cat, from: e.target.value, to, value })}
+              >
                 {units.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.label}
@@ -148,7 +167,11 @@ export default function Page() {
             </label>
             <label className="stack">
               <span className="label">到</span>
-              <select className="field" value={to} onChange={(e) => setTo(e.target.value)}>
+              <select
+                className="field"
+                value={to}
+                onChange={(e) => setPrefs({ cat, from, to: e.target.value, value })}
+              >
                 {units.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.label}
@@ -159,10 +182,7 @@ export default function Page() {
           </div>
           <button
             className="btn ghost sm"
-            onClick={() => {
-              setFrom(to)
-              setTo(from)
-            }}
+            onClick={() => setPrefs({ cat, from: to, to: from, value })}
           >
             ⇄ 交換單位
           </button>
@@ -188,10 +208,29 @@ export default function Page() {
           <ul className="list">
             {allResults.map((r) => (
               <li key={r.id} className="list-item">
-                <span style={{ flex: 1 }}>{r.label}</span>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  style={{ flex: 1, justifyContent: 'flex-start' }}
+                  onClick={() => setPrefs({ cat, from, to: r.id, value })}
+                  title="設為目標單位"
+                >
+                  {r.label}
+                </button>
                 <strong className="mono">
                   {r.value.toLocaleString(undefined, { maximumFractionDigits: 6 })}
                 </strong>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  onClick={() =>
+                    void copyText(
+                      `${value} ${from} = ${r.value.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${r.id}`,
+                    )
+                  }
+                >
+                  複製
+                </button>
               </li>
             ))}
           </ul>

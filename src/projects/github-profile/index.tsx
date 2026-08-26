@@ -43,6 +43,26 @@ type GhEvent = {
   payload?: { action?: string; ref_type?: string }
 }
 
+function rateLimitFromHeaders(headers: Headers): { remaining: number | null; reset: number | null } {
+  const rem = headers.get('x-ratelimit-remaining')
+  const reset = headers.get('x-ratelimit-reset')
+  return {
+    remaining: rem != null && rem !== '' ? Number(rem) : null,
+    reset: reset != null && reset !== '' ? Number(reset) : null,
+  }
+}
+
+function friendlyHttpError(status: number, remaining: number | null): string {
+  if (status === 404) return '找不到此使用者'
+  if (status === 403 || status === 429) {
+    if (remaining === 0) {
+      return 'GitHub API 速率已用盡（未登入約每小時 60 次），請稍後再試。'
+    }
+    return '請求被拒絕（可能觸及速率限制），請稍後再試。'
+  }
+  return `錯誤 ${status}`
+}
+
 export default function Page() {
   const [user, setUser] = useLocalStorage('lab:github-profile:user', 'octocat')
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -51,6 +71,8 @@ export default function Page() {
   const [showEvents, setShowEvents] = useLocalStorage('lab:github-profile:events', true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [rateRemaining, setRateRemaining] = useState<number | null>(null)
+  const [rateReset, setRateReset] = useState<number | null>(null)
 
   const languages = useMemo(() => {
     const map = new Map<string, number>()
@@ -76,10 +98,22 @@ export default function Page() {
           `https://api.github.com/users/${encodeURIComponent(q)}/repos?per_page=100&sort=updated`,
         ),
       ])
+      const rl = rateLimitFromHeaders(userRes.headers)
+      if (rl.remaining != null) setRateRemaining(rl.remaining)
+      if (rl.reset != null) setRateReset(rl.reset)
+
       if (!userRes.ok) {
-        throw new Error(userRes.status === 404 ? '找不到此使用者' : `錯誤 ${userRes.status}`)
+        throw new Error(friendlyHttpError(userRes.status, rl.remaining))
       }
-      if (!repoRes.ok) throw new Error(`儲存庫錯誤 ${repoRes.status}`)
+      if (!repoRes.ok) {
+        const repoRl = rateLimitFromHeaders(repoRes.headers)
+        if (repoRl.remaining != null) setRateRemaining(repoRl.remaining)
+        throw new Error(
+          repoRes.status === 403 || repoRes.status === 429
+            ? friendlyHttpError(repoRes.status, repoRl.remaining)
+            : `儲存庫錯誤 ${repoRes.status}`,
+        )
+      }
 
       const p = (await userRes.json()) as Profile
       const allRepos = (await repoRes.json()) as Repo[]
@@ -95,6 +129,9 @@ export default function Page() {
           const evRes = await fetch(
             `https://api.github.com/users/${encodeURIComponent(q)}/events/public?per_page=8`,
           )
+          const evRl = rateLimitFromHeaders(evRes.headers)
+          if (evRl.remaining != null) setRateRemaining(evRl.remaining)
+          if (evRl.reset != null) setRateReset(evRl.reset)
           if (evRes.ok) setEvents((await evRes.json()) as GhEvent[])
         } catch {
           /* 事件為選用，忽略失敗 */
@@ -143,7 +180,7 @@ export default function Page() {
               近期動態
             </span>
           </label>
-          <button className="btn accent" onClick={load} disabled={loading || !isNonEmpty(user)}>
+          <button type="button" className="btn accent" onClick={load} disabled={loading || !isNonEmpty(user)}>
             {loading ? '查詢中…' : '查詢'}
           </button>
         </div>
@@ -151,6 +188,14 @@ export default function Page() {
           <span className={!isNonEmpty(user) ? 'warn' : undefined}>{isNonEmpty(user) ? '可查詢' : '請輸入帳號'}</span>
           <span>{charCount(user)}/{USER_MAX}</span>
         </div>
+        {rateRemaining != null && (
+          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+            API 剩餘額度：{rateRemaining}
+            {rateReset != null && rateRemaining === 0
+              ? ` · 約於 ${new Date(rateReset * 1000).toLocaleTimeString('zh-TW')} 重置`
+              : ''}
+          </p>
+        )}
 
         {error && (
           <p className="tag" style={{ background: '#d6406a', color: '#fff' }}>

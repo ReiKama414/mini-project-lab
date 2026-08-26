@@ -24,6 +24,13 @@ type HistoryItem = {
   secondsUsed: number
 }
 
+type ImportRaw = {
+  q?: unknown
+  options?: unknown
+  answer?: unknown
+  category?: unknown
+}
+
 const BANK: Q[] = [
   { id: '1', category: 'React', q: 'React 用來描述 UI 的基本單位是？', options: ['Component', 'Module', 'Package', 'Hook'], answer: 0 },
   { id: '2', category: 'React', q: '哪個 Hook 用來處理副作用？', options: ['useState', 'useEffect', 'useMemo', 'useRef'], answer: 1 },
@@ -42,13 +49,56 @@ const BANK: Q[] = [
   { id: '15', category: '資料庫', q: 'SQL 中 SELECT 用途？', options: ['刪除資料', '查詢資料', '建立索引', '授權'], answer: 1 },
 ]
 
-const CATS = ['全部', ...Array.from(new Set(BANK.map((q) => q.category)))]
+const MAX_CUSTOM = 100
+const MAX_Q_LEN = 300
+const MAX_OPT_LEN = 120
+const MAX_OPTS = 8
+
+function parseImportQuestions(raw: unknown): { ok: Q[]; error?: string } {
+  if (!Array.isArray(raw)) return { ok: [], error: '請提供 JSON 陣列' }
+  if (raw.length > MAX_CUSTOM) return { ok: [], error: `一次最多 ${MAX_CUSTOM} 題` }
+  const out: Q[] = []
+  for (let i = 0; i < raw.length; i++) {
+    const item = raw[i] as ImportRaw
+    if (!item || typeof item !== 'object') return { ok: [], error: `第 ${i + 1} 題格式無效` }
+    const q = typeof item.q === 'string' ? item.q.trim() : ''
+    if (!q || q.length > MAX_Q_LEN) return { ok: [], error: `第 ${i + 1} 題題目無效` }
+    if (!Array.isArray(item.options) || item.options.length < 2 || item.options.length > MAX_OPTS) {
+      return { ok: [], error: `第 ${i + 1} 題 options 需為 2–${MAX_OPTS} 個字串` }
+    }
+    const options: string[] = []
+    for (const o of item.options) {
+      if (typeof o !== 'string' || !o.trim() || o.length > MAX_OPT_LEN) {
+        return { ok: [], error: `第 ${i + 1} 題選項無效` }
+      }
+      options.push(o.trim())
+    }
+    const answer = typeof item.answer === 'number' ? item.answer : Number(item.answer)
+    if (!Number.isInteger(answer) || answer < 0 || answer >= options.length) {
+      return { ok: [], error: `第 ${i + 1} 題 answer 索引無效` }
+    }
+    const category =
+      typeof item.category === 'string' && item.category.trim()
+        ? item.category.trim().slice(0, 40)
+        : '自訂'
+    out.push({
+      id: uid('cq'),
+      category,
+      q: q.slice(0, MAX_Q_LEN),
+      options,
+      answer,
+    })
+  }
+  return { ok: out }
+}
 
 export default function Page() {
   const [history, setHistory] = useLocalStorage<HistoryItem[]>('lab:quiz-app:history', [])
+  const [customQs, setCustomQs] = useLocalStorage<Q[]>('lab:quiz-app:custom', [])
   const [category, setCategory] = useState('全部')
   const [useTimer, setUseTimer] = useState(false)
   const [limitSec, setLimitSec] = useState(60)
+  const [pickN, setPickN] = useState(10)
   const [phase, setPhase] = useState<'setup' | 'quiz' | 'result'>('setup')
   const [queue, setQueue] = useState<Q[]>([])
   const [i, setI] = useState(0)
@@ -60,13 +110,21 @@ export default function Page() {
   const [startedAt, setStartedAt] = useState(0)
   const endedRef = useRef(false)
   const [limitError, setLimitError] = useState('')
+  const [importText, setImportText] = useState('')
+  const [importMsg, setImportMsg] = useState('')
+
+  const bank = useMemo(() => [...BANK, ...customQs], [customQs])
+  const cats = useMemo(
+    () => ['全部', ...Array.from(new Set(bank.map((q) => q.category)))],
+    [bank],
+  )
 
   const q = queue[i]
   const limitOk = !useTimer || (Number.isFinite(limitSec) && limitSec >= 15 && limitSec <= 300 && !limitError)
 
   const pool = useMemo(
-    () => (category === '全部' ? BANK : BANK.filter((x) => x.category === category)),
-    [category],
+    () => (category === '全部' ? bank : bank.filter((x) => x.category === category)),
+    [category, bank],
   )
 
   function recordHistory(finalScore: number, total: number, secondsUsed: number, timed: boolean, cat: string) {
@@ -106,7 +164,8 @@ export default function Page() {
   }, [phase, useTimer, left, score, wrong, limitSec])
 
   function start() {
-    const list = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(10, pool.length))
+    const n = clamp(Math.round(pickN) || 10, 1, Math.min(50, pool.length))
+    const list = [...pool].sort(() => Math.random() - 0.5).slice(0, n)
     endedRef.current = false
     setQueue(list)
     setI(0)
@@ -137,18 +196,56 @@ export default function Page() {
     setPicked(null)
   }
 
+  function doImport() {
+    setImportMsg('')
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(importText)
+    } catch {
+      setImportMsg('JSON 解析失敗')
+      return
+    }
+    const { ok, error } = parseImportQuestions(parsed)
+    if (error || !ok.length) {
+      setImportMsg(error || '沒有可匯入的題目')
+      return
+    }
+    const room = Math.max(0, MAX_CUSTOM - customQs.length)
+    const add = ok.slice(0, room)
+    if (!add.length) {
+      setImportMsg(`自訂題已達上限 ${MAX_CUSTOM}`)
+      return
+    }
+    setCustomQs((prev) => [...prev, ...add])
+    setImportText('')
+    setImportMsg(`已合併 ${add.length} 題自訂題${ok.length > add.length ? `（略過 ${ok.length - add.length}）` : ''}`)
+  }
+
   return (
     <ProjectShell meta={meta}>
       {phase === 'setup' && (
         <div className="panel stack">
-          <div className="label">題庫分類（共 {pool.length} 題）</div>
-          <div className="row">
-            {CATS.map((c) => (
-              <button key={c} className={`btn sm ${category === c ? 'accent' : 'ghost'}`} onClick={() => setCategory(c)}>
+          <div className="label">題庫分類（共 {pool.length} 題{customQs.length ? `，含自訂 ${customQs.length}` : ''}）</div>
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {cats.map((c) => (
+              <button key={c} type="button" className={`btn sm ${category === c ? 'accent' : 'ghost'}`} onClick={() => setCategory(c)}>
                 {c}
               </button>
             ))}
           </div>
+          <label className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <span>抽取題數</span>
+            <input
+              className="field"
+              type="number"
+              min={1}
+              max={50}
+              style={{ width: 80 }}
+              value={pickN}
+              onChange={(e) => setPickN(clamp(Math.round(parseNumber(e.target.value, 10)), 1, 50))}
+            />
+            <span className="muted">（最多 {Math.min(50, pool.length)}）</span>
+          </label>
           <label className="row" style={{ gap: 8 }}>
             <input type="checkbox" checked={useTimer} onChange={(e) => setUseTimer(e.target.checked)} />
             <span>啟用計時</span>
@@ -177,9 +274,48 @@ export default function Page() {
             )}
             {useTimer && <span className="muted">秒</span>}
           </label>
-          <button className="btn accent" onClick={start} disabled={!pool.length || !limitOk}>
-            開始測驗（最多 10 題）
+          <button type="button" className="btn accent" onClick={start} disabled={!pool.length || !limitOk}>
+            開始測驗（隨機 {Math.min(pickN, pool.length)} 題）
           </button>
+
+          <div className="stack" style={{ gap: 8 }}>
+            <strong>匯入自訂題（JSON）</strong>
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+              格式：[{'{'}q, options: string[], answer: number, category?: string{'}'}]，會與內建題庫合併。
+            </p>
+            <textarea
+              className="field mono"
+              rows={4}
+              placeholder='[{"q":"範例？","options":["A","B","C"],"answer":0,"category":"自訂"}]'
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <button type="button" className="btn sm teal" onClick={doImport} disabled={!importText.trim()}>
+                驗證並合併
+              </button>
+              <label className="btn sm ghost" style={{ cursor: 'pointer' }}>
+                選檔
+                <input
+                  type="file"
+                  accept=".json,application/json,text/plain"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (!file) return
+                    void file.text().then(setImportText)
+                  }}
+                />
+              </label>
+              {customQs.length > 0 && (
+                <button type="button" className="btn sm danger" onClick={() => setCustomQs([])}>
+                  清除自訂題
+                </button>
+              )}
+            </div>
+            {importMsg && <span className="tag">{importMsg}</span>}
+          </div>
 
           {history.length > 0 && (
             <div className="stack">
@@ -199,7 +335,7 @@ export default function Page() {
                   </li>
                 ))}
               </ul>
-              <button className="btn sm ghost" onClick={() => setHistory([])}>
+              <button type="button" className="btn sm ghost" onClick={() => setHistory([])}>
                 清除紀錄
               </button>
             </div>
@@ -230,14 +366,14 @@ export default function Page() {
                 else if (oi === picked) cls = 'btn accent'
               }
               return (
-                <button key={oi} className={cls} style={{ justifyContent: 'flex-start' }} onClick={() => choose(oi)}>
+                <button key={oi} type="button" className={cls} style={{ justifyContent: 'flex-start' }} onClick={() => choose(oi)}>
                   {String.fromCharCode(65 + oi)}. {opt}
                 </button>
               )
             })}
           </div>
           {picked != null && (
-            <button className="btn accent" onClick={next}>
+            <button type="button" className="btn accent" onClick={next}>
               {i + 1 >= queue.length ? '看結果' : '下一題'}
             </button>
           )}
@@ -256,7 +392,7 @@ export default function Page() {
             <div className="stack">
               <div className="row">
                 <strong>錯題複習（{wrong.length}）</strong>
-                <button className="btn sm ghost" onClick={() => setReview((r) => !r)}>
+                <button type="button" className="btn sm ghost" onClick={() => setReview((r) => !r)}>
                   {review ? '收合' : '展開'}
                 </button>
               </div>
@@ -276,10 +412,10 @@ export default function Page() {
             </div>
           )}
           <div className="row" style={{ justifyContent: 'center' }}>
-            <button className="btn accent" onClick={start}>
+            <button type="button" className="btn accent" onClick={start}>
               再測一次
             </button>
-            <button className="btn ghost" onClick={() => setPhase('setup')}>
+            <button type="button" className="btn ghost" onClick={() => setPhase('setup')}>
               回到設定
             </button>
           </div>

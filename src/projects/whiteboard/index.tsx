@@ -320,6 +320,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機單人塗鴉，無多人同步
+      </p>
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         <span className="metric">筆劃 {strokeCount}</span>
         <span className="tag">復原層 {Math.max(0, history.length - 1)}</span>

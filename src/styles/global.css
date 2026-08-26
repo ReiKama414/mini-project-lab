@@ -2587,6 +2587,16 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
   border-radius: var(--radius);
   padding: 0.75rem;
   min-height: 220px;
+  transition: box-shadow 0.15s ease, outline-color 0.15s ease;
+}
+
+.kanban-col.is-drag-over {
+  outline: 2px solid var(--teal);
+  box-shadow: 0 0 0 2px var(--teal-soft);
+}
+
+.kanban-col .list-item.is-dragging {
+  opacity: 0.45;
 }
 
 .kanban-col h3 {
@@ -2755,6 +2765,40 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
 
   .project-shell-actions {
     width: 100%;
+  }
+}
+
+@media print {
+  .topbar,
+  .sidebar,
+  .sidebar-backdrop,
+  .site-footer,
+  .project-shell-header,
+  .project-shell-actions,
+  .no-print {
+    display: none !important;
+  }
+
+  .app-shell,
+  .main,
+  .project-shell {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  .resume-print-area {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .grid-2 {
+    display: block !important;
   }
 }
 

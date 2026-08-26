@@ -211,6 +211,9 @@ export default function Page() {
         </div>
       }
     >
+      <p className="muted" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機規則／模板示範，非雲端 LLM
+      </p>
       <div className="row" style={{ marginBottom: 12 }}>
         <button type="button" className={`btn sm ${step === 'paste' ? 'accent' : 'ghost'}`} onClick={() => setStep('paste')}>
           1. 貼上履歷

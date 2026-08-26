@@ -14,6 +14,12 @@ type Card = {
   back: string
   know: number
   again: number
+  /** 下次複習時間（ms） */
+  nextReview: number
+  /** SM-2 簡易 ease factor */
+  ease: number
+  /** 間隔（天） */
+  interval: number
 }
 
 type Deck = {
@@ -26,15 +32,30 @@ const MAX_DECKS = 50
 const MAX_CARDS = 200
 const MAX_NAME = 40
 const MAX_SIDE = 500
+const DAY_MS = 24 * 60 * 60 * 1000
+const DEFAULT_EASE = 2.5
+
+function normalizeCard(c: Partial<Card>, i = 0): Card {
+  return {
+    id: c.id ?? `legacy_${i}`,
+    front: c.front ?? '',
+    back: c.back ?? '',
+    know: c.know ?? 0,
+    again: c.again ?? 0,
+    nextReview: typeof c.nextReview === 'number' ? c.nextReview : 0,
+    ease: typeof c.ease === 'number' && c.ease >= 1.3 ? c.ease : DEFAULT_EASE,
+    interval: typeof c.interval === 'number' && c.interval >= 0 ? c.interval : 0,
+  }
+}
 
 const DEFAULT_DECKS: Deck[] = [
   {
     id: 'deck_default',
     name: '基礎英文',
     cards: [
-      { id: '1', front: 'Hello', back: '你好', know: 0, again: 0 },
-      { id: '2', front: 'Thank you', back: '謝謝', know: 0, again: 0 },
-      { id: '3', front: 'Good morning', back: '早安', know: 0, again: 0 },
+      normalizeCard({ id: '1', front: 'Hello', back: '你好' }),
+      normalizeCard({ id: '2', front: 'Thank you', back: '謝謝' }),
+      normalizeCard({ id: '3', front: 'Good morning', back: '早安' }),
     ],
   },
 ]
@@ -44,21 +65,11 @@ function normalizeDecks(raw: unknown): Deck[] {
   if ('cards' in (raw[0] as object)) {
     return (raw as Deck[]).map((d) => ({
       ...d,
-      cards: (d.cards ?? []).map((c) => ({
-        ...c,
-        know: c.know ?? 0,
-        again: c.again ?? 0,
-      })),
+      cards: (d.cards ?? []).map((c, i) => normalizeCard(c, i)),
     }))
   }
   // 舊版：直接存 Card[]
-  const cards = (raw as Partial<Card>[]).map((c, i) => ({
-    id: c.id ?? `legacy_${i}`,
-    front: c.front ?? '',
-    back: c.back ?? '',
-    know: c.know ?? 0,
-    again: c.again ?? 0,
-  }))
+  const cards = (raw as Partial<Card>[]).map((c, i) => normalizeCard(c, i))
   return [{ id: 'deck_migrated', name: '我的牌組', cards }]
 }
 
@@ -69,6 +80,48 @@ function shuffle<T>(arr: T[]): T[] {
     ;[a[i], a[j]] = [a[j]!, a[i]!]
   }
   return a
+}
+
+/** 簡易 SM-2：認識拉長間隔；再練縮短並降低 ease */
+function scheduleCard(c: Card, kind: 'know' | 'again'): Card {
+  const now = Date.now()
+  if (kind === 'again') {
+    const ease = Math.max(1.3, Math.round((c.ease - 0.2) * 100) / 100)
+    return {
+      ...c,
+      again: c.again + 1,
+      ease,
+      interval: 0,
+      nextReview: now + 10 * 60 * 1000, // 約 10 分鐘後再練
+    }
+  }
+  let interval: number
+  if (c.interval <= 0) interval = 1
+  else if (c.interval === 1) interval = 6
+  else interval = Math.max(1, Math.round(c.interval * c.ease))
+  const ease = Math.min(3.5, Math.round((c.ease + 0.1) * 100) / 100)
+  return {
+    ...c,
+    know: c.know + 1,
+    ease,
+    interval,
+    nextReview: now + interval * DAY_MS,
+  }
+}
+
+function dueOrder(cards: Card[], preferDue: boolean): string[] {
+  if (!preferDue) return cards.map((c) => c.id)
+  const now = Date.now()
+  const due = cards.filter((c) => c.nextReview <= now)
+  const later = cards.filter((c) => c.nextReview > now)
+  due.sort((a, b) => a.nextReview - b.nextReview)
+  later.sort((a, b) => a.nextReview - b.nextReview)
+  return [...due, ...later].map((c) => c.id)
+}
+
+function formatNext(ts: number) {
+  if (ts <= Date.now()) return '到期'
+  return new Date(ts).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function Page() {
@@ -86,6 +139,7 @@ export default function Page() {
   const [back, setBack] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newDeckName, setNewDeckName] = useState('')
+  const [csvMsg, setCsvMsg] = useState('')
 
   const deck = decks.find((d) => d.id === deckId) ?? decks[0]
   const activeDeckId = deck?.id ?? ''
@@ -93,21 +147,25 @@ export default function Page() {
   const studyIds = useMemo(() => {
     if (!deck) return []
     if (order.length && order.every((id) => deck.cards.some((c) => c.id === id))) return order
-    return deck.cards.map((c) => c.id)
+    return dueOrder(deck.cards, true)
   }, [deck, order])
 
   const card = deck?.cards.find((c) => c.id === studyIds[pos]) ?? null
 
   const stats = useMemo(() => {
-    if (!deck) return { know: 0, again: 0 }
+    if (!deck) return { know: 0, again: 0, due: 0 }
+    const now = Date.now()
     return {
       know: deck.cards.reduce((s, c) => s + c.know, 0),
       again: deck.cards.reduce((s, c) => s + c.again, 0),
+      due: deck.cards.filter((c) => c.nextReview <= now).length,
     }
   }, [deck])
 
   function ensureOrder(d: Deck, forceShuffle = false) {
-    const ids = forceShuffle ? shuffle(d.cards.map((c) => c.id)) : d.cards.map((c) => c.id)
+    const ids = forceShuffle
+      ? shuffle(dueOrder(d.cards, true))
+      : dueOrder(d.cards, true)
     setOrder(ids)
     setPos(0)
     setFlipped(false)
@@ -145,13 +203,11 @@ export default function Page() {
       )
       setEditingId(null)
     } else {
-      const c: Card = {
+      const c = normalizeCard({
         id: uid('fc'),
         front: limitText(front.trim(), MAX_SIDE),
         back: limitText(back.trim(), MAX_SIDE),
-        know: 0,
-        again: 0,
-      }
+      })
       const next = [...deck.cards, c]
       updateDeck(deck.id, next)
       setOrder([...studyIds, c.id])
@@ -191,22 +247,53 @@ export default function Page() {
 
   function score(kind: 'know' | 'again') {
     if (!deck || !card) return
-    updateDeck(
-      deck.id,
-      deck.cards.map((c) =>
-        c.id === card.id
-          ? { ...c, know: kind === 'know' ? c.know + 1 : c.know, again: kind === 'again' ? c.again + 1 : c.again }
-          : c,
-      ),
-    )
+    const updated = deck.cards.map((c) => (c.id === card.id ? scheduleCard(c, kind) : c))
+    updateDeck(deck.id, updated)
     setFlipped(false)
-    if (studyIds.length) setPos((p) => (p + 1) % studyIds.length)
+    const now = Date.now()
+    const ids = dueOrder(updated, true)
+    setOrder(ids)
+    if (!ids.length) return
+    const nextDue = ids.findIndex((id) => {
+      if (id === card.id) return false
+      const c = updated.find((x) => x.id === id)
+      return c != null && c.nextReview <= now
+    })
+    setPos(nextDue >= 0 ? nextDue : (pos + 1) % ids.length)
   }
 
   function go(delta: number) {
     if (!studyIds.length) return
     setFlipped(false)
     setPos((p) => (p + delta + studyIds.length) % studyIds.length)
+  }
+
+  function importCsv(text: string) {
+    if (!deck) return
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    const added: Card[] = []
+    for (const line of lines) {
+      if (deck.cards.length + added.length >= MAX_CARDS) break
+      // 略過標題列
+      if (/^(front|正面|q)\s*[,，]/i.test(line)) continue
+      const parts = line.includes('\t')
+        ? line.split('\t')
+        : line.match(/("([^"]|"")*"|[^,，]+)(?=[,，]|$)/g)?.map((p) => p.replace(/^"|"$/g, '').replace(/""/g, '"').trim())
+      if (!parts || parts.length < 2) continue
+      const f = limitText(parts[0]!.trim(), MAX_SIDE)
+      const b = limitText(parts[1]!.trim(), MAX_SIDE)
+      if (!f || !b) continue
+      added.push(normalizeCard({ id: uid('fc'), front: f, back: b }))
+    }
+    if (!added.length) {
+      setCsvMsg('找不到有效列（格式：正面,背面）')
+      return
+    }
+    const next = [...deck.cards, ...added]
+    updateDeck(deck.id, next)
+    setOrder(dueOrder(next, true))
+    setCsvMsg(`已匯入 ${added.length} 張`)
+    setTimeout(() => setCsvMsg(''), 2500)
   }
 
   return (
@@ -247,7 +334,10 @@ export default function Page() {
             新增牌組</AddButton>
           <button type="button"
             className={`btn sm ${mode === 'study' ? 'accent' : 'ghost'}`}
-            onClick={() => setMode('study')}
+            onClick={() => {
+              setMode('study')
+              if (deck) ensureOrder(deck)
+            }}
           >
             複習
           </button>
@@ -263,6 +353,7 @@ export default function Page() {
           <span className="tag" style={{ background: 'var(--rose-soft)', color: '#9a1f45' }}>
             再練 {stats.again}
           </span>
+          <span className="tag">到期 {stats.due}</span>
           {deck && deck.cards.length > 0 && (
             <button type="button" className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => ensureOrder(deck, true)}>
               洗牌
@@ -297,6 +388,7 @@ export default function Page() {
               </div>
               <p className="muted" style={{ textAlign: 'center' }}>
                 點擊翻面 · {pos + 1}/{studyIds.length} · 此卡 認識 {card.know} / 再練 {card.again}
+                {' · '}間隔 {card.interval} 天 · ease {card.ease.toFixed(1)} · {formatNext(card.nextReview)}
               </p>
               <div className="row" style={{ justifyContent: 'center' }}>
                 <button type="button" className="btn ghost" onClick={() => go(-1)}>
@@ -372,9 +464,22 @@ export default function Page() {
                 取消編輯
               </button>
             )}
+            <label className="btn sm ghost" style={{ cursor: 'pointer', marginLeft: 'auto' }}>
+              匯入 CSV
+              <input
+                type="file"
+                accept=".csv,text/csv,text/plain"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!file) return
+                  void file.text().then(importCsv)
+                }}
+              />
+            </label>
             {deck && decks.length > 1 && (
               <DeleteButton
-                style={{ marginLeft: 'auto' }}
                 onClick={() => {
                   const next = decks.filter((d) => d.id !== deck.id)
                   setDecks(next)
@@ -384,12 +489,19 @@ export default function Page() {
               />
             )}
           </div>
+          {csvMsg && <span className="tag">{csvMsg}</span>}
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+            CSV 格式：每列「正面,背面」（或 Tab 分隔）。舊卡會自動補上複習欄位。
+          </p>
           <ul className="list">
             {(deck?.cards ?? []).map((c) => (
               <li key={c.id} className="list-item">
                 <div className="stack" style={{ flex: 1, gap: 2 }}>
                   <strong>{c.front}</strong>
                   <span className="muted">{c.back}</span>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    間隔 {c.interval}d · ease {c.ease.toFixed(1)} · {formatNext(c.nextReview)}
+                  </span>
                 </div>
                 <span className="tag">
                   ✓{c.know} / ✗{c.again}

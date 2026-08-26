@@ -79,6 +79,9 @@ export default function Page() {
 
   return (
     <ProjectShell meta={meta}>
+      <p className="muted" style={{ marginBottom: 12, fontSize: 13 }}>
+        本機規則／模板示範，非雲端 LLM
+      </p>
       <div className="grid-2">
         <div className="panel stack">
           <label className="label">關鍵字</label>

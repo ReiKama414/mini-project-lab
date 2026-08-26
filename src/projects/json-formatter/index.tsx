@@ -53,6 +53,7 @@ export default function Page() {
   )
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
+  const [validationNote, setValidationNote] = useState('')
   const [sortKeys, setSortKeys] = useState(false)
   const [path, setPath] = useState('')
   const [pathResult, setPathResult] = useState('')
@@ -83,6 +84,7 @@ export default function Page() {
       if (sortKeys) obj = sortKeysDeep(obj)
       setOutput(JSON.stringify(obj, null, pretty ? 2 : 0))
       setError('')
+      setValidationNote('')
       setCopied(false)
     } catch (e) {
       setError(parseErrorHint(input, e instanceof Error ? e.message : '無效 JSON'))
@@ -144,10 +146,10 @@ export default function Page() {
                 if (charCount(input) > JSON_MAX) throw new Error(`超過 ${JSON_MAX} 字元上限`)
                 JSON.parse(input)
                 setError('')
-                setOutput('✓ 驗證通過')
+                setValidationNote('✓ 驗證通過')
               } catch (e) {
                 setError(parseErrorHint(input, e instanceof Error ? e.message : '無效 JSON'))
-                setOutput('')
+                setValidationNote('')
               }
             }}
           >
@@ -155,23 +157,36 @@ export default function Page() {
           </button>
           <button
             className="btn ghost"
-            disabled={!output || output.startsWith('✓')}
+            disabled={!output}
+            onClick={() => {
+              setInput(output)
+              setValidationNote('')
+              setError('')
+            }}
+          >
+            寫回輸入
+          </button>
+          <button
+            className="btn ghost"
+            disabled={!output}
             onClick={async () => {
               await copyText(output)
               setCopied(true)
+              setTimeout(() => setCopied(false), 1500)
             }}
           >
             {copied ? '已複製' : '複製'}
           </button>
           <button
             className="btn ghost"
-            disabled={!output || output.startsWith('✓')}
+            disabled={!output}
             onClick={() => downloadText('data.json', output, 'application/json')}
           >
             下載
           </button>
         </div>
         {error && <p className="field-error">{error}</p>}
+        {validationNote && !error && <p className="field-hint">{validationNote}</p>}
         {output && (
           <pre className="metric mono" style={{ whiteSpace: 'pre-wrap', overflow: 'auto', maxHeight: 320 }}>
             {output}
