@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useEffect, useRef, useState } from 'react'
 import { clamp, formatBytes } from '../../lib/utils'
 import * as pdfjs from 'pdfjs-dist'
@@ -103,16 +104,14 @@ export default function Page() {
         檔案僅在瀏覽器開啟，不會上傳。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">開啟 PDF</span>
-          <input
-            className="field"
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept="application/pdf"
+          maxBytes={PDF_MAX}
+          disabled={busy}
+          label="拖放 PDF 到此，或點擊選擇"
+          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         {fileName && (
           <p className="muted" style={{ margin: 0 }}>
             {fileName} · {pageCount} 頁 · {formatBytes(fileSize)}

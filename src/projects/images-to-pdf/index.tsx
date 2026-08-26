@@ -1,9 +1,10 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
-import { loadImageFromFile, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { loadImageFromFile, canvasFromImage, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { PDFDocument } from 'pdf-lib'
 
 const fallback: ProjectMeta = {
@@ -24,7 +25,7 @@ export default function Page() {
   const [progress, setProgress] = useState('')
   const [margin, setMargin] = useLocalStorage('lab:images-to-pdf:margin', 24)
 
-  function onFiles(list: FileList | null) {
+  function onFiles(list: File[] | FileList | null) {
     if (!list) return
     const arr = Array.from(list).slice(0, MAX_FILES)
     for (const f of arr) {
@@ -35,6 +36,33 @@ export default function Page() {
     }
     setError('')
     setFiles(arr)
+  }
+
+  async function embedImage(doc: PDFDocument, file: File) {
+    const lower = file.name.toLowerCase()
+    const isPng = file.type === 'image/png' || lower.endsWith('.png')
+    const isJpg =
+      file.type === 'image/jpeg' || lower.endsWith('.jpg') || lower.endsWith('.jpeg')
+    const needsRaster =
+      file.type === 'image/webp' ||
+      file.type === 'image/gif' ||
+      lower.endsWith('.webp') ||
+      lower.endsWith('.gif') ||
+      (!isPng && !isJpg)
+
+    if (needsRaster) {
+      const img = await loadImageFromFile(file)
+      const { canvas } = canvasFromImage(img)
+      const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'))
+      if (!blob) throw new Error('無法轉換圖片')
+      const png = new Uint8Array(await blob.arrayBuffer())
+      return doc.embedPng(png)
+    }
+
+    await loadImageFromFile(file)
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    if (isPng) return doc.embedPng(bytes)
+    return doc.embedJpg(bytes)
   }
 
   function move(i: number, dir: -1 | 1) {
@@ -58,19 +86,14 @@ export default function Page() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]!
         setProgress(`嵌入第 ${i + 1}/${files.length} 張`)
-        await loadImageFromFile(file)
-        const bytes = new Uint8Array(await file.arrayBuffer())
-        const lower = file.name.toLowerCase()
-        let embedded
-        if (file.type === 'image/png' || lower.endsWith('.png')) embedded = await doc.embedPng(bytes)
-        else embedded = await doc.embedJpg(bytes)
+        const embedded = await embedImage(doc, file)
         const page = doc.addPage([embedded.width + m * 2, embedded.height + m * 2])
         page.drawImage(embedded, { x: m, y: m, width: embedded.width, height: embedded.height })
       }
       setProgress('寫入檔案…')
       downloadBlob(new Blob([Uint8Array.from(await doc.save())], { type: 'application/pdf' }), 'images.pdf')
     } catch {
-      setError('轉換失敗（請使用 JPG／PNG）')
+      setError('轉換失敗（請確認為有效圖片）')
     } finally {
       setBusy(false)
       setProgress('')
@@ -87,20 +110,19 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        建議使用 JPG／PNG。最多 {MAX_FILES} 張，單張上限 {formatBytes(IMAGE_MAX_BYTES)}。
+        支援 JPG／PNG；WebP／GIF 會先轉成 PNG 再嵌入。最多 {MAX_FILES} 張，單張上限 {formatBytes(IMAGE_MAX_BYTES)}。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">選擇圖片</span>
-          <input
-            className="field"
-            type="file"
-            accept={IMAGE_ACCEPT}
-            multiple
-            disabled={busy}
-            onChange={(e) => onFiles(e.target.files)}
-          />
-        </label>
+        <FileDrop
+          accept={IMAGE_ACCEPT}
+          maxBytes={IMAGE_MAX_BYTES}
+          multiple
+          maxFiles={MAX_FILES}
+          disabled={busy}
+          label="拖放圖片到此，或點擊選擇（可多選）"
+          hint={`單張上限 ${formatBytes(IMAGE_MAX_BYTES)} · 最多 ${MAX_FILES} 張`}
+          onFiles={(files) => onFiles(files)}
+        />
         {files.length > 0 && (
           <p className="muted" style={{ margin: 0 }}>
             已選 {files.length} 張 · {formatBytes(files.reduce((n, f) => n + f.size, 0))}

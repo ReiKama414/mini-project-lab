@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { clamp, formatBytes, limitText } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -109,16 +110,14 @@ export default function Page() {
         本機刪除指定頁，其餘頁保留。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">上傳 PDF</span>
-          <input
-            className="field"
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept="application/pdf"
+          maxBytes={PDF_MAX}
+          disabled={busy}
+          label="拖放 PDF 到此，或點擊選擇"
+          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         {file && (
           <p className="muted" style={{ margin: 0 }}>
             {file.name} · {pageCount} 頁 · {formatBytes(file.size)}

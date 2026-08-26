@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { formatBytes, copyText } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
@@ -94,10 +95,14 @@ export default function Page() {
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
-          <label className="stack">
-            <span className="label">上傳圖片</span>
-            <input className="field" type="file" accept={IMAGE_ACCEPT} disabled={busy} onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
-          </label>
+          <FileDrop
+            accept={IMAGE_ACCEPT}
+            maxBytes={IMAGE_MAX_BYTES}
+            disabled={busy}
+            label="拖放圖片到此，或點擊選擇"
+            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            onFiles={(files) => void onFile(files[0] ?? null)}
+          />
           {fileName && (
             <p className="muted" style={{ fontSize: 13, margin: 0 }}>
               {fileName} · {formatBytes(origSize)}

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import ExcelJS from 'exceljs'
@@ -104,16 +105,14 @@ export default function Page() {
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
           使用 ExcelJS 本機解析（已移除有 high CVE 的 SheetJS <code>xlsx</code> 套件）。僅支援 .xlsx。
         </p>
-        <label className="stack">
-          <span className="label">上傳 Excel（.xlsx）</span>
-          <input
-            className="field"
-            type="file"
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            disabled={busy}
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          maxBytes={FILE_MAX}
+          disabled={busy}
+          label="拖放 Excel（.xlsx）到此，或點擊選擇"
+          hint={`上限 ${formatBytes(FILE_MAX)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         {busy && <p className="field-hint">讀取中…</p>}
         {info && <p className="muted">{info}</p>}
         {sheets.length > 0 && (

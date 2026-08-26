@@ -1,10 +1,12 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes, limitText, charCount } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { PDFDocument } from 'pdf-lib'
+import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES, assertPdfFile, textToPngBytes } from '../../lib/pdf'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-header-footer',
@@ -15,8 +17,6 @@ const fallback: ProjectMeta = {
   tags: ['utility'],
 }
 const meta = getProject('pdf-header-footer') ?? fallback
-const PDF_MAX = 25 * 1024 * 1024
-const MAX_PAGES = 80
 const TEXT_MAX = 80
 
 export default function Page() {
@@ -25,36 +25,31 @@ export default function Page() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
-  const [header, setHeader] = useLocalStorage('lab:pdf-hf:header', 'Document')
-  const [footer, setFooter] = useLocalStorage('lab:pdf-hf:footer', 'Confidential')
-  const [size, setSize] = useLocalStorage('lab:pdf-hf:size', 10)
+  const [header, setHeader] = useLocalStorage('lab:pdf-hf:header', '文件')
+  const [footer, setFooter] = useLocalStorage('lab:pdf-hf:footer', '機密')
+  const [size, setSize] = useLocalStorage('lab:pdf-hf:size', 12)
 
   async function onFile(f: File | null) {
     if (!f) return
-    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      setError('請上傳 PDF 檔案')
-      return
-    }
-    if (f.size > PDF_MAX) {
-      setError(`檔案過大（上限 ${formatBytes(PDF_MAX)}）`)
-      return
-    }
     setBusy(true)
     setError('')
     setProgress('讀取 PDF…')
     try {
+      assertPdfFile(f)
       const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true })
       const n = doc.getPageCount()
-      if (n > MAX_PAGES) {
-        setError(`頁數過多（上限 ${MAX_PAGES} 頁，目前 ${n} 頁）`)
+      if (n > PDF_MAX_PAGES) {
+        setError(`頁數過多（上限 ${PDF_MAX_PAGES} 頁，目前 ${n} 頁）`)
         setFile(null)
         setPageCount(0)
         return
       }
       setPageCount(n)
       setFile(f)
-    } catch {
-      setError('無法讀取 PDF（可能已加密或損毀）')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '無法讀取 PDF（可能已加密或損毀）')
+      setFile(null)
+      setPageCount(0)
     } finally {
       setBusy(false)
       setProgress('')
@@ -68,22 +63,42 @@ export default function Page() {
     try {
       const doc = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true })
       const pages = doc.getPages()
-      if (pages.length > MAX_PAGES) {
-        setError(`頁數過多（上限 ${MAX_PAGES} 頁）`)
+      if (pages.length > PDF_MAX_PAGES) {
+        setError(`頁數過多（上限 ${PDF_MAX_PAGES} 頁）`)
         return
       }
-      const font = await doc.embedFont(StandardFonts.Helvetica)
       const fontSize = clamp(size, 8, 24)
-      const h = limitText(header, TEXT_MAX)
-      const f = limitText(footer, TEXT_MAX)
+      const hText = limitText(header, TEXT_MAX).trim()
+      const fText = limitText(footer, TEXT_MAX).trim()
+      const hPng = hText ? await textToPngBytes(hText, { fontSize, color: '#4d4d4d' }) : null
+      const fPng = fText ? await textToPngBytes(fText, { fontSize, color: '#4d4d4d' }) : null
+      const hImg = hPng ? await doc.embedPng(hPng) : null
+      const fImg = fPng ? await doc.embedPng(fPng) : null
+
       for (let i = 0; i < pages.length; i++) {
         setProgress(`處理第 ${i + 1}/${pages.length} 頁`)
         const page = pages[i]!
         const { width, height } = page.getSize()
-        if (h) page.drawText(h, { x: 36, y: height - 28, size: fontSize, font, color: rgb(0.3, 0.3, 0.3) })
-        if (f) {
-          const tw = font.widthOfTextAtSize(f, fontSize)
-          page.drawText(f, { x: (width - tw) / 2, y: 20, size: fontSize, font, color: rgb(0.3, 0.3, 0.3) })
+        if (hImg) {
+          const drawH = fontSize * 1.35
+          const drawW = (hImg.width / hImg.height) * drawH
+          page.drawImage(hImg, {
+            x: 36,
+            y: height - drawH - 14,
+            width: Math.min(drawW, width - 72),
+            height: drawH,
+          })
+        }
+        if (fImg) {
+          const drawH = fontSize * 1.35
+          const drawW = (fImg.width / fImg.height) * drawH
+          const w = Math.min(drawW, width - 72)
+          page.drawImage(fImg, {
+            x: (width - w) / 2,
+            y: 14,
+            width: w,
+            height: drawH,
+          })
         }
       }
       setProgress('寫入檔案…')
@@ -91,8 +106,8 @@ export default function Page() {
         new Blob([Uint8Array.from(await doc.save())], { type: 'application/pdf' }),
         `${file.name.replace(/\.pdf$/i, '')}-hf.pdf`,
       )
-    } catch {
-      setError('處理失敗（中文建議改用影像／HTML 轉 PDF）')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '處理失敗')
     } finally {
       setBusy(false)
       setProgress('')
@@ -109,19 +124,17 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        頁首／頁尾文字建議使用英數（標準字型）。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁。
+        以影像嵌入頁首／頁尾，支援中文。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">上傳 PDF</span>
-          <input
-            className="field"
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept={PDF_ACCEPT}
+          maxBytes={PDF_MAX_BYTES}
+          disabled={busy}
+          label="拖放 PDF 到此，或點擊選擇"
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         {file && (
           <p className="muted" style={{ margin: 0 }}>
             {file.name} · {pageCount} 頁 · {formatBytes(file.size)}

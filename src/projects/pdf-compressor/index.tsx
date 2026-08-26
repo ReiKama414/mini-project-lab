@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
@@ -155,21 +156,32 @@ export default function Page() {
         {MAX_PAGES} 頁。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">上傳 PDF</span>
-          <input
-            className="field"
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept="application/pdf"
+          maxBytes={PDF_MAX}
+          disabled={busy}
+          label="拖放 PDF 到此，或點擊選擇"
+          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         {file && (
           <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · 原始 {formatBytes(origSize)}
-            {outSize ? ` → ${formatBytes(outSize)}${ratio != null ? `（${ratio}%）` : ''}` : ''}
+            {file.name} · {pageCount} 頁
             {busy && progress ? ` · ${progress}` : ''}
+          </p>
+        )}
+        {(origSize > 0 || outSize > 0) && (
+          <p className="field-hint" style={{ margin: 0 }}>
+            壓縮前：{formatBytes(origSize)}
+            {outSize > 0 ? (
+              <>
+                {' '}
+                → 壓縮後：{formatBytes(outSize)}
+                {ratio != null ? `（約為原本的 ${ratio}%）` : ''}
+              </>
+            ) : (
+              ' → 壓縮後：尚未產生'
+            )}
           </p>
         )}
         {error && <p className="field-error">{error}</p>}

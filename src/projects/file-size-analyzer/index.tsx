@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { formatBytes } from '../../lib/utils'
@@ -24,7 +25,7 @@ export default function Page() {
 
   const total = rows.reduce((s, r) => s + r.size, 0)
 
-  function onFiles(list: FileList | null) {
+  function onFiles(list: File[] | FileList | null) {
     if (!list?.length) return
     if (list.length > MAX_FILES) {
       setError(`一次最多 ${MAX_FILES} 個檔案`)
@@ -47,10 +48,14 @@ export default function Page() {
         檔案僅在瀏覽器本機分析，不會上傳。最多 {MAX_FILES} 個、單檔上限 {formatBytes(FILE_MAX)}。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">選擇檔案（可多選）</span>
-          <input className="field" type="file" multiple onChange={(e) => onFiles(e.target.files)} />
-        </label>
+        <FileDrop
+          multiple
+          maxFiles={MAX_FILES}
+          maxBytes={FILE_MAX}
+          label="拖放檔案到此，或點擊選擇（可多選）"
+          hint={`最多 ${MAX_FILES} 個 · 單檔上限 ${formatBytes(FILE_MAX)}`}
+          onFiles={(files) => onFiles(files)}
+        />
         {error && <p className="field-error">{error}</p>}
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <span className="metric">總計 {formatBytes(total)}</span>

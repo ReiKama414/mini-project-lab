@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import JSZip from 'jszip'
@@ -54,7 +55,7 @@ export default function Page() {
     return files.map((f) => ({ file: f, name: uniqueZipName(f.name, used) }))
   }, [files])
 
-  function onPick(list: FileList | null) {
+  function onPick(list: File[] | FileList | null) {
     if (!list?.length) return
     const arr = Array.from(list)
     if (arr.length > MAX_FILES) {
@@ -120,10 +121,15 @@ export default function Page() {
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
           上限：{MAX_FILES} 檔、單檔 {formatBytes(MAX_SINGLE)}、合計 {formatBytes(MAX_TOTAL)}。同名檔會自動加 (1)、(2)…
         </p>
-        <label className="stack">
-          <span className="label">選擇檔案</span>
-          <input className="field" type="file" multiple disabled={busy} onChange={(e) => onPick(e.target.files)} />
-        </label>
+        <FileDrop
+          multiple
+          maxFiles={MAX_FILES}
+          maxBytes={MAX_SINGLE}
+          disabled={busy}
+          label="拖放檔案到此，或點擊選擇（可多選）"
+          hint={`上限 ${MAX_FILES} 檔 · 單檔 ${formatBytes(MAX_SINGLE)} · 合計 ${formatBytes(MAX_TOTAL)}`}
+          onFiles={(files) => onPick(files)}
+        />
         <label className="stack">
           <span className="label">ZIP 檔名</span>
           <input

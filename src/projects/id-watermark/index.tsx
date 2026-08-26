@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
@@ -202,15 +203,13 @@ export default function Page() {
 
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
-          <label className="stack">
-            <span className="label">上傳證件／文件照片</span>
-            <input
-              className="field"
-              type="file"
-              accept={ACCEPT}
-              onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
+          <FileDrop
+            accept={ACCEPT}
+            maxBytes={FILE_MAX_BYTES}
+            label="拖放證件照片到此，或點擊選擇"
+            hint={`上限 ${formatBytes(FILE_MAX_BYTES)}`}
+            onFiles={(files) => onFile(files[0] ?? null)}
+          />
           {(fileName || fileInfo) && (
             <p className="muted" style={{ fontSize: 13, margin: 0 }}>
               {fileName}

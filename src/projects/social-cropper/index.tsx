@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
@@ -155,10 +156,13 @@ export default function Page() {
       <p className="muted" style={{ marginBottom: 12 }}>依社群比例裁切；可拖曳預覽或用滑桿分別調整水平／垂直位置。</p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
-          <label className="stack">
-            <span className="label">上傳圖片</span>
-            <input className="field" type="file" accept={IMAGE_ACCEPT} onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
-          </label>
+          <FileDrop
+            accept={IMAGE_ACCEPT}
+            maxBytes={IMAGE_MAX_BYTES}
+            label="拖放圖片到此，或點擊選擇"
+            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            onFiles={(files) => void onFile(files[0] ?? null)}
+          />
           {fileName && (
             <p className="muted" style={{ fontSize: 13, margin: 0 }}>
               {fileName}

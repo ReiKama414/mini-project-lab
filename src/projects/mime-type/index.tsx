@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -46,9 +47,41 @@ const EXT_MAP: Record<string, string> = {
 const NAME_MAX = 200
 const FILE_MAX = 25 * 1024 * 1024
 
+/** Magic-byte sniff for common binary formats. */
+async function sniffMime(file: File): Promise<string | null> {
+  const buf = new Uint8Array(await file.slice(0, 12).arrayBuffer())
+  if (buf.length < 4) return null
+  // PNG
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png'
+  // JPEG
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg'
+  // GIF
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return 'image/gif'
+  // WEBP: RIFF....WEBP
+  if (
+    buf.length >= 12 &&
+    buf[0] === 0x52 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x46 &&
+    buf[8] === 0x57 &&
+    buf[9] === 0x45 &&
+    buf[10] === 0x42 &&
+    buf[11] === 0x50
+  ) {
+    return 'image/webp'
+  }
+  // PDF: %PDF
+  if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return 'application/pdf'
+  // ZIP (also covers many OOXML containers): PK..
+  if (buf[0] === 0x50 && buf[1] === 0x4b) return 'application/zip'
+  return null
+}
+
 export default function Page() {
   const [name, setName] = useLocalStorage('lab:mime-type:name', 'report.xlsx')
   const [fileMime, setFileMime] = useState('')
+  const [sniffedMime, setSniffedMime] = useState('')
   const [fileInfo, setFileInfo] = useState('')
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
@@ -57,10 +90,29 @@ export default function Page() {
   const guessed = EXT_MAP[ext] || 'application/octet-stream'
   const invalid = !isNonEmpty(name)
 
+  async function onUpload(file: File | null) {
+    if (!file) return
+    if (file.size > FILE_MAX) {
+      setError(`檔案過大（上限 ${formatBytes(FILE_MAX)}）`)
+      return
+    }
+    setName(limitText(file.name, NAME_MAX))
+    setFileMime(file.type || '（瀏覽器未提供）')
+    setFileInfo(`${file.name} · ${formatBytes(file.size)}`)
+    setError('')
+    setCopied(false)
+    try {
+      const sniffed = await sniffMime(file)
+      setSniffedMime(sniffed ?? '（無法從魔術位元組判斷）')
+    } catch {
+      setSniffedMime('（讀取失敗）')
+    }
+  }
+
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        依副檔名猜測 MIME；上傳檔案可對照瀏覽器提供的 File.type（不上傳伺服器）。
+        依副檔名猜測 MIME；上傳檔案可對照瀏覽器 File.type，並以魔術位元組偵測 PNG／JPEG／GIF／WEBP／PDF／ZIP（不上傳伺服器）。
       </p>
       <div className="panel stack">
         <label className="stack">
@@ -95,31 +147,19 @@ export default function Page() {
         >
           {copied ? '已複製' : '複製 MIME'}
         </button>
-        <label className="stack">
-          <span className="label">或上傳檔案（讀取瀏覽器 File.type）</span>
-          <input
-            className="field"
-            type="file"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (!f) return
-              if (f.size > FILE_MAX) {
-                setError(`檔案過大（上限 ${formatBytes(FILE_MAX)}）`)
-                return
-              }
-              setName(limitText(f.name, NAME_MAX))
-              setFileMime(f.type || '（瀏覽器未提供）')
-              setFileInfo(`${f.name} · ${formatBytes(f.size)}`)
-              setError('')
-              setCopied(false)
-            }}
-          />
-        </label>
+        <FileDrop
+          maxBytes={FILE_MAX}
+          label="拖放檔案到此，或點擊選擇"
+          hint={`上限 ${formatBytes(FILE_MAX)} · 對照 File.type 與魔術位元組`}
+          onFiles={(files) => void onUpload(files[0] ?? null)}
+        />
         {fileInfo && (
           <p className="muted">
             {fileInfo}
             <br />
             File.type：<code className="mono">{fileMime}</code>
+            <br />
+            魔術位元組：<code className="mono">{sniffedMime}</code>
           </p>
         )}
       </div>

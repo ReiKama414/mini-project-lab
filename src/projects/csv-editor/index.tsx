@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { AddButton } from '../../components/AddButton'
 import type { ProjectMeta } from '../registry'
 import { useEffect, useMemo, useState } from 'react'
@@ -119,10 +120,13 @@ export default function Page() {
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
           支援引號、逗號與換行欄位（RFC4180）。編輯表格會同步更新匯出內容。
         </p>
-        <label className="stack">
-          <span className="label">上傳 CSV</span>
-          <input className="field" type="file" accept=".csv,text/csv,text/plain" onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
-        </label>
+        <FileDrop
+          accept=".csv,text/csv,text/plain"
+          maxBytes={FILE_MAX}
+          label="拖放 CSV 到此，或點擊選擇"
+          hint={`上限 ${formatBytes(FILE_MAX)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         <label className="stack">
           <span className="label">原始 CSV</span>
           <textarea

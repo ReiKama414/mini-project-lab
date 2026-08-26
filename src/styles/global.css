@@ -2832,3 +2832,50 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
     align-items: flex-start;
   }
 }
+
+.file-drop {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  place-items: center;
+  text-align: center;
+  padding: 1.25rem 1rem;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-muted) 70%, #fff);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.file-drop:hover,
+.file-drop.is-over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft, #e8f5f0) 55%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.file-drop.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.file-drop-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-drop.is-disabled .file-drop-input {
+  cursor: not-allowed;
+}
+
+.file-drop-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.file-drop-hint {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}

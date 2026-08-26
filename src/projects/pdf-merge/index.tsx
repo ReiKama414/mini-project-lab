@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { formatBytes } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -24,7 +25,7 @@ export default function Page() {
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
 
-  function onFiles(list: FileList | null) {
+  function onFiles(list: File[] | FileList | null) {
     if (!list) return
     const arr = Array.from(list).slice(0, MAX_FILES)
     for (const f of arr) {
@@ -103,17 +104,16 @@ export default function Page() {
         本機合併，單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_FILES} 個、合併後最多 {MAX_TOTAL_PAGES} 頁。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">選擇 PDF（可多選）</span>
-          <input
-            className="field"
-            type="file"
-            accept="application/pdf"
-            multiple
-            disabled={busy}
-            onChange={(e) => onFiles(e.target.files)}
-          />
-        </label>
+        <FileDrop
+          accept="application/pdf"
+          maxBytes={PDF_MAX}
+          multiple
+          maxFiles={MAX_FILES}
+          disabled={busy}
+          label="拖放 PDF 到此，或點擊選擇（可多選）"
+          hint={`單檔上限 ${formatBytes(PDF_MAX)} · 最多 ${MAX_FILES} 個`}
+          onFiles={(files) => onFiles(files)}
+        />
         {error && <p className="field-error">{error}</p>}
         {busy && progress && <p className="field-hint">{progress}</p>}
         {files.map((f, i) => (

@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { formatBytes, limitText, charCount, isNonEmpty } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -143,36 +144,45 @@ export default function Page() {
         </button>
       }
     >
+      <p
+        className="field-hint"
+        role="status"
+        style={{
+          marginBottom: 12,
+          padding: '10px 12px',
+          border: '1px solid var(--line)',
+          borderRadius: 10,
+          background: 'color-mix(in srgb, var(--panel) 85%, var(--accent) 8%)',
+        }}
+      >
+        本機 AES-GCM 容器封裝（.pdf.enc），非標準 PDF 開啟密碼
+      </p>
       <p className="muted" style={{ marginBottom: 12 }}>
         這<strong>不是</strong> Adobe／瀏覽器可直接開啟的標準 PDF 密碼保護，而是本機 AES-GCM 容器（.pdf.enc）。需用同頁解密還原為一般 PDF。單檔上限{' '}
         {formatBytes(PDF_MAX)}；密碼不會上傳。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">上傳 PDF（加密用）</span>
-          <input
-            className="field"
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => void onPdf(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept="application/pdf"
+          maxBytes={PDF_MAX}
+          disabled={busy}
+          label="拖放 PDF 到此（加密用），或點擊選擇"
+          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          onFiles={(files) => void onPdf(files[0] ?? null)}
+        />
         {file && (
           <p className="muted" style={{ margin: 0 }}>
             {file.name} · {formatBytes(file.size)}
           </p>
         )}
-        <label className="stack">
-          <span className="label">上傳 .pdf.enc（解密用）</span>
-          <input
-            className="field"
-            type="file"
-            accept=".enc,application/octet-stream"
-            disabled={busy}
-            onChange={(e) => void onEnc(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept=".enc,application/octet-stream"
+          maxBytes={PDF_MAX * 2}
+          disabled={busy}
+          label="拖放 .pdf.enc 到此（解密用），或點擊選擇"
+          hint={`上限 ${formatBytes(PDF_MAX * 2)}`}
+          onFiles={(files) => void onEnc(files[0] ?? null)}
+        />
         {encFile && (
           <p className="muted" style={{ margin: 0 }}>
             {encFile.name} · {formatBytes(encFile.size)}

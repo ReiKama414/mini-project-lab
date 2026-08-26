@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -76,20 +77,16 @@ export default function Page() {
             </span>
           </div>
         </label>
-        <label className="stack">
-          <span className="label">上傳 CSV</span>
-          <input
-            className="field"
-            type="file"
-            accept=".csv,text/csv"
-            disabled={busy}
-            onChange={async (e) => {
-              const f = e.target.files?.[0]
+        <FileDrop
+          accept=".csv,text/csv"
+          maxBytes={FILE_MAX}
+          disabled={busy}
+          label="拖放 CSV 到此，或點擊選擇"
+          hint={`上限 ${formatBytes(FILE_MAX)}`}
+          onFiles={(files) => {
+            void (async () => {
+              const f = files[0]
               if (!f) return
-              if (f.size > FILE_MAX) {
-                setError(`檔案過大（上限 ${formatBytes(FILE_MAX)}）`)
-                return
-              }
               setBusy(true)
               try {
                 setInput(limitText(await f.text(), MAX))
@@ -99,9 +96,9 @@ export default function Page() {
               } finally {
                 setBusy(false)
               }
-            }}
-          />
-        </label>
+            })()
+          }}
+        />
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label className="row" style={{ gap: 6 }}>
             分隔符

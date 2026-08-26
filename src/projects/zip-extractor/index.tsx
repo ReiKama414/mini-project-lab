@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import JSZip from 'jszip'
@@ -101,16 +102,14 @@ export default function Page() {
         本機檢視並下載 ZIP 內檔案。壓縮檔上限 {formatBytes(ZIP_MAX)}，最多 {ENTRY_MAX} 個項目。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">選擇 ZIP</span>
-          <input
-            className="field"
-            type="file"
-            accept=".zip,application/zip"
-            disabled={busy}
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDrop
+          accept=".zip,application/zip"
+          maxBytes={ZIP_MAX}
+          disabled={busy}
+          label="拖放 ZIP 到此，或點擊選擇"
+          hint={`上限 ${formatBytes(ZIP_MAX)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         {zipName && (
           <p className="muted" style={{ margin: 0 }}>
             {zipName} · {entries.length} 個項目

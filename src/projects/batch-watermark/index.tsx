@@ -1,18 +1,39 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useState } from 'react'
+import { FileDrop } from '../../components/FileDrop'
+import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes, limitText, charCount, isNonEmpty } from '../../lib/utils'
-import { loadImageFromFile, canvasFromImage, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import {
+  loadImageFromFile,
+  canvasFromImage,
+  downloadBlob,
+  IMAGE_ACCEPT,
+  IMAGE_MAX_BYTES,
+} from '../../lib/imageCanvas'
 import JSZip from 'jszip'
 
-const fallback: ProjectMeta = { slug: 'batch-watermark', title: '批次浮水印', description: '為多張圖片一次加上浮水印並打包下載。', tier: 'feature', effort: '1～3 天', tags: ['utility'] }
+const fallback: ProjectMeta = {
+  slug: 'batch-watermark',
+  title: '批次浮水印',
+  description: '為多張圖片一次加上浮水印並打包下載。',
+  tier: 'feature',
+  effort: '1～3 天',
+  tags: ['utility'],
+}
 const meta = getProject('batch-watermark') ?? fallback
 
 const TEXT_MAX = 80
 const MAX_FILES = 30
 
-function applyWatermark(canvas: HTMLCanvasElement, text: string, opacity: number, size: number, angle: number, color: string) {
+function applyWatermark(
+  canvas: HTMLCanvasElement,
+  text: string,
+  opacity: number,
+  size: number,
+  angle: number,
+  color: string,
+) {
   const ctx = canvas.getContext('2d')!
   const w = canvas.width
   const h = canvas.height
@@ -33,6 +54,7 @@ function applyWatermark(canvas: HTMLCanvasElement, text: string, opacity: number
 }
 
 export default function Page() {
+  const previewRef = useRef<HTMLCanvasElement>(null)
   const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -42,9 +64,50 @@ export default function Page() {
   const [angle, setAngle] = useLocalStorage('lab:batch-watermark:angle', -30)
   const [color, setColor] = useLocalStorage('lab:batch-watermark:color', '#1a2e28')
 
-  function onFiles(list: FileList | null) {
-    if (!list) return
-    const arr = Array.from(list).slice(0, MAX_FILES)
+  useEffect(() => {
+    let cancelled = false
+    async function draw() {
+      const out = previewRef.current
+      if (!out || !files[0] || !isNonEmpty(text)) {
+        if (out) {
+          out.width = 0
+          out.height = 0
+        }
+        return
+      }
+      try {
+        const img = await loadImageFromFile(files[0]!)
+        if (cancelled) return
+        const maxSide = 640
+        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight))
+        const { canvas } = canvasFromImage(
+          img,
+          Math.round(img.naturalWidth * scale),
+          Math.round(img.naturalHeight * scale),
+        )
+        applyWatermark(
+          canvas,
+          limitText(text.trim(), TEXT_MAX),
+          opacity,
+          Math.max(12, fontSize * scale),
+          angle,
+          color,
+        )
+        out.width = canvas.width
+        out.height = canvas.height
+        out.getContext('2d')!.drawImage(canvas, 0, 0)
+      } catch {
+        /* preview optional */
+      }
+    }
+    void draw()
+    return () => {
+      cancelled = true
+    }
+  }, [files, text, opacity, fontSize, angle, color])
+
+  function onFiles(list: File[]) {
+    const arr = list.slice(0, MAX_FILES)
     for (const f of arr) {
       if (f.size > IMAGE_MAX_BYTES) {
         setError(`「${f.name}」超過 ${formatBytes(IMAGE_MAX_BYTES)}`)
@@ -79,27 +142,128 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta} actions={<button type="button" className="btn sm accent" disabled={!files.length || !isNonEmpty(text) || busy} onClick={() => void processZip()}>{busy ? '處理中…' : '下載 ZIP'}</button>}>
-      <p className="muted" style={{ marginBottom: 12 }}>一次最多 {MAX_FILES} 張，全部在瀏覽器本機處理。</p>
-      <div className="panel stack">
-        <label className="stack"><span className="label">選擇多張圖片</span><input className="field" type="file" accept={IMAGE_ACCEPT} multiple onChange={(e) => onFiles(e.target.files)} /></label>
-        {files.length > 0 && <p className="muted" style={{ margin: 0 }}>已選 {files.length} 張 · {formatBytes(files.reduce((n, f) => n + f.size, 0))}</p>}
-        {error && <p className="field-error">{error}</p>}
-        <div className="field-wrap">
-          <label className="label">浮水印文字</label>
-          <input className={`field${!isNonEmpty(text) ? ' is-invalid' : ''}`} value={text} maxLength={TEXT_MAX} onChange={(e) => setText(limitText(e.target.value, TEXT_MAX))} />
-          <div className="field-meta"><span>{!isNonEmpty(text) ? '請輸入文字' : ' '}</span><span>{charCount(text)} / {TEXT_MAX}</span></div>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <button
+          type="button"
+          className="btn sm accent"
+          disabled={!files.length || !isNonEmpty(text) || busy}
+          onClick={() => void processZip()}
+        >
+          {busy ? '處理中…' : '下載 ZIP'}
+        </button>
+      }
+    >
+      <p className="muted" style={{ marginBottom: 12 }}>
+        一次最多 {MAX_FILES} 張，全部在瀏覽器本機處理。預覽以第一張為準。
+      </p>
+      <div className="grid-2" style={{ alignItems: 'start' }}>
+        <div className="panel stack">
+          <FileDrop
+            accept={IMAGE_ACCEPT}
+            multiple
+            maxFiles={MAX_FILES}
+            maxBytes={IMAGE_MAX_BYTES}
+            disabled={busy}
+            label="拖放多張圖片到此，或點擊選擇"
+            hint={`最多 ${MAX_FILES} 張 · 單張 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            onFiles={onFiles}
+          />
+          {files.length > 0 && (
+            <p className="muted" style={{ margin: 0 }}>
+              已選 {files.length} 張 · {formatBytes(files.reduce((n, f) => n + f.size, 0))}
+            </p>
+          )}
+          {error && <p className="field-error">{error}</p>}
+          <div className="field-wrap">
+            <label className="label">浮水印文字</label>
+            <input
+              className={`field${!isNonEmpty(text) ? ' is-invalid' : ''}`}
+              value={text}
+              maxLength={TEXT_MAX}
+              onChange={(e) => setText(limitText(e.target.value, TEXT_MAX))}
+            />
+            <div className="field-meta">
+              <span>{!isNonEmpty(text) ? '請輸入文字' : ' '}</span>
+              <span>
+                {charCount(text)} / {TEXT_MAX}
+              </span>
+            </div>
+          </div>
+          <div className="grid-2">
+            <label className="stack">
+              <span className="label">透明度 {opacity}%</span>
+              <input
+                type="range"
+                min={5}
+                max={80}
+                value={opacity}
+                onChange={(e) => setOpacity(clamp(Number(e.target.value), 5, 80))}
+              />
+            </label>
+            <label className="stack">
+              <span className="label">字級 {fontSize}px</span>
+              <input
+                type="range"
+                min={12}
+                max={120}
+                value={fontSize}
+                onChange={(e) => setFontSize(clamp(Number(e.target.value), 12, 120))}
+              />
+            </label>
+            <label className="stack">
+              <span className="label">角度 {angle}°</span>
+              <input
+                type="range"
+                min={-90}
+                max={90}
+                value={angle}
+                onChange={(e) => setAngle(clamp(Number(e.target.value), -90, 90))}
+              />
+            </label>
+            <label className="stack">
+              <span className="label">顏色</span>
+              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+            </label>
+          </div>
+          <ul className="stack" style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+            {files.map((f) => (
+              <li key={f.name + f.size}>
+                {f.name} · {formatBytes(f.size)}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="btn accent"
+            disabled={!files.length || !isNonEmpty(text) || busy}
+            onClick={() => void processZip()}
+          >
+            {busy ? '處理中…' : '套用並下載 ZIP'}
+          </button>
         </div>
-        <div className="grid-2">
-          <label className="stack"><span className="label">透明度 {opacity}%</span><input type="range" min={5} max={80} value={opacity} onChange={(e) => setOpacity(clamp(Number(e.target.value), 5, 80))} /></label>
-          <label className="stack"><span className="label">字級 {fontSize}px</span><input type="range" min={12} max={120} value={fontSize} onChange={(e) => setFontSize(clamp(Number(e.target.value), 12, 120))} /></label>
-          <label className="stack"><span className="label">角度 {angle}°</span><input type="range" min={-90} max={90} value={angle} onChange={(e) => setAngle(clamp(Number(e.target.value), -90, 90))} /></label>
-          <label className="stack"><span className="label">顏色</span><input type="color" value={color} onChange={(e) => setColor(e.target.value)} /></label>
+        <div className="panel stack">
+          <div className="label">即時預覽（第一張）</div>
+          {files[0] && isNonEmpty(text) ? (
+            <div style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'auto', maxHeight: 560 }}>
+              <canvas ref={previewRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
+            </div>
+          ) : (
+            <div
+              className="muted"
+              style={{
+                minHeight: 240,
+                display: 'grid',
+                placeItems: 'center',
+                border: '1px dashed var(--line)',
+                borderRadius: 12,
+              }}
+            >
+              選圖並輸入文字後預覽
+            </div>
+          )}
         </div>
-        <ul className="stack" style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
-          {files.map((f) => <li key={f.name + f.size}>{f.name} · {formatBytes(f.size)}</li>)}
-        </ul>
-        <button type="button" className="btn accent" disabled={!files.length || !isNonEmpty(text) || busy} onClick={() => void processZip()}>{busy ? '處理中…' : '套用並下載 ZIP'}</button>
       </div>
     </ProjectShell>
   )

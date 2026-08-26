@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import JSZip from 'jszip'
@@ -93,9 +94,9 @@ export default function Page() {
     }))
   }, [files, opts])
 
-  function onFiles(list: FileList | null) {
+  function onFiles(list: File[] | FileList | null) {
     if (!list?.length) return
-    const arr = [...list]
+    const arr = Array.from(list)
     if (arr.length > MAX_FILES) {
       setError(`一次最多 ${MAX_FILES} 個檔案`)
       return
@@ -140,10 +141,13 @@ export default function Page() {
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
             瀏覽器無法直接改寫磁碟檔名。選取檔案後依規則重新命名，再以 ZIP 下載。
           </p>
-          <label className="stack">
-            <span className="label">選取檔案（可多選）</span>
-            <input className="field" type="file" multiple onChange={(e) => onFiles(e.target.files)} />
-          </label>
+          <FileDrop
+            multiple
+            maxFiles={MAX_FILES}
+            label="拖放檔案到此，或點擊選擇（可多選）"
+            hint={`最多 ${MAX_FILES} 檔 · 合計 ${formatBytes(MAX_TOTAL)}`}
+            onFiles={(files) => onFiles(files)}
+          />
           <div className="grid-2">
             <label className="stack">
               <span className="label">前綴</span>
