@@ -11,8 +11,12 @@ import {
   Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
+  Pause,
+  Play,
   Plus,
+  RotateCcw,
   Search,
+  SkipForward,
   X,
 } from 'lucide-react'
 
@@ -53,6 +57,22 @@ export function IconCalendar(props: LucideProps) {
 
 export function IconPlus(props: LucideProps) {
   return <Plus {...defaultProps} {...props} />
+}
+
+export function IconPlay(props: LucideProps) {
+  return <Play {...defaultProps} {...props} />
+}
+
+export function IconPause(props: LucideProps) {
+  return <Pause {...defaultProps} {...props} />
+}
+
+export function IconReset(props: LucideProps) {
+  return <RotateCcw {...defaultProps} {...props} />
+}
+
+export function IconSkip(props: LucideProps) {
+  return <SkipForward {...defaultProps} {...props} />
 }
 
 export function IconClose(props: LucideProps) {
