@@ -808,8 +808,18 @@ select {
     calc(100% - 11px) calc(50% - 2px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  padding-right: 2.1rem;
+  /* 右側箭頭區 + 中文標籤（如「高優先」）不可被裁切 */
+  padding-right: 2.4rem;
+  min-width: 7.75rem;
+  max-width: 100%;
+  text-overflow: clip;
+  overflow: visible;
   cursor: pointer;
+}
+
+select.field.field-select-xs {
+  min-width: 5.5rem;
+  padding-right: 2rem;
 }
 
 select.field:focus,

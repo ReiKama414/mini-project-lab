@@ -106,9 +106,10 @@ export default function Page() {
             />
             <select
               className="field"
-              style={{ width: 90 }}
+              style={{ width: 'auto', minWidth: '8rem' }}
               value={priority}
               onChange={(e) => setPriority(e.target.value as Priority)}
+              aria-label="優先級"
             >
               <option value="high">高優先</option>
               <option value="medium">中優先</option>

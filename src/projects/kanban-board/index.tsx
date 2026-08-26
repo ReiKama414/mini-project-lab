@@ -142,7 +142,7 @@ export default function Page() {
           </div>
           <select
             className="field"
-            style={{ width: 100 }}
+            style={{ width: 'auto', minWidth: '8rem' }}
             value={priority}
             onChange={(e) => setPriority(e.target.value as Priority)}
           >

@@ -232,7 +232,7 @@ export default function Page() {
                   maxLength={EMAIL_MAX}
                   onChange={(e) => setDraft((d) => ({ ...d, email: limitText(e.target.value, EMAIL_MAX) }))}
                 />
-                <select className="field" value={draft.plan} onChange={(e) => setDraft((d) => ({ ...d, plan: e.target.value }))} style={{ width: 110 }}>
+                <select className="field" value={draft.plan} onChange={(e) => setDraft((d) => ({ ...d, plan: e.target.value }))} style={{ width: 'auto', minWidth: '8rem' }}>
                   {PLANS.map((p) => (
                     <option key={p}>{p}</option>
                   ))}
@@ -349,7 +349,7 @@ export default function Page() {
                   className="field"
                   value={memberDraft.role}
                   onChange={(e) => setMemberDraft((d) => ({ ...d, role: e.target.value as Member['role'] }))}
-                  style={{ width: 110 }}
+                  style={{ width: 'auto', minWidth: '8rem' }}
                 >
                   {(['owner', 'admin', 'member'] as const).map((r) => (
                     <option key={r} value={r}>
@@ -386,7 +386,7 @@ export default function Page() {
                         onChange={(e) =>
                           setMembers((xs) => xs.map((x) => (x.id === m.id ? { ...x, role: e.target.value as Member['role'] } : x)))
                         }
-                        style={{ width: 110 }}
+                        style={{ width: 'auto', minWidth: '8rem' }}
                       >
                         {(['owner', 'admin', 'member'] as const).map((r) => (
                           <option key={r} value={r}>

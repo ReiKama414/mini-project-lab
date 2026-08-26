@@ -333,7 +333,7 @@ export default function Page() {
                     </span>
                     <select
                       className="field"
-                      style={{ width: 110 }}
+                      style={{ width: 'auto', minWidth: '8rem' }}
                       value={c.status}
                       onChange={(e) =>
                         setContacts((xs) => xs.map((x) => (x.id === c.id ? { ...x, status: e.target.value as Status } : x)))

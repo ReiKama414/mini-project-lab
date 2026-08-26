@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
-import yaml from 'js-yaml'
+import { dump as yamlDump, load as yamlLoad } from 'js-yaml'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
 
@@ -35,8 +35,8 @@ export default function Page() {
     setBusy(true)
     setError('')
     try {
-      const data = yaml.load(input)
-      const result = yaml.dump(data, {
+      const data = yamlLoad(input)
+      const result = yamlDump(data, {
         lineWidth: minify ? -1 : 100,
         noRefs: true,
         flowLevel: minify ? 0 : -1,

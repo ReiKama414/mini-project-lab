@@ -160,7 +160,7 @@ export default function Page() {
             <input className={`field${title.length > 0 && !titleOk ? ' is-invalid' : ''}`} style={{ width: '100%' }} placeholder="任務標題" value={title} maxLength={MAX_TITLE} onChange={(e) => setTitle(limitText(e.target.value, MAX_TITLE))} />
             <div className="field-meta"><span className={!titleOk && title.length > 0 ? 'warn' : undefined}>{!titleOk && title.length > 0 ? '請輸入標題' : ' '}</span><span>{charCount(title)} / {MAX_TITLE}</span></div>
           </div>
-          <select className="field" style={{ width: 90 }} value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
+          <select className="field" style={{ width: 'auto', minWidth: '8rem' }} value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
             {PRIO.map((p) => (
               <option key={p} value={p}>
                 {p}
@@ -236,7 +236,7 @@ export default function Page() {
           <span className="muted">優先</span>
           <select
             className="field"
-            style={{ width: 90 }}
+            style={{ width: 'auto', minWidth: '8rem' }}
             value={filterPrio}
             onChange={(e) => setFilterPrio(e.target.value as Priority | '全部')}
           >
@@ -250,7 +250,7 @@ export default function Page() {
           <span className="muted">狀態</span>
           <select
             className="field"
-            style={{ width: 110 }}
+            style={{ width: 'auto', minWidth: '8rem' }}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as Status | '全部')}
           >

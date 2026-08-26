@@ -16,7 +16,8 @@ const badge: Record<Tier, string> = {
 }
 
 export function HomePage() {
-  const { query } = useOutletContext<{ query: string }>()
+  const ctx = useOutletContext<{ query: string } | null>()
+  const query = ctx?.query ?? ''
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const tags = useMemo(() => allTags(), [])

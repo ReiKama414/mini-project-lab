@@ -291,7 +291,7 @@ export default function Page() {
           {current && (
             <div className="stack list-item">
               <div className="row">
-                <select className="field" value={current.method} onChange={(e) => update(current.id, { method: e.target.value })} style={{ width: 110 }}>
+                <select className="field" value={current.method} onChange={(e) => update(current.id, { method: e.target.value })} style={{ width: 'auto', minWidth: '8rem' }}>
                   {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => (
                     <option key={m}>{m}</option>
                   ))}

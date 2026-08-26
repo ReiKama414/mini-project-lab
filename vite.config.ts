@@ -1,22 +1,41 @@
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 
-const securityHeaders = {
+/** Strip CSP on Vite responses — old caches / proxies must not block HMR preamble. */
+function stripCsp(): Plugin {
+  return {
+    name: 'strip-csp-in-dev',
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        const original = res.setHeader.bind(res)
+        res.setHeader = ((name: string, value: number | string | readonly string[]) => {
+          if (String(name).toLowerCase() === 'content-security-policy') return res
+          return original(name, value)
+        }) as typeof res.setHeader
+        next()
+      })
+    },
+  }
+}
+
+/** Safe headers for `vite preview` only (no CSP — would break if any inline remains). */
+const previewHeaders = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  'Content-Security-Policy':
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://api.github.com https://*.github.com; worker-src 'self' blob:; child-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 }
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), stripCsp()],
   server: {
-    headers: securityHeaders,
+    // Do not set Content-Security-Policy here — Vite needs inline scripts for React Refresh.
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+    },
   },
   preview: {
-    headers: securityHeaders,
+    headers: previewHeaders,
   },
 })

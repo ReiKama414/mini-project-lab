@@ -2,7 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
-import yaml from 'js-yaml'
+import { dump as yamlDump } from 'js-yaml'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 
@@ -35,7 +35,7 @@ export default function Page() {
     }
     try {
       const data = JSON.parse(input)
-      setOut(yaml.dump(data, { lineWidth: 100, noRefs: true }))
+      setOut(yamlDump(data, { lineWidth: 100, noRefs: true }))
       setError('')
       setCopied(false)
     } catch (e) {

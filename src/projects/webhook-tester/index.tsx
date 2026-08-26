@@ -277,7 +277,7 @@ export default function Page() {
             </label>
             <label className="stack">
               <span className="label">回應狀態碼</span>
-              <select className="field" value={statusCode} onChange={(e) => setStatusCode(Number(e.target.value))} style={{ width: 100 }}>
+              <select className="field" value={statusCode} onChange={(e) => setStatusCode(Number(e.target.value))} style={{ width: 'auto', minWidth: '8rem' }}>
                 {STATUS_OPTIONS.map((c) => (
                   <option key={c} value={c}>
                     {c}
