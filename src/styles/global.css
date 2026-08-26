@@ -426,6 +426,49 @@ svg {
   font-size: 0.88rem;
 }
 
+.home-data-panel {
+  margin-top: 1.5rem;
+}
+
+.home-data-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem 1rem;
+}
+
+.home-data-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.home-data-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  max-width: 52ch;
+  line-height: 1.55;
+}
+
+.home-data-confirm {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-muted);
+}
+
+.home-data-confirm p {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.home-data-confirm.is-danger {
+  border-color: color-mix(in srgb, var(--rose) 35%, var(--line));
+  background: var(--rose-soft);
+}
+
 .browse-bar {
   margin-bottom: 1.5rem;
   padding: 1rem 1.15rem;
@@ -2343,6 +2386,193 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
 @media (max-width: 860px) {
   .cd {
     grid-template-columns: 1fr;
+  }
+}
+
+/* —— Stopwatch —— */
+.sw {
+  --sw: var(--accent);
+  --sw-soft: color-mix(in srgb, var(--accent) 16%, #fff);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.95fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.sw.is-running {
+  --sw: var(--teal);
+  --sw-soft: var(--teal-soft);
+}
+
+.sw.is-paused {
+  --sw: var(--amber);
+  --sw-soft: var(--amber-soft);
+}
+
+.sw-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  text-align: center;
+  min-height: 26rem;
+  padding: 1.75rem 1.25rem;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 18%, var(--sw-soft), transparent 70%),
+    #fff;
+}
+
+.sw-phase {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--sw);
+  letter-spacing: 0.08em;
+}
+
+.sw-time {
+  font-size: clamp(2.6rem, 8vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.sw-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.sw-keys {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.sw-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.sw-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  padding: 0.85rem;
+}
+
+.sw-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  min-width: 0;
+}
+
+.sw-stat-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sw-stat-label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.sw-laps-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sw-lap-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sw-lap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 28rem;
+  overflow: auto;
+}
+
+.sw-lap-item {
+  display: grid;
+  grid-template-columns: minmax(3.2rem, auto) 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-muted) 65%, #fff);
+  font-size: 0.88rem;
+}
+
+.sw-lap-item.is-best {
+  background: color-mix(in srgb, #fff3cd 80%, #fff);
+}
+
+.sw-lap-item.is-worst {
+  background: color-mix(in srgb, var(--bg-muted) 80%, #fff);
+}
+
+.sw-lap-n {
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.sw-lap-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sw-lap-mark.is-best {
+  color: #d4a017;
+}
+
+.sw-lap-mark.is-worst {
+  color: #2f9e6b;
+}
+
+.sw-lap-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sw-lap-split {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 860px) {
+  .sw {
+    grid-template-columns: 1fr;
+  }
+
+  .sw-stage {
+    min-height: 18rem;
   }
 }
 

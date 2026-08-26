@@ -4,6 +4,8 @@ import {
   ArrowLeft,
   CalendarDays,
   Copy,
+  Crown,
+  Flag,
   Home,
   LayoutGrid,
   Maximize2,
@@ -18,6 +20,7 @@ import {
   Search,
   SkipForward,
   Trash2,
+  Turtle,
   X,
 } from 'lucide-react'
 
@@ -74,6 +77,18 @@ export function IconReset(props: LucideProps) {
 
 export function IconTrash(props: LucideProps) {
   return <Trash2 {...defaultProps} {...props} />
+}
+
+export function IconFlag(props: LucideProps) {
+  return <Flag {...defaultProps} {...props} />
+}
+
+export function IconCrown(props: LucideProps) {
+  return <Crown {...defaultProps} {...props} />
+}
+
+export function IconTurtle(props: LucideProps) {
+  return <Turtle {...defaultProps} {...props} />
 }
 
 export function IconSkip(props: LucideProps) {

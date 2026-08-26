@@ -14,7 +14,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'todo-list', title: 'Todo List', description: '快速新增、完成與清除待辦事項。', tier: 'quick', effort: '幾小時～1 天', tags: ['productivity'] },
   { slug: 'pomodoro', title: 'Pomodoro 番茄鐘', description: '25/5 專注循環，含階段提示與計數。', tier: 'quick', effort: '幾小時～1 天', tags: ['timer'] },
   { slug: 'countdown', title: '倒數計時器', description: '可同時管理多組倒數，結束提醒與紀錄。', tier: 'quick', effort: '幾小時～1 天', tags: ['timer'] },
-  { slug: 'stopwatch', title: '秒錶', description: '開始、暫停、重置與單圈紀錄。', tier: 'quick', effort: '幾小時～1 天', tags: ['timer'] },
+  { slug: 'stopwatch', title: '秒錶', description: '精確計時、單圈統計與匯出。', tier: 'quick', effort: '幾小時～1 天', tags: ['timer'] },
   { slug: 'bmi-calculator', title: 'BMI Calculator', description: '依身高體重計算 BMI 與分類。', tier: 'quick', effort: '幾小時～1 天', tags: ['health'] },
   { slug: 'currency-converter', title: '貨幣轉換器', description: '常用貨幣即時換算（示範匯率）。', tier: 'quick', effort: '幾小時～1 天', tags: ['finance'] },
   { slug: 'unit-converter', title: '單位轉換器', description: '長度、重量、溫度快速轉換。', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },

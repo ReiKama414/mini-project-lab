@@ -23,3 +23,24 @@ export function useLocalStorage<T>(key: string, initial: T) {
 
   return [value, setValue] as const
 }
+
+/** Remove all Mini Project Lab keys (`lab:…`) from localStorage. Returns removed count. */
+export function clearLabStorage() {
+  const keys: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k && k.startsWith('lab:')) keys.push(k)
+  }
+  for (const k of keys) localStorage.removeItem(k)
+  return keys.length
+}
+
+/** Count current `lab:` keys without removing them. */
+export function countLabStorageKeys() {
+  let n = 0
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k && k.startsWith('lab:')) n++
+  }
+  return n
+}
