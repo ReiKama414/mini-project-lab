@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { fileToDataURL, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { copyText, formatBytes } from '../../lib/utils'
@@ -68,10 +69,14 @@ export default function Page() {
         Base64 會比原檔大約 33%，大圖可能拖慢頁面或剪貼簿。僅本機轉換，不會上傳。
       </p>
       <div className="panel stack">
-        <label className="stack">
-          <span className="label">選擇圖片</span>
-          <input className="field" type="file" accept={IMAGE_ACCEPT} disabled={busy} onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
-        </label>
+        <FileDrop
+          accept={IMAGE_ACCEPT}
+          maxBytes={IMAGE_MAX_BYTES}
+          disabled={busy}
+          label="拖放圖片到此，或點擊選擇"
+          hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
         {error && <p className="field-error">{error}</p>}
         {busy && <p className="field-hint">讀取中…</p>}
         {info && <p className="field-hint">{info}</p>}

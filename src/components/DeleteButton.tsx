@@ -19,7 +19,7 @@ export function DeleteButton({
   const name = ariaLabel || label
   return (
     <button type={type} className={classes} aria-label={name} title={title ?? name} {...rest}>
-      <IconTrash size={15} strokeWidth={2.25} />
+      <IconTrash size={18} strokeWidth={2} />
     </button>
   )
 }

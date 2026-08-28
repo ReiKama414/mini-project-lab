@@ -38,13 +38,14 @@ export default function Page() {
   const [sheet, setSheet] = useState('')
   const [csv, setCsv] = useState('')
   const [info, setInfo] = useState('')
+  const [dims, setDims] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [workbook, setWorkbook] = useState<ExcelJS.Workbook | null>(null)
 
-  function sheetToCsv(wb: ExcelJS.Workbook, name: string) {
+  function sheetToCsv(wb: ExcelJS.Workbook, name: string): { csv: string; rows: number; cols: number } {
     const ws = wb.getWorksheet(name)
-    if (!ws) return ''
+    if (!ws) return { csv: '', rows: 0, cols: 0 }
     const rows: string[][] = []
     ws.eachRow({ includeEmpty: false }, (row) => {
       const cells: string[] = []
@@ -54,12 +55,17 @@ export default function Page() {
       })
       rows.push(cells)
     })
-    const width = Math.max(1, ...rows.map((r) => r.length))
-    return stringifyCsv(rows.map((r) => {
+    const width = rows.length ? Math.max(...rows.map((r) => r.length), 1) : 0
+    const normalized = rows.map((r) => {
       const copy = r.slice()
       while (copy.length < width) copy.push('')
       return copy
-    }))
+    })
+    return {
+      csv: stringifyCsv(normalized),
+      rows: normalized.length,
+      cols: width,
+    }
   }
 
   async function onFile(file: File | null) {
@@ -83,11 +89,19 @@ export default function Page() {
       const first = names[0] || ''
       setSheet(first)
       setInfo(`${file.name} · ${formatBytes(file.size)}`)
-      setCsv(first ? sheetToCsv(wb, first) : '')
+      if (first) {
+        const result = sheetToCsv(wb, first)
+        setCsv(result.csv)
+        setDims(`${result.rows} 列 × ${result.cols} 欄`)
+      } else {
+        setCsv('')
+        setDims('')
+      }
     } catch {
       setError('無法讀取 Excel（請確認為有效 .xlsx）')
       setWorkbook(null)
       setCsv('')
+      setDims('')
     } finally {
       setBusy(false)
     }
@@ -96,7 +110,9 @@ export default function Page() {
   function selectSheet(name: string) {
     setSheet(name)
     if (!workbook) return
-    setCsv(sheetToCsv(workbook, name))
+    const result = sheetToCsv(workbook, name)
+    setCsv(result.csv)
+    setDims(`${result.rows} 列 × ${result.cols} 欄`)
   }
 
   return (
@@ -115,6 +131,7 @@ export default function Page() {
         />
         {busy && <p className="field-hint">讀取中…</p>}
         {info && <p className="muted">{info}</p>}
+        {dims && <p className="field-hint">{dims}</p>}
         {sheets.length > 0 && (
           <label className="stack">
             <span className="label">工作表</span>

@@ -1,9 +1,11 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, copyText, isNonEmpty, limitText, uid } from '../../lib/utils'
+import { charCount, copyText, formatBytes, isNonEmpty, limitText, uid } from '../../lib/utils'
+import { IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 
 const meta = getProject('qr-scanner')!
 
@@ -232,6 +234,11 @@ export default function Page() {
       setStatus('')
       return
     }
+    if (file.size > IMAGE_MAX_BYTES) {
+      setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`)
+      setStatus('')
+      return
+    }
 
     setBusy(true)
     setError('')
@@ -377,19 +384,14 @@ export default function Page() {
             {barcodeFast ? '（BarcodeDetector 加速）' : '（jsQR）'}。也可手動貼上內容。
           </p>
 
-          <label className="stack">
-            <span className="label">上傳 QR 圖片</span>
-            <input
-              className="field"
-              type="file"
-              accept="image/*"
-              disabled={busy || cameraOn}
-              onChange={(e) => {
-                void onFile(e.target.files?.[0] || null)
-                e.target.value = ''
-              }}
-            />
-          </label>
+          <FileDrop
+            accept={IMAGE_ACCEPT}
+            maxBytes={IMAGE_MAX_BYTES}
+            disabled={busy || cameraOn}
+            label="拖放 QR 圖片到此，或點擊選擇"
+            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            onFiles={(files) => void onFile(files[0] ?? null)}
+          />
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {cameraSupported && !cameraOn && (

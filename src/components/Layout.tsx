@@ -97,14 +97,21 @@ export function Layout() {
               ReiKama414
             </a>
             {' · '}
-            Mini Project Lab · MIT License
+            Mini Project Lab ·{' '}
+            <a
+              href="https://github.com/ReiKama414/mini-project-lab/blob/main/LICENSE"
+              target="_blank"
+              rel="noreferrer"
+            >
+              MIT License
+            </a>
           </p>
           <a
             className="site-footer-github"
-            href="https://github.com/ReiKama414"
+            href="https://github.com/ReiKama414/mini-project-lab"
             target="_blank"
             rel="noreferrer"
-            aria-label="GitHub：ReiKama414"
+            aria-label="GitHub：mini-project-lab"
           >
             <IconGithub size={16} strokeWidth={2.25} />
             <span>GitHub</span>

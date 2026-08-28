@@ -57,7 +57,8 @@ export default function Page() {
         })
       }
       setOut(stringifyCsv(rows))
-      setStats(`列數 ${before} → ${rows.length}`)
+      const cols = rows[0]?.length ?? 0
+      setStats(`列數 ${before} → ${rows.length} · ${cols} 欄`)
       setError('')
       setCopied(false)
     } catch {

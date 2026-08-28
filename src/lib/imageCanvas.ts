@@ -91,5 +91,5 @@ export function clampByte(n: number) {
   return Math.max(0, Math.min(255, Math.round(n)))
 }
 
-export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
+export const IMAGE_ACCEPT = 'image/*,image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif'
 export const IMAGE_MAX_BYTES = 12 * 1024 * 1024

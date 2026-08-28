@@ -1,9 +1,10 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import { useEffect, useRef } from 'react'
+import { FileDrop } from '../../components/FileDrop'
+import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { downloadCanvas } from '../../lib/imageCanvas'
-import { charCount, clamp, limitText, parseNumber } from '../../lib/utils'
+import { downloadCanvas, loadImageFromFile, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { charCount, clamp, formatBytes, limitText, parseNumber } from '../../lib/utils'
 
 const fallback: ProjectMeta = {
   slug: 'favicon-generator',
@@ -17,11 +18,18 @@ const meta = getProject('favicon-generator') ?? fallback
 
 const PRESETS = [16, 32, 48, 64, 128, 256]
 
+type FitMode = 'cover' | 'contain'
+
 export default function Page() {
   const [text, setText] = useLocalStorage('lab:favicon-generator:text', 'M')
   const [bg, setBg] = useLocalStorage('lab:favicon-generator:bg', '#2a9d8f')
   const [fg, setFg] = useLocalStorage('lab:favicon-generator:fg', '#ffffff')
   const [size, setSize] = useLocalStorage('lab:favicon-generator:size', 64)
+  const [fit, setFit] = useLocalStorage<FitMode>('lab:favicon-generator:fit', 'cover')
+  const [showText, setShowText] = useLocalStorage('lab:favicon-generator:showText', true)
+  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [imgName, setImgName] = useState('')
+  const [error, setError] = useState('')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const s = clamp(size, 16, 256)
 
@@ -31,18 +39,54 @@ export default function Page() {
     c.width = s
     c.height = s
     const ctx = c.getContext('2d')!
+    ctx.clearRect(0, 0, s, s)
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, s, s)
-    ctx.fillStyle = fg
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.font = `bold ${Math.floor(s * 0.55)}px system-ui,sans-serif`
-    ctx.fillText((text || '?').slice(0, 2), s / 2, s / 2 + s * 0.03)
-  }, [text, bg, fg, s])
+
+    if (image) {
+      const iw = image.naturalWidth || image.width
+      const ih = image.naturalHeight || image.height
+      const scale =
+        fit === 'cover' ? Math.max(s / iw, s / ih) : Math.min(s / iw, s / ih)
+      const dw = iw * scale
+      const dh = ih * scale
+      const dx = (s - dw) / 2
+      const dy = (s - dh) / 2
+      ctx.drawImage(image, dx, dy, dw, dh)
+    }
+
+    if (showText || !image) {
+      ctx.fillStyle = fg
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.font = `bold ${Math.floor(s * 0.55)}px system-ui,sans-serif`
+      ctx.fillText((text || '?').slice(0, 2), s / 2, s / 2 + s * 0.03)
+    }
+  }, [text, bg, fg, s, image, fit, showText])
 
   function download() {
     if (!canvasRef.current) return
     downloadCanvas(canvasRef.current, `favicon-${s}.png`)
+  }
+
+  async function onImage(file: File | null) {
+    if (!file) return
+    setError('')
+    try {
+      const img = await loadImageFromFile(file)
+      setImage(img)
+      setImgName(file.name)
+    } catch {
+      setError('無法讀取圖片')
+      setImage(null)
+      setImgName('')
+    }
+  }
+
+  function clearImage() {
+    setImage(null)
+    setImgName('')
+    setError('')
   }
 
   return (
@@ -55,9 +99,44 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        僅產生單一尺寸 PNG，不含 .ico 多尺寸封裝。字型依裝置系統字體。
+        僅產生單一尺寸 PNG，不含 .ico 多尺寸封裝。可選上傳圖片當底圖；字型依裝置系統字體。圖片不上傳、不持久化。
       </p>
       <div className="panel stack">
+        <div className="stack">
+          <span className="label">選用圖片（可選）</span>
+          <FileDrop
+            accept={IMAGE_ACCEPT}
+            maxBytes={IMAGE_MAX_BYTES}
+            label="拖放圖片到此，或點擊選擇"
+            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            onFiles={(files) => void onImage(files[0] ?? null)}
+          />
+          {imgName && (
+            <div className="row" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+              <span className="field-hint">{imgName}</span>
+              <button type="button" className="btn sm ghost" onClick={clearImage}>
+                清除圖片
+              </button>
+            </div>
+          )}
+          {error && <p className="field-error">{error}</p>}
+        </div>
+        {image && (
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <label className="row" style={{ gap: 6 }}>
+              <input type="radio" checked={fit === 'cover'} onChange={() => setFit('cover')} />
+              填滿（cover）
+            </label>
+            <label className="row" style={{ gap: 6 }}>
+              <input type="radio" checked={fit === 'contain'} onChange={() => setFit('contain')} />
+              完整放入（contain）
+            </label>
+            <label className="row" style={{ gap: 6 }}>
+              <input type="checkbox" checked={showText} onChange={(e) => setShowText(e.target.checked)} />
+              疊加文字
+            </label>
+          </div>
+        )}
         <div className="grid-2">
           <label className="stack">
             <span className="label">文字（最多 2 字）</span>

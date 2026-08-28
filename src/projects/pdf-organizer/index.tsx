@@ -5,10 +5,15 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useEffect, useRef, useState } from 'react'
 import { formatBytes } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
+import {
+  PDF_ACCEPT,
+  PDF_MAX_BYTES,
+  PDF_MAX_PAGES,
+  type PdfThumbMap,
+  renderPdfPageThumbs,
+  revokePdfThumbs,
+} from '../../lib/pdf'
 import { PDFDocument } from 'pdf-lib'
-import * as pdfjs from 'pdfjs-dist'
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 const fallback: ProjectMeta = {
   slug: 'pdf-organizer',
@@ -19,21 +24,21 @@ const fallback: ProjectMeta = {
   tags: ['utility'],
 }
 const meta = getProject('pdf-organizer') ?? fallback
-const PDF_MAX = 25 * 1024 * 1024
-const MAX_PAGES = 80
 const THUMB_SCALE = 0.25
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null)
   const [order, setOrder] = useState<number[]>([])
-  const [thumbs, setThumbs] = useState<Record<number, string>>({})
+  const [thumbs, setThumbs] = useState<PdfThumbMap>({})
   const [pageCount, setPageCount] = useState(0)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [loadingThumbs, setLoadingThumbs] = useState(false)
+  const [dragOver, setDragOver] = useState<number | null>(null)
   const runId = useRef(0)
-  const thumbsRef = useRef<Record<number, string>>({})
+  const thumbsRef = useRef<PdfThumbMap>({})
+  const dragFrom = useRef<number | null>(null)
 
   useEffect(() => {
     thumbsRef.current = thumbs
@@ -42,49 +47,29 @@ export default function Page() {
   useEffect(() => {
     return () => {
       runId.current += 1
-      Object.values(thumbsRef.current).forEach((url) => URL.revokeObjectURL(url))
+      revokePdfThumbs(thumbsRef.current)
     }
   }, [])
 
   function clearThumbs() {
-    Object.values(thumbsRef.current).forEach((url) => URL.revokeObjectURL(url))
+    revokePdfThumbs(thumbsRef.current)
     setThumbs({})
   }
 
   async function loadThumbs(data: Uint8Array, n: number, id: number) {
     setLoadingThumbs(true)
     setProgress('')
-    const next: Record<number, string> = {}
     try {
-      const pdf = await pdfjs.getDocument({ data }).promise
-      if (id !== runId.current) return
-      for (let p = 1; p <= n; p++) {
-        if (id !== runId.current) {
-          Object.values(next).forEach((url) => URL.revokeObjectURL(url))
-          return
-        }
-        setProgress(`載入縮圖第 ${p}/${n} 頁`)
-        try {
-          const page = await pdf.getPage(p)
-          const viewport = page.getViewport({ scale: THUMB_SCALE })
-          const canvas = document.createElement('canvas')
-          canvas.width = viewport.width
-          canvas.height = viewport.height
-          const ctx = canvas.getContext('2d')
-          if (!ctx) continue
-          await page.render({ canvasContext: ctx, viewport }).promise
-          if (id !== runId.current) {
-            Object.values(next).forEach((url) => URL.revokeObjectURL(url))
-            return
-          }
-          const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'))
-          if (blob) next[p - 1] = URL.createObjectURL(blob)
-        } catch {
-          /* skip failed page thumb */
-        }
-      }
+      const next = await renderPdfPageThumbs(data, {
+        pageCount: n,
+        scale: THUMB_SCALE,
+        isCancelled: () => id !== runId.current,
+        onProgress: (p, total) => {
+          if (id === runId.current) setProgress(`載入縮圖第 ${p}/${total} 頁`)
+        },
+      })
       if (id !== runId.current) {
-        Object.values(next).forEach((url) => URL.revokeObjectURL(url))
+        revokePdfThumbs(next)
         return
       }
       clearThumbs()
@@ -105,8 +90,8 @@ export default function Page() {
       setError('請上傳 PDF 檔案')
       return
     }
-    if (f.size > PDF_MAX) {
-      setError(`檔案過大（上限 ${formatBytes(PDF_MAX)}）`)
+    if (f.size > PDF_MAX_BYTES) {
+      setError(`檔案過大（上限 ${formatBytes(PDF_MAX_BYTES)}）`)
       return
     }
     const id = ++runId.current
@@ -121,8 +106,8 @@ export default function Page() {
       const buf = await f.arrayBuffer()
       const doc = await PDFDocument.load(buf, { ignoreEncryption: true })
       const n = doc.getPageCount()
-      if (n > MAX_PAGES) {
-        setError(`頁數過多（上限 ${MAX_PAGES} 頁，目前 ${n} 頁）`)
+      if (n > PDF_MAX_PAGES) {
+        setError(`頁數過多（上限 ${PDF_MAX_PAGES} 頁，目前 ${n} 頁）`)
         return
       }
       if (n < 1) {
@@ -141,14 +126,19 @@ export default function Page() {
     }
   }
 
-  function move(i: number, dir: -1 | 1) {
+  function reorder(from: number, to: number) {
+    if (from === to || from < 0 || to < 0) return
     setOrder((prev) => {
+      if (from >= prev.length || to >= prev.length) return prev
       const next = [...prev]
-      const j = i + dir
-      if (j < 0 || j >= next.length) return prev
-      ;[next[i], next[j]] = [next[j]!, next[i]!]
+      const [item] = next.splice(from, 1)
+      next.splice(to, 0, item!)
       return next
     })
+  }
+
+  function move(i: number, dir: -1 | 1) {
+    reorder(i, i + dir)
   }
 
   function removeAt(i: number) {
@@ -196,14 +186,15 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機預覽縮圖後可上移／下移／刪除／反轉頁序。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁。
+        本機預覽縮圖後可拖曳／上移／下移／刪除／反轉頁序。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多{' '}
+        {PDF_MAX_PAGES} 頁。
       </p>
       <div className="panel stack">
         <FileDrop
-          accept="application/pdf"
-          maxBytes={PDF_MAX}
+          accept={PDF_ACCEPT}
+          maxBytes={PDF_MAX_BYTES}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
         {file && (
@@ -220,12 +211,38 @@ export default function Page() {
             <div
               key={`${pageIndex}-${i}`}
               className="row"
+              draggable={!busy}
+              onDragStart={() => {
+                dragFrom.current = i
+              }}
+              onDragEnd={() => {
+                dragFrom.current = null
+                setDragOver(null)
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOver(i)
+              }}
+              onDragLeave={() => {
+                setDragOver((cur) => (cur === i ? null : cur))
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                const from = dragFrom.current
+                setDragOver(null)
+                if (from == null) return
+                reorder(from, i)
+                dragFrom.current = null
+              }}
               style={{
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 gap: 12,
-                padding: '8px 0',
+                padding: '8px 4px',
                 borderBottom: '1px solid var(--line)',
+                borderRadius: 6,
+                border: dragOver === i ? '1px dashed var(--accent, #888)' : undefined,
+                cursor: busy ? 'default' : 'grab',
               }}
             >
               <div className="row" style={{ gap: 12, alignItems: 'center', minWidth: 0 }}>

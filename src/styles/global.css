@@ -793,6 +793,14 @@ input[type='file'].field {
   min-height: 2.35rem;
 }
 
+.row > .btn-del,
+.list-item > .btn-del {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
+
 .field:hover {
   border-color: color-mix(in srgb, var(--ink) 22%, var(--line));
 }
@@ -1080,9 +1088,11 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
 }
 
 .btn-del {
-  width: 2.1rem;
-  height: 2.1rem;
-  min-height: 2.1rem;
+  box-sizing: border-box;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
   padding: 0;
   border-radius: 10px;
   color: var(--ink-muted);
@@ -1097,6 +1107,8 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
 
 .btn-del svg {
   margin: 0;
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .btn-icon {
@@ -1631,6 +1643,300 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
   height: 100%;
   background: linear-gradient(90deg, var(--teal), var(--accent));
   border-radius: inherit;
+}
+
+/* —— BMI Calculator —— */
+.bmi-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.bmi-main {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 0.85rem;
+  align-items: stretch;
+}
+
+.bmi-bottom {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 0.85rem;
+  align-items: stretch;
+}
+
+.bmi-bottom > .panel {
+  margin: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bmi-panel {
+  margin: 0;
+}
+
+.bmi-panel-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.bmi-panel-result {
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
+    var(--bg-elevated, #fff);
+}
+
+.bmi-toolbar.compact {
+  margin-bottom: 0.15rem;
+}
+
+.bmi-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.bmi-fields-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bmi-field .field-hint {
+  margin-top: 0.25rem;
+}
+
+.bmi-result {
+  text-align: center;
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  padding: 0.15rem 0 0.5rem;
+}
+
+.bmi-result-num {
+  font-size: 3rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.bmi-ideal {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.bmi-scale-block {
+  padding: 0.65rem 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.bmi-indicator-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+.bmi-scale {
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.bmi-scale-track {
+  position: relative;
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: visible;
+  background: var(--bg-muted);
+}
+
+.bmi-scale-track > span {
+  display: block;
+  height: 100%;
+}
+
+.bmi-scale-track > span:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.bmi-scale-track > span:last-of-type {
+  border-radius: 0 999px 999px 0;
+}
+
+.bmi-scale-needle {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 16px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px #fff;
+  z-index: 2;
+}
+
+.bmi-scale-cutoff {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  background: var(--ink);
+  opacity: 0.55;
+  z-index: 1;
+}
+
+.bmi-scale-cutoff-label {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.bmi-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.bmi-legend i {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 2px;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+
+.bmi-risk-summary {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-muted) 65%, #fff);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.bmi-risk-summary p {
+  margin: 0;
+}
+
+.bmi-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.bmi-guide-card {
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  min-height: 0;
+}
+
+.bmi-guide-card h4 {
+  margin: 0 0 0.45rem;
+  font-size: 0.86rem;
+}
+
+.bmi-guide-card ul {
+  margin: 0;
+  padding-left: 1.05rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.bmi-guide-card li + li {
+  margin-top: 0.2rem;
+}
+
+.bmi-risk-disclaimer {
+  margin: 0.65rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.bmi-history-list {
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+  max-height: 16rem;
+  overflow: auto;
+}
+
+.bmi-history-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.bmi-history-actions > select.field {
+  width: auto;
+  min-width: 8.5rem;
+  min-height: 2.5rem;
+  height: 2.5rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.bmi-refs {
+  margin: 0;
+}
+
+.bmi-refs ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.bmi-refs a {
+  color: var(--accent);
+}
+
+.bmi-refs a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1100px) {
+  .bmi-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .bmi-main,
+  .bmi-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .bmi-fields,
+  .bmi-fields-3,
+  .bmi-guide-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* —— Pomodoro —— */
@@ -2839,6 +3145,7 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
   gap: 0.35rem;
   place-items: center;
   text-align: center;
+  min-height: 96px;
   padding: 1.25rem 1rem;
   border: 1.5px dashed var(--line);
   border-radius: 12px;
@@ -2877,5 +3184,68 @@ input[type="time"].field::-webkit-calendar-picker-indicator:hover {
 
 .file-drop-hint {
   font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.pdf-thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 0.65rem;
+  max-height: 22rem;
+  overflow: auto;
+  padding: 0.15rem;
+}
+
+.pdf-thumb-card {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  padding: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-elevated, #fff);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  appearance: none;
+  cursor: default;
+}
+
+.pdf-thumb-card.is-clickable {
+  cursor: pointer;
+}
+
+.pdf-thumb-card.is-clickable:hover {
+  border-color: var(--accent);
+}
+
+.pdf-thumb-card.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+  background: color-mix(in srgb, var(--accent-soft, #e8f5f0) 50%, #fff);
+}
+
+.pdf-thumb-img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #f4f4f4;
+  border: 1px solid var(--line);
+}
+
+.pdf-thumb-placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px dashed var(--line);
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.pdf-thumb-label {
+  font-size: 0.72rem;
   color: var(--ink-muted);
 }

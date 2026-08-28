@@ -1,7 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { FileDrop } from '../../components/FileDrop'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
@@ -18,12 +18,32 @@ const fallback: ProjectMeta = {
 const meta = getProject('images-to-pdf') ?? fallback
 const MAX_FILES = 30
 
+function revokeAll(urls: string[]) {
+  for (const u of urls) {
+    if (u) URL.revokeObjectURL(u)
+  }
+}
+
 export default function Page() {
   const [files, setFiles] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
   const [margin, setMargin] = useLocalStorage('lab:images-to-pdf:margin', 24)
+  const [dragOver, setDragOver] = useState<number | null>(null)
+  const previewsRef = useRef<string[]>([])
+  const dragFrom = useRef<number | null>(null)
+
+  useEffect(() => {
+    previewsRef.current = previews
+  }, [previews])
+
+  useEffect(() => {
+    return () => {
+      revokeAll(previewsRef.current)
+    }
+  }, [])
 
   function onFiles(list: File[] | FileList | null) {
     if (!list) return
@@ -35,6 +55,8 @@ export default function Page() {
       }
     }
     setError('')
+    revokeAll(previewsRef.current)
+    setPreviews(arr.map((f) => URL.createObjectURL(f)))
     setFiles(arr)
   }
 
@@ -65,14 +87,26 @@ export default function Page() {
     return doc.embedJpg(bytes)
   }
 
-  function move(i: number, dir: -1 | 1) {
+  function reorder(from: number, to: number) {
+    if (from === to || from < 0 || to < 0) return
     setFiles((prev) => {
+      if (from >= prev.length || to >= prev.length) return prev
       const next = [...prev]
-      const j = i + dir
-      if (j < 0 || j >= next.length) return prev
-      ;[next[i], next[j]] = [next[j]!, next[i]!]
+      const [item] = next.splice(from, 1)
+      next.splice(to, 0, item!)
       return next
     })
+    setPreviews((prev) => {
+      if (from >= prev.length || to >= prev.length) return prev
+      const next = [...prev]
+      const [item] = next.splice(from, 1)
+      next.splice(to, 0, item ?? '')
+      return next
+    })
+  }
+
+  function move(i: number, dir: -1 | 1) {
+    reorder(i, i + dir)
   }
 
   async function run() {
@@ -110,7 +144,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        支援 JPG／PNG；WebP／GIF 會先轉成 PNG 再嵌入。最多 {MAX_FILES} 張，單張上限 {formatBytes(IMAGE_MAX_BYTES)}。
+        支援 JPG／PNG；WebP／GIF 會先轉成 PNG 再嵌入。最多 {MAX_FILES} 張，單張上限 {formatBytes(IMAGE_MAX_BYTES)}。可拖曳列表調整順序。
       </p>
       <div className="panel stack">
         <FileDrop
@@ -121,7 +155,7 @@ export default function Page() {
           disabled={busy}
           label="拖放圖片到此，或點擊選擇（可多選）"
           hint={`單張上限 ${formatBytes(IMAGE_MAX_BYTES)} · 最多 ${MAX_FILES} 張`}
-          onFiles={(files) => onFiles(files)}
+          onFiles={(picked) => onFiles(picked)}
         />
         {files.length > 0 && (
           <p className="muted" style={{ margin: 0 }}>
@@ -143,10 +177,74 @@ export default function Page() {
         </label>
         <div className="stack" style={{ gap: 8 }}>
           {files.map((f, i) => (
-            <div key={f.name + f.size + i} className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13 }}>
-                {i + 1}. {f.name} · {formatBytes(f.size)}
-              </span>
+            <div
+              key={`${f.name}-${f.size}-${f.lastModified}-${i}`}
+              className="row"
+              draggable={!busy}
+              onDragStart={() => {
+                dragFrom.current = i
+              }}
+              onDragEnd={() => {
+                dragFrom.current = null
+                setDragOver(null)
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOver(i)
+              }}
+              onDragLeave={() => {
+                setDragOver((cur) => (cur === i ? null : cur))
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                const from = dragFrom.current
+                setDragOver(null)
+                if (from == null) return
+                reorder(from, i)
+                dragFrom.current = null
+              }}
+              style={{
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+                alignItems: 'center',
+                padding: '6px 4px',
+                borderRadius: 8,
+                border: dragOver === i ? '1px dashed var(--accent, #888)' : '1px solid transparent',
+                cursor: busy ? 'default' : 'grab',
+                opacity: busy ? 0.7 : 1,
+              }}
+            >
+              <div className="row" style={{ gap: 10, alignItems: 'center', minWidth: 0 }}>
+                {previews[i] ? (
+                  <img
+                    src={previews[i]}
+                    alt={f.name}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      objectFit: 'cover',
+                      border: '1px solid var(--line)',
+                      borderRadius: 4,
+                      background: '#fff',
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      border: '1px dashed var(--line)',
+                      borderRadius: 4,
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                <span style={{ fontSize: 13 }}>
+                  {i + 1}. {f.name} · {formatBytes(f.size)}
+                </span>
+              </div>
               <div className="row">
                 <button type="button" className="btn sm ghost" disabled={busy || i === 0} onClick={() => move(i, -1)}>
                   上移

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText, downloadText, formatBytes } from '../../lib/utils'
@@ -232,15 +233,15 @@ export default function Page() {
             下載 .bin
           </button>
         </div>
-        <label className="stack">
+        <div className="stack">
           <span className="label">檔案上傳 → Base64</span>
-          <input className="field" type="file" onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
+          <FileDrop label="拖放檔案到此，或點擊選擇" onFiles={(files) => void onFile(files[0] ?? null)} />
           {fileInfo && (
             <p className="muted" style={{ fontSize: 12 }}>
               {fileInfo}
             </p>
           )}
-        </label>
+        </div>
         <label className="stack">
           <span className="label">Base64</span>
           <textarea

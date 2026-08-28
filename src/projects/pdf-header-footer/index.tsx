@@ -1,12 +1,14 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { FileDrop } from '../../components/FileDrop'
+import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes, limitText, charCount } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
 import { PDFDocument } from 'pdf-lib'
 import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES, assertPdfFile, textToPngBytes } from '../../lib/pdf'
+import { usePdfThumbs } from '../../lib/usePdfThumbs'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-header-footer',
@@ -28,6 +30,7 @@ export default function Page() {
   const [header, setHeader] = useLocalStorage('lab:pdf-hf:header', '文件')
   const [footer, setFooter] = useLocalStorage('lab:pdf-hf:footer', '機密')
   const [size, setSize] = useLocalStorage('lab:pdf-hf:size', 12)
+  const { thumbs, loading: thumbsLoading, progress: thumbsProgress } = usePdfThumbs(file, pageCount)
 
   async function onFile(f: File | null) {
     if (!f) return
@@ -138,10 +141,17 @@ export default function Page() {
         {file && (
           <p className="muted" style={{ margin: 0 }}>
             {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
+            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
             {busy && progress ? ` · ${progress}` : ''}
           </p>
         )}
         {error && <p className="field-error">{error}</p>}
+        {file && pageCount > 0 && (
+          <>
+            {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
+            <PdfThumbGrid pageCount={pageCount} thumbs={thumbs} loading={thumbsLoading} mode="view" />
+          </>
+        )}
         <div className="field-wrap">
           <label className="label">頁首</label>
           <input

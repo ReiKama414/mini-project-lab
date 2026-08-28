@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { dump as yamlDump } from 'js-yaml'
@@ -66,32 +67,31 @@ export default function Page() {
             </span>
           </div>
         </label>
-        <label className="stack">
+        <div className="stack">
           <span className="label">上傳 JSON</span>
-          <input
-            className="field"
-            type="file"
+          <FileDrop
             accept=".json,application/json"
+            maxBytes={FILE_MAX}
             disabled={busy}
-            onChange={async (e) => {
-              const f = e.target.files?.[0]
-              if (!f) return
-              if (f.size > FILE_MAX) {
-                setError(`檔案過大（上限 ${formatBytes(FILE_MAX)}）`)
-                return
-              }
-              setBusy(true)
-              try {
-                setInput(limitText(await f.text(), MAX))
-                setError('')
-              } catch {
-                setError('讀取失敗')
-              } finally {
-                setBusy(false)
-              }
+            label="拖放檔案到此，或點擊選擇"
+            hint={`上限 ${formatBytes(FILE_MAX)}`}
+            onFiles={(files) => {
+              void (async () => {
+                const f = files[0]
+                if (!f) return
+                setBusy(true)
+                try {
+                  setInput(limitText(await f.text(), MAX))
+                  setError('')
+                } catch {
+                  setError('讀取失敗')
+                } finally {
+                  setBusy(false)
+                }
+              })()
             }}
           />
-        </label>
+        </div>
         <div className="row">
           <button type="button" className="btn accent" onClick={convert} disabled={!isNonEmpty(input) || busy}>
             轉成 YAML

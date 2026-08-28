@@ -1,23 +1,24 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { FileDrop } from '../../components/FileDrop'
+import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useState } from 'react'
 import { clamp, formatBytes, limitText } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
+import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES } from '../../lib/pdf'
+import { usePdfThumbs } from '../../lib/usePdfThumbs'
 import { PDFDocument } from 'pdf-lib'
 import JSZip from 'jszip'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-split',
   title: 'PDF 分割',
-  description: '依頁碼範圍或逐頁分割 PDF。',
+  description: '依頁碼範圍或逐頁分割 PDF（縮圖預覽）。',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
 }
 const meta = getProject('pdf-split') ?? fallback
-const PDF_MAX = 25 * 1024 * 1024
-const MAX_PAGES = 80
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null)
@@ -27,6 +28,7 @@ export default function Page() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
+  const { thumbs, loading: thumbsLoading, progress: thumbsProgress } = usePdfThumbs(file, pageCount)
 
   async function onFile(f: File | null) {
     if (!f) return
@@ -34,8 +36,8 @@ export default function Page() {
       setError('請上傳 PDF 檔案')
       return
     }
-    if (f.size > PDF_MAX) {
-      setError(`檔案過大（上限 ${formatBytes(PDF_MAX)}）`)
+    if (f.size > PDF_MAX_BYTES) {
+      setError(`檔案過大（上限 ${formatBytes(PDF_MAX_BYTES)}）`)
       return
     }
     setBusy(true)
@@ -44,8 +46,8 @@ export default function Page() {
     try {
       const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true })
       const n = doc.getPageCount()
-      if (n > MAX_PAGES) {
-        setError(`頁數過多（上限 ${MAX_PAGES} 頁，目前 ${n} 頁）`)
+      if (n > PDF_MAX_PAGES) {
+        setError(`頁數過多（上限 ${PDF_MAX_PAGES} 頁，目前 ${n} 頁）`)
         setFile(null)
         setPageCount(0)
         return
@@ -81,6 +83,16 @@ export default function Page() {
     return groups
   }
 
+  function appendPageToRange(pageIndex: number) {
+    if (mode !== 'range' || busy) return
+    const n = pageIndex + 1
+    setRange((prev) => {
+      const t = prev.trim()
+      if (!t) return String(n)
+      return limitText(`${t},${n}`, 200)
+    })
+  }
+
   async function run() {
     if (!file) return
     setBusy(true)
@@ -89,8 +101,8 @@ export default function Page() {
     try {
       const src = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true })
       const n = src.getPageCount()
-      if (n > MAX_PAGES) {
-        setError(`頁數過多（上限 ${MAX_PAGES} 頁，目前 ${n} 頁）`)
+      if (n > PDF_MAX_PAGES) {
+        setError(`頁數過多（上限 ${PDF_MAX_PAGES} 頁，目前 ${n} 頁）`)
         return
       }
       if (mode === 'each') {
@@ -147,20 +159,22 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機分割 PDF，支援範圍與逐頁 ZIP。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁。
+        本機分割 PDF，支援範圍與逐頁 ZIP。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES}{' '}
+        頁。點擊縮圖可將頁碼加入範圍。
       </p>
       <div className="panel stack">
         <FileDrop
-          accept="application/pdf"
-          maxBytes={PDF_MAX}
+          accept={PDF_ACCEPT}
+          maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
         {file && (
           <p className="muted" style={{ margin: 0 }}>
             {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
+            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
             {busy && progress ? ` · ${progress}` : ''}
           </p>
         )}
@@ -185,7 +199,7 @@ export default function Page() {
         </div>
         {mode === 'range' && (
           <label className="stack">
-            <span className="label">頁碼（例：1-3,5）</span>
+            <span className="label">頁碼（例：1-3,5；點縮圖可加入）</span>
             <input
               className="field"
               value={range}
@@ -194,6 +208,18 @@ export default function Page() {
               onChange={(e) => setRange(limitText(e.target.value, 200))}
             />
           </label>
+        )}
+        {file && pageCount > 0 && (
+          <>
+            {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
+            <PdfThumbGrid
+              pageCount={pageCount}
+              thumbs={thumbs}
+              loading={thumbsLoading}
+              mode={mode === 'range' ? 'select' : 'view'}
+              onToggle={mode === 'range' ? appendPageToRange : undefined}
+            />
+          </>
         )}
         <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
           {busy ? progress || '處理中…' : '分割並下載'}

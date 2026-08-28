@@ -28,6 +28,7 @@ export default function Page() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [dims, setDims] = useState('')
 
   function convert() {
     if (!isNonEmpty(input)) {
@@ -47,11 +48,13 @@ export default function Page() {
         return o
       })
       setOut(JSON.stringify(data, null, pretty ? 2 : 0))
+      setDims(`${rows.length} 列 × ${headers.length} 欄 · ${data.length} 筆物件`)
       setError('')
       setCopied(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : '轉換失敗')
       setOut('')
+      setDims('')
     }
   }
 
@@ -133,6 +136,7 @@ export default function Page() {
           </button>
         </div>
         {error && <p className="field-error">{error}</p>}
+        {dims && <p className="field-hint">{dims}</p>}
         {out && (
           <pre className="metric mono" style={{ whiteSpace: 'pre-wrap', maxHeight: 360, overflow: 'auto' }}>
             {out}

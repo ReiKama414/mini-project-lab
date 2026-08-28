@@ -26,6 +26,7 @@ export default function Page() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [dims, setDims] = useState('')
 
   function convert() {
     if (!isNonEmpty(input)) {
@@ -36,11 +37,13 @@ export default function Page() {
       const rows = parseCsv(input, fromDelim || ',')
       const cleaned = rows.map((r) => r.map((c) => c.replace(/\t/g, ' ').replace(/\r?\n/g, ' ')))
       setOut(stringifyCsv(cleaned, '\t'))
+      setDims(`${cleaned.length} 列 × ${cleaned[0]?.length ?? 0} 欄`)
       setError('')
       setCopied(false)
     } catch {
       setError('轉換失敗')
       setOut('')
+      setDims('')
     }
   }
 
@@ -127,6 +130,7 @@ export default function Page() {
           </button>
         </div>
         {error && <p className="field-error">{error}</p>}
+        {dims && <p className="field-hint">{dims}</p>}
         {out && (
           <pre className="metric mono" style={{ whiteSpace: 'pre-wrap', maxHeight: 320, overflow: 'auto' }}>
             {out}

@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useEffect, useState } from 'react'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
@@ -116,10 +117,16 @@ export default function Page() {
             下載
           </button>
         </div>
-        <label className="stack">
-          <span className="label">或選擇檔案（上限 {formatBytes(FILE_MAX)}）</span>
-          <input className="field" type="file" disabled={busy} onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
-        </label>
+        <div className="stack">
+          <span className="label">或選擇檔案</span>
+          <FileDrop
+            maxBytes={FILE_MAX}
+            disabled={busy}
+            label="拖放檔案到此，或點擊選擇"
+            hint={`上限 ${formatBytes(FILE_MAX)}`}
+            onFiles={(files) => void onFile(files[0] ?? null)}
+          />
+        </div>
         {busy && <p className="field-hint">計算中，大檔案請稍候…</p>}
         {error && <p className="field-error">{error}</p>}
         {info && !busy && <p className="field-hint">{info}</p>}

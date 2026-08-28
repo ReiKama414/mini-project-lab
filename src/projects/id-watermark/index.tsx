@@ -206,7 +206,7 @@ export default function Page() {
           <FileDrop
             accept={ACCEPT}
             maxBytes={FILE_MAX_BYTES}
-            label="拖放證件照片到此，或點擊選擇"
+            label="拖放證件圖片到此，或點擊選擇"
             hint={`上限 ${formatBytes(FILE_MAX_BYTES)}`}
             onFiles={(files) => onFile(files[0] ?? null)}
           />

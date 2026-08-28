@@ -1,8 +1,10 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, clamp, limitText, parseNumber, uid } from '../../lib/utils'
+import { loadImageFromFile, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { charCount, clamp, formatBytes, limitText, parseNumber, uid } from '../../lib/utils'
 import { IconMaximize, IconMinimize } from '../../components/icons'
 
 const meta = getProject('whiteboard')!
@@ -39,6 +41,7 @@ export default function Page() {
   const [strokeCount, setStrokeCount] = useState(0)
   const [snapFilter, setSnapFilter] = useState('')
   const [fullscreen, setFullscreen] = useState(false)
+  const [bgError, setBgError] = useState('')
   const bg = '#fffdf8'
 
   const fitCanvas = useCallback(async (w: number, h: number) => {
@@ -238,6 +241,32 @@ export default function Page() {
     img.src = s.dataUrl
   }
 
+  async function importBackground(file: File | null) {
+    if (!file) return
+    const c = canvasRef.current
+    const ctx = c?.getContext('2d')
+    if (!c || !ctx) return
+    setBgError('')
+    try {
+      const img = await loadImageFromFile(file)
+      const w = c.getBoundingClientRect().width
+      const h = c.getBoundingClientRect().height
+      const iw = img.naturalWidth || img.width
+      const ih = img.naturalHeight || img.height
+      const scale = Math.min(w / iw, h / ih)
+      const dw = iw * scale
+      const dh = ih * scale
+      const dx = (w - dw) / 2
+      const dy = (h - dh) / 2
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, w, h)
+      ctx.drawImage(img, dx, dy, dw, dh)
+      pushHistory()
+    } catch {
+      setBgError('無法讀取背景圖')
+    }
+  }
+
   function drawTemplate(kind: 'grid' | 'dot' | 'lines') {
     const c = canvasRef.current
     const ctx = c?.getContext('2d')
@@ -415,6 +444,18 @@ export default function Page() {
           onTouchMove={move}
           onTouchEnd={end}
         />
+
+        <div className="stack" style={{ marginTop: 12, maxWidth: 420 }}>
+          <span className="label">匯入背景圖</span>
+          <FileDrop
+            accept={IMAGE_ACCEPT}
+            maxBytes={IMAGE_MAX_BYTES}
+            label="拖放背景圖片到此，或點擊選擇"
+            hint={`以 contain 繪入 · 上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            onFiles={(files) => void importBackground(files[0] ?? null)}
+          />
+          {bgError && <p className="field-error">{bgError}</p>}
+        </div>
       </div>
 
       <div className="panel stack" style={{ marginTop: 12 }}>

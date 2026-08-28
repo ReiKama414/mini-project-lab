@@ -1,9 +1,11 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { FileDrop } from '../../components/FileDrop'
 import { useLocalStorage } from '../../lib/storage'
-import { copyText, downloadText, uid, charCount, isValidHttpUrl, limitText } from '../../lib/utils'
+import { copyText, downloadText, uid, charCount, isValidHttpUrl, limitText, formatBytes } from '../../lib/utils'
 import { escapeHtml } from '../../lib/sanitize'
+import { IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 
 const meta = getProject('link-in-bio')!
 
@@ -113,6 +115,7 @@ ${links
 
   function onUpload(file: File | null) {
     if (!file) return
+    if (file.size > IMAGE_MAX_BYTES) return
     const reader = new FileReader()
     reader.onload = () => {
       setAvatarUpload(String(reader.result || ''))
@@ -193,7 +196,13 @@ ${links
             <input className="field" type="color" value={avatarColor} onChange={(e) => setAvatarColor(e.target.value)} />
           )}
           {avatarMode === 'upload' && (
-            <input className="field" type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0] ?? null)} />
+            <FileDrop
+              accept={IMAGE_ACCEPT}
+              maxBytes={IMAGE_MAX_BYTES}
+              label="拖放頭像圖片到此，或點擊選擇"
+              hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+              onFiles={(files) => onUpload(files[0] ?? null)}
+            />
           )}
 
           <label className="label">主題色</label>

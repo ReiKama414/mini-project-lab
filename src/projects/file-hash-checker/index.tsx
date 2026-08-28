@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useEffect, useState } from 'react'
 import { copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
@@ -80,10 +81,16 @@ export default function Page() {
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
           以 Web Crypto 本機計算 SHA-256，檔案不上傳。預期雜湊只留在記憶體。大檔案會顯示忙碌狀態。
         </p>
-        <label className="stack">
-          <span className="label">選擇檔案（上限 {formatBytes(FILE_MAX)}）</span>
-          <input className="field" type="file" disabled={busy} onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
-        </label>
+        <div className="stack">
+          <span className="label">選擇檔案</span>
+          <FileDrop
+            maxBytes={FILE_MAX}
+            disabled={busy}
+            label="拖放檔案到此，或點擊選擇"
+            hint={`上限 ${formatBytes(FILE_MAX)}`}
+            onFiles={(files) => void onFile(files[0] ?? null)}
+          />
+        </div>
         <label className="stack">
           <span className="label">預期 SHA-256（選填）</span>
           <input

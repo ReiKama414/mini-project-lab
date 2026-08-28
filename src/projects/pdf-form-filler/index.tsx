@@ -127,7 +127,8 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        支援 AcroForm 文字欄位；匯出時會攤平表單。單檔上限 {formatBytes(PDF_MAX)}。
+        僅支援標準 AcroForm 可填表單（文字／下拉等）；不支援 XFA 或純掃描影像表單。匯出時會攤平欄位。單檔上限{' '}
+        {formatBytes(PDF_MAX)}。
       </p>
       <div className="panel stack">
         <FileDrop

@@ -123,4 +123,91 @@ export async function watermarkTilePngBytes(
   return new Uint8Array(await blob.arrayBuffer())
 }
 
+/** 0-based page index → object URL */
+export type PdfThumbMap = Record<number, string>
+
+export function revokePdfThumbs(thumbs: PdfThumbMap) {
+  for (const url of Object.values(thumbs)) URL.revokeObjectURL(url)
+}
+
+/** Render page thumbnails with pdf.js. Caller must revoke URLs when done. */
+export async function renderPdfPageThumbs(
+  data: Uint8Array,
+  opts: {
+    pageCount: number
+    scale?: number
+    isCancelled?: () => boolean
+    onProgress?: (page: number, total: number) => void
+  },
+): Promise<PdfThumbMap> {
+  setupPdfJsWorker()
+  const pdf = await pdfjs.getDocument({ data }).promise
+  const next: PdfThumbMap = {}
+  const n = Math.min(opts.pageCount, pdf.numPages)
+  const scale = opts.scale ?? 0.22
+  try {
+    for (let p = 1; p <= n; p++) {
+      if (opts.isCancelled?.()) {
+        revokePdfThumbs(next)
+        return {}
+      }
+      opts.onProgress?.(p, n)
+      try {
+        const page = await pdf.getPage(p)
+        const viewport = page.getViewport({ scale })
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.floor(viewport.width))
+        canvas.height = Math.max(1, Math.floor(viewport.height))
+        const ctx = canvas.getContext('2d')
+        if (!ctx) continue
+        await page.render({ canvasContext: ctx, viewport }).promise
+        if (opts.isCancelled?.()) {
+          revokePdfThumbs(next)
+          return {}
+        }
+        const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'))
+        if (blob) next[p - 1] = URL.createObjectURL(blob)
+      } catch {
+        /* skip failed page */
+      }
+    }
+  } finally {
+    await pdf.destroy().catch(() => undefined)
+  }
+  return next
+}
+
+/** First-page thumb for each file (merge preview). */
+export async function renderPdfFirstPageThumbs(
+  files: File[],
+  opts: { scale?: number; isCancelled?: () => boolean } = {},
+): Promise<string[]> {
+  const out: string[] = []
+  for (const file of files) {
+    if (opts.isCancelled?.()) {
+      out.forEach((u) => {
+        if (u) URL.revokeObjectURL(u)
+      })
+      return []
+    }
+    try {
+      assertPdfFile(file)
+      const data = new Uint8Array(await file.arrayBuffer())
+      const map = await renderPdfPageThumbs(data, {
+        pageCount: 1,
+        scale: opts.scale ?? 0.2,
+        isCancelled: opts.isCancelled,
+      })
+      const url = map[0] ?? ''
+      for (const [k, v] of Object.entries(map)) {
+        if (Number(k) !== 0 && v) URL.revokeObjectURL(v)
+      }
+      out.push(url)
+    } catch {
+      out.push('')
+    }
+  }
+  return out
+}
+
 export { pdfjs }

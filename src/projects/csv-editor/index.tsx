@@ -23,6 +23,8 @@ const FILE_MAX = 5 * 1024 * 1024
 const ROW_MAX = 500
 const COL_MAX = 40
 
+type PreviewLimit = 100 | 500 | 'all'
+
 export default function Page() {
   const [raw, setRaw] = useLocalStorage('lab:csv-editor:raw', 'name,score\nAda,90\n"Lin, Jr.",88')
   const [rows, setRows] = useState<string[][]>(() => {
@@ -32,11 +34,15 @@ export default function Page() {
       return [['name', 'score']]
     }
   })
+  const [previewLimit, setPreviewLimit] = useLocalStorage<PreviewLimit>('lab:csv-editor:preview', 100)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [fileName, setFileName] = useState('edited.csv')
 
   const csv = useMemo(() => stringifyCsv(rows), [rows])
+  const visibleRows =
+    previewLimit === 'all' ? rows : rows.slice(0, previewLimit)
+  const truncated = previewLimit !== 'all' && rows.length > previewLimit
 
   useEffect(() => {
     setRaw(limitText(csv, MAX))
@@ -118,7 +124,8 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          支援引號、逗號與換行欄位（RFC4180）。編輯表格會同步更新匯出內容。
+          支援引號、逗號與換行欄位（RFC4180）。編輯表格會同步更新匯出內容。載入上限 {ROW_MAX} 列 × {COL_MAX}{' '}
+          欄；預覽可限制顯示列數以免卡頓。
         </p>
         <FileDrop
           accept=".csv,text/csv,text/plain"
@@ -141,6 +148,22 @@ export default function Page() {
               {charCount(raw).toLocaleString()} / {MAX.toLocaleString()}
             </span>
           </div>
+        </label>
+        <label className="stack">
+          <span className="label">預覽列數</span>
+          <select
+            className="field"
+            style={{ width: 200 }}
+            value={String(previewLimit)}
+            onChange={(e) => {
+              const v = e.target.value
+              setPreviewLimit(v === 'all' ? 'all' : (Number(v) as 100 | 500))
+            }}
+          >
+            <option value="100">前 100 列</option>
+            <option value="500">前 500 列</option>
+            <option value="all">全部（可能卡頓）</option>
+          </select>
         </label>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <button type="button" className="btn accent" onClick={() => loadFromText(raw)}>
@@ -167,11 +190,12 @@ export default function Page() {
         {error && <p className="field-error">{error}</p>}
         <p className="field-hint">
           {rows.length} 列 × {rows[0]?.length ?? 0} 欄
+          {truncated && ` · 僅顯示前 ${previewLimit} 列供編輯`}
         </p>
         <div style={{ overflow: 'auto', maxHeight: 420 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
-              {rows.map((r, ri) => (
+              {visibleRows.map((r, ri) => (
                 <tr key={ri}>
                   {r.map((c, ci) => (
                     <td key={ci} style={{ border: '1px solid var(--border)', padding: 4 }}>
@@ -194,6 +218,11 @@ export default function Page() {
             </tbody>
           </table>
         </div>
+        {truncated && (
+          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+            為避免卡頓，目前僅顯示前 {previewLimit} 列（共 {rows.length} 列仍保留於匯出）。切換為「全部」可編輯其餘列。
+          </p>
+        )}
       </div>
     </ProjectShell>
   )

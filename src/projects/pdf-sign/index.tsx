@@ -1,10 +1,13 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { FileDrop } from '../../components/FileDrop'
+import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes, limitText, charCount, isNonEmpty } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
+import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES } from '../../lib/pdf'
+import { usePdfThumbs } from '../../lib/usePdfThumbs'
 import { PDFDocument, rgb } from 'pdf-lib'
 
 const fallback: ProjectMeta = {
@@ -16,7 +19,6 @@ const fallback: ProjectMeta = {
   tags: ['utility'],
 }
 const meta = getProject('pdf-sign') ?? fallback
-const PDF_MAX = 25 * 1024 * 1024
 const NAME_MAX = 60
 
 function isPadBlank(canvas: HTMLCanvasElement) {
@@ -53,6 +55,7 @@ export default function Page() {
   const [name, setName] = useLocalStorage('lab:pdf-sign:name', '')
   const [pageNum, setPageNum] = useLocalStorage('lab:pdf-sign:page', 1)
   const [pageCount, setPageCount] = useState(0)
+  const { thumbs, loading: thumbsLoading, progress: thumbsProgress } = usePdfThumbs(file, pageCount)
 
   function clearPad() {
     const c = padRef.current
@@ -113,8 +116,8 @@ export default function Page() {
       setError('請上傳 PDF 檔案')
       return
     }
-    if (f.size > PDF_MAX) {
-      setError(`檔案過大（上限 ${formatBytes(PDF_MAX)}）`)
+    if (f.size > PDF_MAX_BYTES) {
+      setError(`檔案過大（上限 ${formatBytes(PDF_MAX_BYTES)}）`)
       return
     }
     setBusy(true)
@@ -122,6 +125,12 @@ export default function Page() {
     try {
       const doc = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true })
       const count = doc.getPageCount()
+      if (count > PDF_MAX_PAGES) {
+        setError(`頁數過多（上限 ${PDF_MAX_PAGES} 頁，目前 ${count} 頁）`)
+        setFile(null)
+        setPageCount(0)
+        return
+      }
       setPageCount(count)
       setPageNum(count)
       setFile(f)
@@ -181,13 +190,18 @@ export default function Page() {
         color: rgb(0.6, 0.6, 0.6),
       })
 
-      downloadBlob(new Blob([Uint8Array.from(await doc.save())], { type: 'application/pdf' }), `${file.name.replace(/\.pdf$/i, '')}-signed.pdf`)
+      downloadBlob(
+        new Blob([Uint8Array.from(await doc.save())], { type: 'application/pdf' }),
+        `${file.name.replace(/\.pdf$/i, '')}-signed.pdf`,
+      )
     } catch {
       setError('簽名失敗')
     } finally {
       setBusy(false)
     }
   }
+
+  const selectedPage = new Set([clamp(pageNum, 1, Math.max(1, pageCount)) - 1])
 
   return (
     <ProjectShell
@@ -200,20 +214,21 @@ export default function Page() {
     >
       <p className="muted" style={{ marginBottom: 12 }}>
         手寫簽名以影像嵌入；姓名以中文字型畫成圖片後嵌入（避免 Helvetica 無法顯示中文）。單檔上限{' '}
-        {formatBytes(PDF_MAX)}；空白簽名板不會寫入。
+        {formatBytes(PDF_MAX_BYTES)}；空白簽名板不會寫入。點擊縮圖可選擇簽署頁。
       </p>
       <div className="panel stack">
         <FileDrop
-          accept="application/pdf"
-          maxBytes={PDF_MAX}
+          accept={PDF_ACCEPT}
+          maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
         {file && (
           <p className="muted" style={{ margin: 0 }}>
             {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
+            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
           </p>
         )}
         {error && <p className="field-error">{error}</p>}
@@ -228,9 +243,26 @@ export default function Page() {
             onChange={(e) => setPageNum(clamp(Number(e.target.value) || 1, 1, Math.max(1, pageCount)))}
           />
         </label>
+        {file && pageCount > 0 && (
+          <>
+            {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
+            <PdfThumbGrid
+              pageCount={pageCount}
+              thumbs={thumbs}
+              loading={thumbsLoading}
+              selected={selectedPage}
+              onToggle={(i) => setPageNum(i + 1)}
+            />
+          </>
+        )}
         <div className="field-wrap">
           <label className="label">簽署人姓名</label>
-          <input className="field" value={name} maxLength={NAME_MAX} onChange={(e) => setName(limitText(e.target.value, NAME_MAX))} />
+          <input
+            className="field"
+            value={name}
+            maxLength={NAME_MAX}
+            onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+          />
           <div className="field-meta">
             <span> </span>
             <span>

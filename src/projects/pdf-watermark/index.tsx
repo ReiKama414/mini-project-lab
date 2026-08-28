@@ -1,6 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { FileDrop } from '../../components/FileDrop'
+import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes, limitText, charCount, isNonEmpty } from '../../lib/utils'
@@ -13,6 +14,7 @@ import {
   assertPdfFile,
   watermarkTilePngBytes,
 } from '../../lib/pdf'
+import { usePdfThumbs } from '../../lib/usePdfThumbs'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-watermark',
@@ -36,6 +38,7 @@ export default function Page() {
   const [size, setSize] = useLocalStorage('lab:pdf-watermark:size', 48)
   const [angle, setAngle] = useLocalStorage('lab:pdf-watermark:angle', -30)
   const [color, setColor] = useLocalStorage('lab:pdf-watermark:color', '#333333')
+  const { thumbs, loading: thumbsLoading, progress: thumbsProgress } = usePdfThumbs(file, pageCount)
 
   async function onFile(f: File | null) {
     if (!f) return
@@ -135,10 +138,17 @@ export default function Page() {
         {file && (
           <p className="muted" style={{ margin: 0 }}>
             {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
+            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
             {busy && progress ? ` · ${progress}` : ''}
           </p>
         )}
         {error && <p className="field-error">{error}</p>}
+        {file && pageCount > 0 && (
+          <>
+            {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
+            <PdfThumbGrid pageCount={pageCount} thumbs={thumbs} loading={thumbsLoading} mode="view" />
+          </>
+        )}
         <div className="field-wrap">
           <label className="label">浮水印文字</label>
           <input
