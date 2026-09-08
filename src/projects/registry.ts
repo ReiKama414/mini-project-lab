@@ -20,7 +20,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'unit-converter', title: '單位轉換器', description: '長度／重量／溫度／容量／面積／速度等即時轉換', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'age-calculator', title: '年齡計算器', description: '精確年齡、虛歲、農曆生肖星座、生日倒數與人生里程碑', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'tip-calculator', title: 'Tip Calculator', description: '小費、稅金、分帳明細與可分享連結', tier: 'quick', effort: '幾小時～1 天', tags: ['finance'] },
-  { slug: 'password-generator', title: '隨機密碼產生器', description: '可調長度與字元集的安全密碼', tier: 'quick', effort: '幾小時～1 天', tags: ['security'] },
+  { slug: 'password-generator', title: '隨機密碼產生器', description: '字元集、通行片語與成分配方產生', tier: 'quick', effort: '幾小時～1 天', tags: ['security'] },
   { slug: 'qr-generator', title: 'QR Code Generator', description: '文字／URL 一鍵產生 QR Code', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'uuid-generator', title: 'UUID Generator', description: '批次產生 UUID v4', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
   { slug: 'lorem-ipsum', title: 'Lorem Ipsum Generator', description: '產生佔位段落文字', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
