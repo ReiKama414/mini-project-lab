@@ -323,9 +323,7 @@ export default function Page() {
                           移除
                         </button>
                       )}
-                      <ActionButton className="btn sm ghost" onClick={() => void copyText(`Q: ${c.front}\nA: ${c.back}`)}>
-                        複製
-                      </ActionButton>
+                      <ActionButton className="btn sm ghost" onClick={() => void copyText(`Q: ${c.front}\nA: ${c.back}`)} icon="copy" iconOnly tooltip="複製" />
                     </div>
                   </li>
                 ))}

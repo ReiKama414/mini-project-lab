@@ -280,9 +280,7 @@ export default function Page() {
                 >
                   {favSet.has(n) ? '已收藏' : '收藏'}
                 </button>
-                <ActionButton className="btn sm ghost" onClick={() => void copyText(n)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(n)} icon="copy" iconOnly tooltip="複製" />
               </li>
             ))}
             {!names.length && (
@@ -307,9 +305,7 @@ export default function Page() {
             {favorites.map((n) => (
               <li key={n} className="list-item">
                 <span style={{ flex: 1 }}>{n}</span>
-                <ActionButton className="btn sm ghost" onClick={() => void copyText(n)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(n)} icon="copy" iconOnly tooltip="複製" />
                 <button type="button" className="btn sm ghost" onClick={() => toggleFav(n)}>
                   移除
                 </button>

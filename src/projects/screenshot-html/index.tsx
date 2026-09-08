@@ -135,9 +135,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <ActionButton className="btn sm ghost" onClick={() => void copyText(out)}>
-            複製
-          </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={() => void copyText(out)} icon="copy" iconOnly tooltip="複製" />
           <button
             type="button"
             className="btn sm teal"

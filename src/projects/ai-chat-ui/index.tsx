@@ -195,9 +195,7 @@ export default function Page() {
         <div className="row">
           <ActionButton className="btn ghost sm" onClick={exportChat} disabled={!msgs.length}>匯出對話
        </ActionButton>
-          <ActionButton className="btn ghost sm" onClick={() => copyText(msgs.map((m) => m.text).join('\n\n'))}>
-            複製
-          </ActionButton>
+          <ActionButton className="btn ghost sm" onClick={() => copyText(msgs.map((m) => m.text).join('\n\n'))} icon="copy" iconOnly tooltip="複製" />
           <ActionButton className="btn ghost sm" onClick={clearChat}>清空
        </ActionButton>
         </div>

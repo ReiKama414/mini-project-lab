@@ -188,9 +188,7 @@ export default function Page() {
                 <span className="muted" style={{ fontSize: 12 }}>
                   相對上次記憶價 {tick ? `${tick >= 0 ? '+' : ''}${tick.toFixed(3)}%` : '—'}
                 </span>
-                <ActionButton className="btn sm ghost" onClick={() => copyText(`${c.symbol} $${c.price}`)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={() => copyText(`${c.symbol} $${c.price}`)} icon="copy" iconOnly tooltip="複製" />
               </div>
             </div>
           )

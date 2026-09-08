@@ -208,9 +208,7 @@ export default function Page() {
                 maxLength={HEX_MAX}
                 onChange={(e) => fromHex(e.target.value)}
               />
-              <ActionButton className="btn ghost sm" onClick={() => void copyText(preview)}>
-                複製
-              </ActionButton>
+              <ActionButton className="btn ghost sm" onClick={() => void copyText(preview)} icon="copy" iconOnly tooltip="複製" />
             </div>
             <div className="field-meta">
               <span>{hexInput.length} / {HEX_MAX}</span>
@@ -228,9 +226,7 @@ export default function Page() {
                 onChange={(e) => fromRgbText(e.target.value)}
                 placeholder="rgb(233, 163, 25)"
               />
-              <ActionButton className="btn ghost sm" onClick={() => void copyText(`rgb(${r}, ${g}, ${b})`)}>
-                複製
-              </ActionButton>
+              <ActionButton className="btn ghost sm" onClick={() => void copyText(`rgb(${r}, ${g}, ${b})`)} icon="copy" iconOnly tooltip="複製" />
             </div>
             <div className="field-meta">
               <span>{rgbInput.length} / {RGB_TEXT_MAX}</span>
@@ -248,9 +244,7 @@ export default function Page() {
                 onChange={(e) => fromHslText(e.target.value)}
                 placeholder="hsl(40, 84%, 51%)"
               />
-              <ActionButton className="btn ghost sm" onClick={() => void copyText(`hsl(${h}, ${s}%, ${l}%)`)}>
-                複製
-              </ActionButton>
+              <ActionButton className="btn ghost sm" onClick={() => void copyText(`hsl(${h}, ${s}%, ${l}%)`)} icon="copy" iconOnly tooltip="複製" />
             </div>
             <div className="field-meta">
               <span>{hslInput.length} / {HSL_TEXT_MAX}</span>

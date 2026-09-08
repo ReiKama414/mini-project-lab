@@ -483,9 +483,7 @@ export default function Page() {
                       {d.value}
                     </span>
                   </div>
-                  <ActionButton className="btn sm ghost" onClick={() => copyText(d.value)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn sm ghost" onClick={() => copyText(d.value)} icon="copy" iconOnly tooltip="複製" />
                 </li>
               ))}
             </ul>
@@ -539,9 +537,7 @@ export default function Page() {
                 <button className="btn sm accent" onClick={() => setPayload(h.text)}>
                   載入
                 </button>
-                <ActionButton className="btn sm ghost" onClick={() => copyText(h.text)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={() => copyText(h.text)} icon="copy" iconOnly tooltip="複製" />
               </li>
             ))}
             {!history.length && <p className="muted">尚無歷史</p>}

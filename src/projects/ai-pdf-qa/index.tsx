@@ -329,9 +329,7 @@ export default function Page() {
                       >
                         載入
                       </button>
-                      <ActionButton className="btn sm ghost" onClick={() => void copyText(`Q: ${item.q}\nA: ${item.a}`)}>
-                        複製
-                      </ActionButton>
+                      <ActionButton className="btn sm ghost" onClick={() => void copyText(`Q: ${item.q}\nA: ${item.a}`)} icon="copy" iconOnly tooltip="複製" />
                       <button
                         type="button"
                         className={`btn sm ${item.favorite ? 'accent' : 'ghost'}`}

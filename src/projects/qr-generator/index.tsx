@@ -315,9 +315,7 @@ export default function Page() {
                     <ActionButton className="btn sm ghost" onClick={() => applyHistory(h)}>
                       套用
                     </ActionButton>
-                    <ActionButton className="btn sm ghost" onClick={() => void copyText(h.text)}>
-                      複製
-                    </ActionButton>
+                    <ActionButton className="btn sm ghost" onClick={() => void copyText(h.text)} icon="copy" iconOnly tooltip="複製" />
                     <button
                       type="button"
                       className="btn sm danger"

@@ -398,9 +398,7 @@ export default function Page() {
                     [{f.severity}] {f.text}
                   </strong>
                   <span className="muted">{f.rewrite}</span>
-                  <ActionButton className="btn sm ghost" onClick={() => void copyText(f.rewrite)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyText(f.rewrite)} icon="copy" iconOnly tooltip="複製" />
                 </li>
               ))}
             </ul>

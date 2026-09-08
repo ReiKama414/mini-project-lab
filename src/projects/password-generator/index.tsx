@@ -305,9 +305,7 @@ export default function Page() {
                     {p}
                   </code>
                   <span className="tag">{STRENGTH[strengthScore(p)]}</span>
-                  <ActionButton className="btn ghost sm" onClick={() => void copyText(p)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn ghost sm" onClick={() => void copyText(p)} icon="copy" iconOnly tooltip="複製" />
                 </li>
               ))}
             </ul>
@@ -367,9 +365,7 @@ export default function Page() {
                   >
                     顯示
                   </button>
-                  <ActionButton className="btn ghost sm" onClick={() => void copyText(h.pwd)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn ghost sm" onClick={() => void copyText(h.pwd)} icon="copy" iconOnly tooltip="複製" />
                   <button
                     type="button"
                     className="btn danger sm"

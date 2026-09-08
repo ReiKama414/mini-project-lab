@@ -91,9 +91,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <ActionButton className="btn ghost sm" disabled={!canExport} onClick={() => void copyText(bodyTxt())}>
-            複製
-          </ActionButton>
+          <ActionButton className="btn ghost sm" disabled={!canExport} onClick={() => void copyText(bodyTxt())} icon="copy" iconOnly tooltip="複製" />
           <button type="button" className="btn ghost sm" disabled={!canExport} onClick={() => downloadText(`${invNo}.txt`, bodyTxt())}>
             下載 TXT
           </button>

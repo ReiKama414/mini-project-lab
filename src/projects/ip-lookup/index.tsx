@@ -215,9 +215,7 @@ export default function Page() {
                     {r.value}
                   </span>
                   {r.value !== '—' && (
-                    <ActionButton className="btn sm ghost" onClick={() => copyText(r.value)}>
-                      複製
-                    </ActionButton>
+                    <ActionButton className="btn sm ghost" onClick={() => copyText(r.value)} icon="copy" iconOnly tooltip="複製" />
                   )}
                 </div>
               </div>
@@ -232,9 +230,7 @@ export default function Page() {
               {localIps.map((ip) => (
                 <li key={ip} className="list-item">
                   <span className="mono">{ip}</span>
-                  <ActionButton className="btn sm ghost" onClick={() => copyText(ip)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn sm ghost" onClick={() => copyText(ip)} icon="copy" iconOnly tooltip="複製" />
                   <button className="btn sm teal" onClick={() => { setQuery(ip); lookup(ip) }}>
                     查詢
                   </button>

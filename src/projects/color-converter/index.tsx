@@ -157,9 +157,7 @@ export default function Page() {
                   maxLength={HEX_MAX}
                   onChange={(e) => fromHex(limitText(e.target.value, HEX_MAX))}
                 />
-                <ActionButton className="btn sm ghost" onClick={() => void copyText(hexNorm)} disabled={!valid}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(hexNorm)} disabled={!valid} icon="copy" iconOnly tooltip="複製" />
               </div>
               {!valid && <p className="field-error">請輸入有效 HEX（#RGB 或 #RRGGBB）</p>}
               <div className="field-meta">
@@ -250,9 +248,7 @@ export default function Page() {
                 <code className="mono" style={{ flex: 1 }}>
                   {val}
                 </code>
-                <ActionButton className="btn sm ghost" onClick={() => void copyText(val)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(val)} icon="copy" iconOnly tooltip="複製" />
               </div>
             ))}
           </div>

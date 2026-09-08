@@ -250,9 +250,7 @@ export default function Page() {
             <code className="mono" style={{ fontSize: 22 }}>
               {expr}
             </code>
-            <ActionButton className="btn sm accent" disabled={hasError} onClick={() => void copyText(expr)}>
-              複製
-            </ActionButton>
+            <ActionButton className="btn sm accent" disabled={hasError} onClick={() => void copyText(expr)} icon="copy" iconOnly tooltip="複製" />
           </div>
         </div>
         <div className="metric">

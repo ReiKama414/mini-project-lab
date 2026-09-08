@@ -322,9 +322,7 @@ export default function Page() {
                   >
                     還原
                   </button>
-                  <ActionButton className="btn sm ghost" onClick={() => void copyText(h.htmlWrap ? wrapHtml(h.text, h.mode) : h.text)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyText(h.htmlWrap ? wrapHtml(h.text, h.mode) : h.text)} icon="copy" iconOnly tooltip="複製" />
                   <button
                     type="button"
                     className="btn sm danger"

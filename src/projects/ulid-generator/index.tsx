@@ -110,9 +110,7 @@ export default function Page() {
               <code className="mono" style={{ flex: 1 }}>
                 {id}
               </code>
-              <ActionButton className="btn sm ghost" onClick={() => void copyText(id)}>
-                複製
-              </ActionButton>
+              <ActionButton className="btn sm ghost" onClick={() => void copyText(id)} icon="copy" iconOnly tooltip="複製" />
             </li>
           ))}
           {!list.length && <p className="muted">尚未產生</p>}

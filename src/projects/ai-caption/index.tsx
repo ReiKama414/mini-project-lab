@@ -149,9 +149,7 @@ export default function Page() {
                   {c.text}
                 </pre>
                 <div className="row">
-                  <ActionButton className="btn sm ghost" onClick={() => void copyText(c.text)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyText(c.text)} icon="copy" iconOnly tooltip="複製" />
                   <button
                     type="button"
                     className="btn sm teal"
@@ -184,9 +182,7 @@ export default function Page() {
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {f.text.split('\n')[0]}
                 </span>
-                <ActionButton className="btn ghost sm" onClick={() => void copyText(f.text)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn ghost sm" onClick={() => void copyText(f.text)} icon="copy" iconOnly tooltip="複製" />
                 <button
                   type="button"
                   className="btn ghost sm"

@@ -282,9 +282,7 @@ export default function Page() {
                 <button className="btn ghost sm" onClick={() => applyRange(h)}>
                   套用範圍
                 </button>
-                <ActionButton className="btn ghost sm" onClick={() => void copyText(h.line)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn ghost sm" onClick={() => void copyText(h.line)} icon="copy" iconOnly tooltip="複製" />
               </li>
             ))}
             {!history.length && <p className="muted">尚無紀錄</p>}

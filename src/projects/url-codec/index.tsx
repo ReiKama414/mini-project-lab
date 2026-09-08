@@ -195,9 +195,7 @@ export default function Page() {
                 <span className="mono" style={{ flex: 1, wordBreak: 'break-all' }}>
                   {r.decoded}
                 </span>
-                <ActionButton className="btn sm ghost" onClick={() => void copyText(r.decoded)}>
-                  複製
-                </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(r.decoded)} icon="copy" iconOnly tooltip="複製" />
               </li>
             ))}
           </ul>

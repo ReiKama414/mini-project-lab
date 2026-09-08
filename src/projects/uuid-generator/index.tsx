@@ -238,9 +238,7 @@ export default function Page() {
                       </span>
                     )}
                   </div>
-                  <ActionButton className="btn sm ghost" onClick={() => void copyOne(entry.display)}>
-                    複製
-                  </ActionButton>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyOne(entry.display)} icon="copy" iconOnly tooltip="複製" />
                 </li>
               ))}
               {!historyDisplay.length && <p className="muted">產生後會自動保存於此（本機）</p>}
