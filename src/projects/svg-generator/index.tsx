@@ -9,7 +9,7 @@ import { svgToSafeObjectUrl } from '../../lib/sanitize'
 const meta: ProjectMeta = getProject('svg-generator') ?? {
   slug: 'svg-generator',
   title: 'SVG 形狀產生器',
-  description: '產生簡易 SVG 形狀。',
+  description: '產生簡易 SVG 形狀',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],

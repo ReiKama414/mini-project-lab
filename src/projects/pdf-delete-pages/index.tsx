@@ -12,7 +12,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-delete-pages',
   title: 'PDF 刪除頁面',
-  description: '刪除指定頁碼後下載新 PDF（縮圖預覽）。',
+  description: '刪除指定頁碼後下載新 PDF（縮圖預覽）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -143,7 +143,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機刪除指定頁，其餘頁保留。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁。
+        本機刪除指定頁，其餘頁保留單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop

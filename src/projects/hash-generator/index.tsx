@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('hash-generator') ?? {
   slug: 'hash-generator',
   title: '雜湊產生器',
-  description: '以 Web Crypto 計算 SHA 雜湊。',
+  description: '以 Web Crypto 計算 SHA 雜湊',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -60,7 +60,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          以瀏覽器 Web Crypto 本機計算。輸入內容不寫入 localStorage。SHA-1 僅供相容舊系統，不建議用於安全性用途。
+          以瀏覽器 Web Crypto 本機計算輸入內容不寫入 localStorageSHA-1 僅供相容舊系統，不建議用於安全性用途
         </p>
         <label className="stack">
           <span className="label">輸入文字</span>

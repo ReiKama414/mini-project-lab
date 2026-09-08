@@ -40,7 +40,7 @@ export function ShortRedirect() {
     <div className="panel stack">
       <h2>找不到短碼</h2>
       <p className="muted">
-        短碼「{code}」不存在，或尚未在本瀏覽器建立。
+        短碼「{code}」不存在，或尚未在本瀏覽器建立
       </p>
       <Link className="btn accent sm" to="/p/url-shortener">
         前往短網址工具

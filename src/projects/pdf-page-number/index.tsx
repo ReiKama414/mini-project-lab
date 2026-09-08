@@ -13,7 +13,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-page-number',
   title: 'PDF 頁碼',
-  description: '為每一頁加上頁碼。',
+  description: '為每一頁加上頁碼',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -120,7 +120,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機為每頁加上數字頁碼。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁。
+        本機為每頁加上數字頁碼單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop

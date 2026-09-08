@@ -348,7 +348,7 @@ export default function Page() {
               className="btn ghost pomo-icon-btn"
               onClick={skip}
               aria-label="跳過此階段"
-              title="跳過（不計入有效番茄）"
+              data-tooltip="跳過（不計入有效番茄）"
             >
               <IconSkip size={18} strokeWidth={2.25} />
             </button>

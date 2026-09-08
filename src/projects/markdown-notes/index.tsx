@@ -7,6 +7,7 @@ import { marked } from 'marked'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, downloadText, uid } from '../../lib/utils'
 import { sanitizeHtml } from '../../lib/sanitize'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('markdown-notes')!
 
@@ -24,7 +25,7 @@ function mdToHtml(src: string) {
 
 const DEMO_MD = `# Markdown 筆記
 
-支援 **粗體**、*斜體*、~~刪除線~~ 與 \`inline code\`。
+支援 **粗體**、*斜體*、~~刪除線~~ 與 \`inline code\`
 
 ## 清單
 - 第一點
@@ -186,12 +187,10 @@ export default function Page() {
                     {label}
                   </button>
                 ))}
-                <button className="btn sm teal" onClick={exportMd}>
-                  匯出 .md
-                </button>
-                <button className="btn sm ghost" onClick={exportHtml}>
-                  匯出 .html
-                </button>
+                <ActionButton className="btn sm teal" onClick={exportMd}>匯出 .md
+    </ActionButton>
+                <ActionButton className="btn sm ghost" onClick={exportHtml}>匯出 .html
+  </ActionButton>
                 <DeleteButton
                   style={{ marginLeft: 'auto' }}
                   onClick={() => {

@@ -8,7 +8,7 @@ import { copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
 const meta: ProjectMeta = getProject('csp-generator') ?? {
   slug: 'csp-generator',
   title: 'CSP 產生器',
-  description: '組裝 Content-Security-Policy。',
+  description: '組裝 Content-Security-Policy',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -43,7 +43,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          組裝常見 CSP 指令草稿，非正式安全稽核。含 <code>unsafe-inline</code> 時請評估風險；上線前請用實際站點測試。
+          組裝常見 CSP 指令草稿，非正式安全稽核含 <code>unsafe-inline</code> 時請評估風險；上線前請用實際站點測試
         </p>
         {(
           [

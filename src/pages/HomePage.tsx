@@ -8,6 +8,7 @@ import {
   type Tier,
 } from '../projects/registry'
 import { clearLabStorage, countLabStorageKeys } from '../lib/storage'
+import { ActionButton } from '../components/ActionButton'
 
 const badge: Record<Tier, string> = {
   quick: 'quick',
@@ -88,8 +89,8 @@ export function HomePage() {
       <section className="home-hero">
         <h1>Mini Project Lab</h1>
         <p>
-          用搜尋、分類或標籤快速找到你要的工具。目前已收錄 {projects.length}{' '}
-          個獨立小專案，之後還能持續新增。
+          用搜尋、分類或標籤快速找到你要的工具目前已收錄 {projects.length}{' '}
+          個獨立小專案，之後還能持續新增
         </p>
         <div className="home-stats">
           <span className="home-stat">{filtered.length} / {projects.length} 個專案</span>
@@ -153,8 +154,7 @@ export function HomePage() {
               {tierFilter !== 'all' ? ` · ${tiers.find((t) => t.id === tierFilter)?.label}` : ''}
               {tagFilter ? ` · ${tagLabels[tagFilter] || tagFilter}` : ''}
             </span>
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost sm"
               style={{ marginLeft: 'auto' }}
               onClick={() => {
@@ -163,7 +163,7 @@ export function HomePage() {
               }}
             >
               清除篩選
-            </button>
+            </ActionButton>
           </div>
         )}
       </section>
@@ -208,7 +208,7 @@ export function HomePage() {
 
       {!filtered.length && (
         <div className="panel">
-          <p>找不到符合的專案。試試「todo」「ai」「github」「財務」或清除篩選。</p>
+          <p>找不到符合的專案試試「todo」「ai」「github」「財務」或清除篩選</p>
         </div>
       )}
 
@@ -218,33 +218,28 @@ export function HomePage() {
             <h2 className="home-data-title">本機資料</h2>
             <p className="muted home-data-desc">
               各工具會把設定與紀錄存在瀏覽器 localStorage（鍵名以{' '}
-              <span className="mono">lab:</span> 開頭）。目前約有 {labKeys} 筆快取鍵。
+              <span className="mono">lab:</span> 開頭）目前約有 {labKeys} 筆快取鍵
             </p>
           </div>
           {clearStep === 0 && (
-            <button
-              type="button"
-              className="btn ghost sm"
-              onClick={requestClearCache}
-              disabled={labKeys === 0}
-            >
+            <ActionButton className="btn ghost sm" onClick={requestClearCache} disabled={labKeys === 0}>
               清除全部快取
-            </button>
+            </ActionButton>
           )}
         </div>
 
         {clearStep === 1 && (
           <div className="home-data-confirm">
             <p>
-              將刪除本站所有本機資料（待辦、番茄紀錄、倒數計時器、筆記等），此動作無法復原。
+              將刪除本站所有本機資料（待辦、番茄紀錄、倒數計時器、筆記等），此動作無法復原
             </p>
             <div className="row">
-              <button type="button" className="btn ghost sm" onClick={cancelClearCache}>
+              <ActionButton className="btn ghost sm" onClick={cancelClearCache}>
                 取消
-              </button>
-              <button type="button" className="btn accent sm" onClick={confirmClearCache}>
+              </ActionButton>
+              <ActionButton className="btn accent sm" icon="check" onClick={confirmClearCache}>
                 我了解，繼續
-              </button>
+              </ActionButton>
             </div>
           </div>
         )}
@@ -256,12 +251,12 @@ export function HomePage() {
               <span className="mono">lab:</span> 快取並重新載入頁面？
             </p>
             <div className="row">
-              <button type="button" className="btn ghost sm" onClick={cancelClearCache}>
+              <ActionButton className="btn ghost sm" onClick={cancelClearCache}>
                 取消
-              </button>
-              <button type="button" className="btn danger sm" onClick={executeClearCache}>
+              </ActionButton>
+              <ActionButton className="btn danger sm" onClick={executeClearCache}>
                 確定清除
-              </button>
+              </ActionButton>
             </div>
           </div>
         )}

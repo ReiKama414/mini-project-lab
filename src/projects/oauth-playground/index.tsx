@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('oauth-playground')!
 
@@ -208,9 +209,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={exportLog} disabled={!log.length}>
-            匯出日誌
-          </button>
+          <ActionButton className="btn sm ghost" onClick={exportLog} disabled={!log.length}>匯出日誌
+       </ActionButton>
           <button type="button" className="btn sm ghost" onClick={() => setLog([])}>
             清空日誌
           </button>
@@ -320,9 +320,8 @@ export default function Page() {
               </button>
             )}
             {step === 4 && (
-              <button type="button" className="btn ghost" onClick={resetFlow}>
-                重新開始
-              </button>
+              <ActionButton className="btn ghost" onClick={resetFlow}>重新開始
+         </ActionButton>
             )}
             {code && <span className="mono muted">code={code}</span>}
           </div>

@@ -6,6 +6,7 @@ import { useLocalStorage } from '../../lib/storage'
 import { loadImageFromFile, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { charCount, clamp, formatBytes, limitText, parseNumber, uid } from '../../lib/utils'
 import { IconMaximize, IconMinimize } from '../../components/icons'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('whiteboard')!
 
@@ -343,9 +344,8 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={saveSnapshot}>
             存草稿
           </button>
-          <button type="button" className="btn sm teal" onClick={downloadPng}>
-            下載 PNG
-          </button>
+          <ActionButton className="btn sm teal" onClick={downloadPng}>下載 PNG
+     </ActionButton>
         </div>
       }
     >
@@ -423,9 +423,8 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={() => drawTemplate('lines')}>
             橫線
           </button>
-          <button type="button" className="btn sm danger" onClick={clear}>
-            清空
-          </button>
+          <ActionButton className="btn sm danger" onClick={clear}>清空
+       </ActionButton>
           <button type="button" className="btn sm accent" onClick={() => void toggleFullscreen()} style={{ marginLeft: 'auto' }}>
             {fullscreen ? <IconMinimize size={15} /> : <IconMaximize size={15} />}
             {fullscreen ? '退出' : '全螢幕'}
@@ -504,7 +503,7 @@ export default function Page() {
               </button>
             </li>
           ))}
-          {!filteredSnaps.length && <p className="muted">按「存草稿」可把目前畫布存到本機（體積較大，限 8 份）。</p>}
+          {!filteredSnaps.length && <p className="muted">按「存草稿」可把目前畫布存到本機（體積較大，限 8 份）</p>}
         </ul>
       </div>
     </ProjectShell>

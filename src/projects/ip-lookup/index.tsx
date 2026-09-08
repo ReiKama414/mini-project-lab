@@ -171,8 +171,8 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted">
-          公開 IP 透過 ipify，地理位置透過 ipapi.co；失敗時改用示範資料。區域網路 IP 為選用
-          WebRTC 探測。
+          公開 IP 透過 ipify，地理位置透過 ipapi.co；失敗時改用示範資料區域網路 IP 為選用
+          WebRTC 探測
         </p>
         <div className="row">
           <input
@@ -243,7 +243,7 @@ export default function Page() {
           </div>
         )}
         {!probing && localIps.length === 0 && (
-          <p className="muted">尚未探測本機網路；部分瀏覽器可能無法取得區域 IP。</p>
+          <p className="muted">尚未探測本機網路；部分瀏覽器可能無法取得區域 IP</p>
         )}
       </div>
     </ProjectShell>

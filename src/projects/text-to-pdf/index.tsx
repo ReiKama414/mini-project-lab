@@ -9,7 +9,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'text-to-pdf',
   title: '文字轉 PDF',
-  description: '將純文字匯出為 PDF（支援中文點陣）。',
+  description: '將純文字匯出為 PDF（支援中文點陣）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -45,7 +45,7 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
 export default function Page() {
   const [text, setText] = useLocalStorage(
     'lab:text-to-pdf:text',
-    'Hello PDF\n\n這是本機文字轉 PDF 示範（支援中文）。',
+    'Hello PDF\n\n這是本機文字轉 PDF 示範（支援中文）',
   )
   const [size, setSize] = useLocalStorage('lab:text-to-pdf:size', 12)
   const [busy, setBusy] = useState(false)
@@ -125,7 +125,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        以本機點陣繪製文字後嵌入 PDF（支援中文）。最多約 {MAX_PAGES} 頁。
+        以本機點陣繪製文字後嵌入 PDF（支援中文）最多約 {MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         {error && <p className="field-error">{error}</p>}

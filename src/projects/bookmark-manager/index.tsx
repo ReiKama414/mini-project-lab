@@ -1,7 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { ActionButton } from '../../components/ActionButton'
 import { DeleteButton } from '../../components/DeleteButton'
+import { EditButton } from '../../components/EditButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import {
@@ -358,18 +360,18 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportJson}>
+          <ActionButton type="button" className="btn ghost sm" disabled={!items.length} onClick={exportJson}>
             匯出 JSON
-          </button>
-          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportHtml}>
+          </ActionButton>
+          <ActionButton type="button" className="btn ghost sm" disabled={!items.length} onClick={exportHtml}>
             匯出 bookmarks.html
-          </button>
-          <button type="button" className="btn ghost sm" onClick={() => jsonImportRef.current?.click()}>
+          </ActionButton>
+          <ActionButton type="button" className="btn ghost sm" onClick={() => jsonImportRef.current?.click()}>
             匯入 JSON
-          </button>
-          <button type="button" className="btn ghost sm" onClick={() => htmlImportRef.current?.click()}>
+          </ActionButton>
+          <ActionButton type="button" className="btn ghost sm" onClick={() => htmlImportRef.current?.click()}>
             匯入 HTML
-          </button>
+          </ActionButton>
           <input
             ref={jsonImportRef}
             type="file"
@@ -460,12 +462,12 @@ export default function Page() {
           </div>
           {editing ? (
             <>
-              <button type="button" className="btn accent" onClick={() => saveEdit(editing)} disabled={!titleOk || !urlOk}>
+              <ActionButton type="button" className="btn accent" onClick={() => saveEdit(editing)} disabled={!titleOk || !urlOk}>
                 儲存
-              </button>
-              <button type="button" className="btn ghost" onClick={cancelEdit}>
+              </ActionButton>
+              <ActionButton type="button" className="btn ghost" onClick={cancelEdit}>
                 取消
-              </button>
+              </ActionButton>
             </>
           ) : (
             <AddButton type="button"  onClick={add} disabled={!canSave}>
@@ -566,9 +568,7 @@ export default function Page() {
                 <a className="btn sm teal" href={b.url} target="_blank" rel="noreferrer">
                   開啟
                 </a>
-                <button type="button" className="btn sm ghost" onClick={() => startEdit(b)}>
-                  編輯
-                </button>
+                <EditButton onClick={() => startEdit(b)} />
                 <DeleteButton onClick={() => setItems(items.filter((x) => x.id !== b.id))} label="刪除" />
               </li>
             )

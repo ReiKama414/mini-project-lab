@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, copyText, downloadText, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('lorem-ipsum')!
 
@@ -156,9 +157,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm accent" onClick={generateAndSave}>
-            產生並存歷史
-          </button>
+          <ActionButton className="btn sm accent" onClick={generateAndSave}>產生並存歷史
+     </ActionButton>
           <button
             type="button"
             className="btn sm ghost"
@@ -241,12 +241,10 @@ export default function Page() {
           </label>
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn accent" onClick={generate}>
-              產生
-            </button>
-            <button type="button" className="btn teal" onClick={generateAndSave}>
-              產生並存歷史
-            </button>
+            <ActionButton className="btn accent" onClick={generate}>產生
+         </ActionButton>
+            <ActionButton className="btn teal" onClick={generateAndSave}>產生並存歷史
+     </ActionButton>
             <button
               type="button"
               className="btn ghost"

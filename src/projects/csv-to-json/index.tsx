@@ -10,7 +10,7 @@ import { parseCsv } from '../../lib/csv'
 const meta: ProjectMeta = getProject('csv-to-json') ?? {
   slug: 'csv-to-json',
   title: 'CSV → JSON',
-  description: '將 CSV 轉成 JSON 物件陣列。',
+  description: '將 CSV 轉成 JSON 物件陣列',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -61,7 +61,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        第一列為欄位名；支援引號欄位。上傳上限 {formatBytes(FILE_MAX)}。
+        第一列為欄位名；支援引號欄位上傳上限 {formatBytes(FILE_MAX)}
       </p>
       <div className="panel stack">
         <label className="stack">

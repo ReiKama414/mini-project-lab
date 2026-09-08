@@ -5,6 +5,7 @@ import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('accounting-app')!
 
@@ -128,9 +129,8 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!monthEntries.length}>
-          匯出 CSV
-        </button>
+        <ActionButton className="btn ghost sm" onClick={exportCsv} disabled={!monthEntries.length}>匯出 CSV
+     </ActionButton>
       }
     >
       <div className="panel stack">

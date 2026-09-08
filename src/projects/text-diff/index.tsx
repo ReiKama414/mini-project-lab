@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('text-diff') ?? {
   slug: 'text-diff',
   title: '文字 Diff',
-  description: '逐行比較兩段文字。',
+  description: '逐行比較兩段文字',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -61,7 +61,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        逐行對齊比較（非 LCS／Myers）。插入或刪除整行時，後續行會錯位顯示為「不同」。
+        逐行對齊比較（非 LCS／Myers）插入或刪除整行時，後續行會錯位顯示為「不同」
       </p>
       <div className="grid-2">
         <label className="stack panel">

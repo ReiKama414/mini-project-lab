@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
-const fallback: ProjectMeta = { slug: 'ai-background-remover', title: '啟發式去背', description: '以近白／綠幕或四角洪水填色去除背景。', tier: 'feature', effort: '1～3 天', tags: ['image'] }
+import { ActionButton } from '../../components/ActionButton'
+const fallback: ProjectMeta = { slug: 'ai-background-remover', title: '啟發式去背', description: '以近白／綠幕或四角洪水填色去除背景', tier: 'feature', effort: '1～3 天', tags: ['image'] }
 const meta = getProject('ai-background-remover') ?? fallback
 
 type Mode = 'white' | 'green' | 'flood'
@@ -109,8 +110,8 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta} actions={<button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG</button>}>
-      <p className="muted" style={{ marginBottom: 12 }}>啟發式去背（近白／綠幕／四角洪水），非深度學習模型。</p>
+    <ProjectShell meta={meta} actions={<ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG</ActionButton>}>
+      <p className="muted" style={{ marginBottom: 12 }}>啟發式去背（近白／綠幕／四角洪水），非深度學習模型</p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
           <FileDrop
@@ -128,7 +129,7 @@ export default function Page() {
             ))}
           </div>
           <label className="stack"><span className="label">容差 {tolerance}</span><input type="range" min={5} max={120} value={tolerance} onChange={(e) => setTolerance(clamp(Number(e.target.value), 5, 120))} /></label>
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>下載透明 PNG</button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載透明 PNG</ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

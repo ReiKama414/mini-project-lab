@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, randomInt, uid, limitText, charCount, isValidEmail, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('passwordless-login')!
 
@@ -155,9 +156,8 @@ export default function Page() {
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0 }}>驗證紀錄</h3>
         <div className="row">
-          <button type="button" className="btn sm ghost" disabled={!logs.length} onClick={exportLogs}>
-            匯出 CSV
-          </button>
+          <ActionButton className="btn sm ghost" disabled={!logs.length} onClick={exportLogs}>匯出 CSV
+     </ActionButton>
           <button type="button" className="btn sm ghost" disabled={!logs.length} onClick={() => setLogs([])}>
             清空
           </button>
@@ -225,7 +225,7 @@ export default function Page() {
               <span className="tag">{session.method === 'otp' ? 'OTP 登入' : 'Magic Link 登入'}</span>
               <span className="muted mono">{new Date(session.at).toLocaleString('zh-TW')}</span>
             </div>
-            <p className="muted">Session 已寫入 localStorage，重新整理後仍會保持登入。</p>
+            <p className="muted">Session 已寫入 localStorage，重新整理後仍會保持登入</p>
             <div className="row">
               <button type="button" className="btn ghost" onClick={() => void copyText(session.email)}>
                 複製 Email
@@ -365,7 +365,7 @@ export default function Page() {
           {err && <p style={{ color: 'var(--rose)' }}>{err}</p>}
           {cooldown > 0 && step === 'email' && <p className="muted">重送冷卻中：{cooldown}s</p>}
           <p className="muted" style={{ fontSize: 12 }}>
-            純前端示範：OTP／Magic Link 僅模擬流程，不會真的寄信。
+            純前端示範：OTP／Magic Link 僅模擬流程，不會真的寄信
           </p>
         </div>
         {logPanel}

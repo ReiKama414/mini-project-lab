@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, copyText, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('db-schema-viz')!
 
@@ -197,9 +198,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={copyMermaid}>
-            {copied ? '已複製' : '複製 Mermaid'}
-          </button>
+          <ActionButton className="btn sm ghost" onClick={copyMermaid} icon="copy">{copied ? '已複製' : '複製 Mermaid'}</ActionButton>
           <button type="button" className="btn sm teal" onClick={() => downloadText('schema.mmd', mermaid, 'text/plain;charset=utf-8')}>
             匯出 Mermaid
           </button>

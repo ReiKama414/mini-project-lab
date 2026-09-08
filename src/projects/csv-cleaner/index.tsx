@@ -10,7 +10,7 @@ import { parseCsv, stringifyCsv } from '../../lib/csv'
 const meta: ProjectMeta = getProject('csv-cleaner') ?? {
   slug: 'csv-cleaner',
   title: 'CSV 清理',
-  description: '修剪空白、去重與移除空列。',
+  description: '修剪空白、去重與移除空列',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -70,7 +70,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        以 RFC4180 解析後修剪／去重。上傳上限 {formatBytes(FILE_MAX)}。
+        以 RFC4180 解析後修剪／去重上傳上限 {formatBytes(FILE_MAX)}
       </p>
       <div className="panel stack">
         <label className="stack">

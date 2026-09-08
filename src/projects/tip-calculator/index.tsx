@@ -4,6 +4,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('tip-calculator')!
 
@@ -128,9 +129,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={saveHistory} disabled={!canSave}>
-            存入歷史
-          </button>
+          <ActionButton className="btn sm ghost" onClick={saveHistory} disabled={!canSave}>存入歷史
+       </ActionButton>
           <button type="button" className="btn sm ghost" onClick={() => void copyText(summary)}>
             複製明細
           </button>
@@ -299,15 +299,14 @@ export default function Page() {
               </table>
             </div>
             <p className="muted" style={{ fontSize: 12 }}>
-              最後一人會吸收四捨五入差額，確保加總等於總計。
+              最後一人會吸收四捨五入差額，確保加總等於總計
             </p>
           </>
         )}
 
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="btn accent" onClick={saveHistory} disabled={!canSave}>
-            存入歷史
-          </button>
+          <ActionButton className="btn accent" onClick={saveHistory} disabled={!canSave}>存入歷史
+       </ActionButton>
           <button type="button" className="btn ghost" onClick={() => void copyText(summary)}>
             複製明細
           </button>

@@ -29,7 +29,7 @@ export default function Page() {
   const [invNo, setInvNo] = useLocalStorage('lab:invoice:no', 'INV-2026-001')
   const [taxRate, setTaxRate] = useLocalStorage('lab:invoice:tax', 5)
   const [currency, setCurrency] = useLocalStorage<Currency>('lab:invoice:currency', 'TWD')
-  const [note, setNote] = useLocalStorage('lab:invoice:note', '感謝惠顧，付款期限 14 天。')
+  const [note, setNote] = useLocalStorage('lab:invoice:note', '感謝惠顧，付款期限 14 天')
   const [lines, setLines] = useLocalStorage<Line[]>('lab:invoice:lines', [
     { id: '1', desc: '網站設計', qty: 1, price: 25000 },
     { id: '2', desc: '前端實作', qty: 20, price: 1800 },

@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-flashcard-gen')!
 
@@ -58,7 +59,7 @@ function extractCards(notes: string): Card[] {
   }
   if (cards.length === 0 && notes.trim()) {
     const sentences = notes
-      .split(/[。！？.!?]/)
+      .split(/[！？.!?]/)
       .map((s) => s.trim())
       .filter((s) => s.length > 6)
     sentences.slice(0, 12).forEach((s, i) => {
@@ -259,7 +260,7 @@ export default function Page() {
               <div className="list-item stack">
                 <strong>尚無牌組</strong>
                 <p className="muted" style={{ margin: 0 }}>
-                  貼上筆記或選預設，按「解析並存成牌組」開始。
+                  貼上筆記或選預設，按「解析並存成牌組」開始
                 </p>
               </div>
             ) : (
@@ -304,7 +305,7 @@ export default function Page() {
               <div className="list-item stack">
                 <strong>還沒有卡片</strong>
                 <p className="muted" style={{ margin: 0 }}>
-                  支援「詞：解釋」、Q/A 行，或條列。無法解析時會依句子產生問答。
+                  支援「詞：解釋」、Q/A 行，或條列無法解析時會依句子產生問答
                 </p>
               </div>
             ) : (
@@ -340,7 +341,7 @@ export default function Page() {
             <div className="list-item stack">
               <strong>沒有可學習的卡片</strong>
               <p className="muted" style={{ margin: 0 }}>
-                回到編輯模式產生或選擇有卡片的牌組。
+                回到編輯模式產生或選擇有卡片的牌組
               </p>
             </div>
           ) : (
@@ -352,9 +353,8 @@ export default function Page() {
                 <span className="metric">
                   已會 {knownCount}/{cards.length}
                 </span>
-                <button type="button" className="btn sm ghost" onClick={clearStudyStats}>
-                  清除進度
-                </button>
+                <ActionButton className="btn sm ghost" onClick={clearStudyStats}>清除進度
+     </ActionButton>
               </div>
               <div className="progress">
                 <div

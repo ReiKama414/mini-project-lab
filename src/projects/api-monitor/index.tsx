@@ -181,7 +181,7 @@ export default function Page() {
       }
     >
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機示範／proxy 限制：優先直接 CORS 請求；失敗時改經公開 CORS proxy（allorigins）。延遲可能含代理往返，非正式 API 監控服務。自動探測約 30 秒一次。
+        本機示範／proxy 限制：優先直接 CORS 請求；失敗時改經公開 CORS proxy（allorigins）延遲可能含代理往返，非正式 API 監控服務自動探測約 30 秒一次
       </p>
       <div className="grid-3" style={{ marginBottom: 12 }}>
         <div className="metric panel">Targets {targets.length}</div>

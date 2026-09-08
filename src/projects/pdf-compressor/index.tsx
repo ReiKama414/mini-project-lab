@@ -7,13 +7,14 @@ import { clamp, formatBytes } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
 import { PDFDocument } from 'pdf-lib'
 import * as pdfjs from 'pdfjs-dist'
+import { ActionButton } from '../../components/ActionButton'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 const fallback: ProjectMeta = {
   slug: 'pdf-compressor',
   title: 'PDF 壓縮',
-  description: '將頁面柵格化後以 JPG 重建以縮小體積。',
+  description: '將頁面柵格化後以 JPG 重建以縮小體積',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -152,8 +153,8 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        以頁面點陣化方式壓縮。文字與向量會變成圖片，無法再選取文字。單檔上限 {formatBytes(PDF_MAX)}，最多{' '}
-        {MAX_PAGES} 頁。
+        以頁面點陣化方式壓縮文字與向量會變成圖片，無法再選取文字單檔上限 {formatBytes(PDF_MAX)}，最多{' '}
+        {MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop
@@ -185,7 +186,7 @@ export default function Page() {
           </p>
         )}
         {error && <p className="field-error">{error}</p>}
-        <p className="field-hint">注意：壓縮後每頁為 JPG 影像，文字不可搜尋／複製，且可能有損畫質。</p>
+        <p className="field-hint">注意：壓縮後每頁為 JPG 影像，文字不可搜尋／複製，且可能有損畫質</p>
         <label className="stack">
           <span className="label">JPG 品質 {Math.round(quality * 100)}%</span>
           <input
@@ -210,9 +211,7 @@ export default function Page() {
         </label>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {busy && (
-            <button type="button" className="btn sm ghost" onClick={abort}>
-              取消
-            </button>
+            <ActionButton className="btn sm ghost" onClick={abort}>取消</ActionButton>
           )}
           <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
             {busy ? progress || '壓縮中…' : '壓縮並下載'}

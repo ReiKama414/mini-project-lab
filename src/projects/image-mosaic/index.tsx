@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-mosaic',
   title: '馬賽克遮蔽',
-  description: '在圖片上塗抹馬賽克區塊。',
+  description: '在圖片上塗抹馬賽克區塊',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -146,13 +147,12 @@ export default function Page() {
           <button type="button" className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes([])}>
             清除
           </button>
-          <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-            下載 PNG
-          </button>
+          <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
+     </ActionButton>
         </div>
       }
     >
-      <p className="muted" style={{ marginBottom: 12 }}>按住拖曳塗抹（支援觸控，已節流）；可復原筆劃。僅本機處理。</p>
+      <p className="muted" style={{ marginBottom: 12 }}>按住拖曳塗抹（支援觸控，已節流）；可復原筆劃僅本機處理</p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
           <FileDrop
@@ -176,9 +176,8 @@ export default function Page() {
             <span className="label">馬賽克格 {block}px</span>
             <input type="range" min={4} max={64} value={block} onChange={(e) => setBlock(clamp(Number(e.target.value), 4, 64))} />
           </label>
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

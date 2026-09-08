@@ -9,7 +9,7 @@ import { charCount, copyText, isNonEmpty, limitText } from '../../lib/utils'
 const meta: ProjectMeta = getProject('totp') ?? {
   slug: 'totp',
   title: 'TOTP 驗證碼',
-  description: '本機產生／驗證 TOTP 代碼。',
+  description: '本機產生／驗證 TOTP 代碼',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -93,7 +93,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          Secret 預設只留在記憶體。勾選「記住」才會寫入本機（請勿在公用電腦使用）。
+          Secret 預設只留在記憶體勾選「記住」才會寫入本機（請勿在公用電腦使用）
         </p>
         <label className="stack">
           <span className="label">Label</span>

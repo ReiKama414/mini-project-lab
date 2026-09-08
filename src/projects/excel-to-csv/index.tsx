@@ -10,7 +10,7 @@ import { stringifyCsv } from '../../lib/csv'
 const meta: ProjectMeta = getProject('excel-to-csv') ?? {
   slug: 'excel-to-csv',
   title: 'Excel → CSV',
-  description: '本機將 .xlsx 轉成 CSV（ExcelJS）。',
+  description: '本機將 .xlsx 轉成 CSV（ExcelJS）',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -119,7 +119,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          使用 ExcelJS 本機解析（已移除有 high CVE 的 SheetJS <code>xlsx</code> 套件）。僅支援 .xlsx。
+          使用 ExcelJS 本機解析（已移除有 high CVE 的 SheetJS <code>xlsx</code> 套件）僅支援 .xlsx
         </p>
         <FileDrop
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -160,7 +160,7 @@ export default function Page() {
             </pre>
           </>
         )}
-        {!csv && !error && !busy && <p className="muted">選擇 .xlsx 後會在本機轉換，不會上傳伺服器。</p>}
+        {!csv && !error && !busy && <p className="muted">選擇 .xlsx 後會在本機轉換，不會上傳伺服器</p>}
       </div>
     </ProjectShell>
   )

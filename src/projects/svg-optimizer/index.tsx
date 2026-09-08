@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('svg-optimizer') ?? {
   slug: 'svg-optimizer',
   title: 'SVG 精簡',
-  description: '移除註解、多餘空白與編輯器雜訊。',
+  description: '移除註解、多餘空白與編輯器雜訊',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -99,7 +99,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          保留 <code>fill=&quot;none&quot;</code>／描邊等語意屬性；僅清註解、多餘空白與常見編輯器屬性。預覽以 Blob URL 安全顯示。
+          保留 <code>fill=&quot;none&quot;</code>／描邊等語意屬性；僅清註解、多餘空白與常見編輯器屬性預覽以 Blob URL 安全顯示
         </p>
         <label className="stack">
           <span className="label">SVG</span>

@@ -4,11 +4,12 @@ import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { fileToDataURL, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { copyText, formatBytes } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-to-base64',
   title: '圖片 → Base64',
-  description: '將圖片轉成 Data URL／Base64。',
+  description: '將圖片轉成 Data URL／Base64',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -60,13 +61,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!dataUrl || busy} onClick={downloadTxt}>
-          下載 txt
-        </button>
+        <ActionButton className="btn sm accent" disabled={!dataUrl || busy} onClick={downloadTxt}>下載 txt
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        Base64 會比原檔大約 33%，大圖可能拖慢頁面或剪貼簿。僅本機轉換，不會上傳。
+        Base64 會比原檔大約 33%，大圖可能拖慢頁面或剪貼簿僅本機轉換，不會上傳
       </p>
       <div className="panel stack">
         <FileDrop
@@ -97,9 +97,8 @@ export default function Page() {
               <button type="button" className="btn ghost" onClick={() => void copyText(b64)}>
                 複製純 Base64
               </button>
-              <button type="button" className="btn ghost" onClick={downloadTxt}>
-                下載 txt
-              </button>
+              <ActionButton className="btn ghost" onClick={downloadTxt}>下載 txt
+     </ActionButton>
             </div>
             <pre className="metric mono" style={{ maxHeight: 160, overflow: 'auto', wordBreak: 'break-all', whiteSpace: 'pre-wrap', fontSize: 11 }}>
               {dataUrl.slice(0, 500)}

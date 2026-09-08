@@ -43,6 +43,7 @@ export function Layout() {
           type="button"
           className="menu-btn"
           aria-label="開啟選單"
+          data-tooltip="開啟選單"
           onClick={() => setMobileOpen((v) => !v)}
         >
           <IconMenu size={18} strokeWidth={2.25} />
@@ -52,7 +53,7 @@ export function Layout() {
           className="sidebar-toggle"
           aria-label={collapsed ? '展開左側導覽' : '收合左側導覽'}
           aria-pressed={collapsed}
-          title={collapsed ? '展開導覽' : '收合導覽'}
+          data-tooltip={collapsed ? '展開導覽' : '收合導覽'}
           onClick={() => setCollapsed((v) => !v)}
         >
           {collapsed ? (

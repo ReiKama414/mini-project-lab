@@ -4,6 +4,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('recipe-manager')!
 
@@ -227,9 +228,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" disabled={!recipes.length} onClick={exportJson}>
-            匯出 JSON
-          </button>
+          <ActionButton className="btn ghost sm" disabled={!recipes.length} onClick={exportJson}>匯出 JSON</ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
             匯入 JSON
           </button>
@@ -339,9 +338,7 @@ export default function Page() {
               </span>
             </div>
           </div>
-          <button className="btn accent" onClick={add} disabled={!canAdd}>
-            收藏食譜
-          </button>
+          <ActionButton className="btn accent" onClick={add} disabled={!canAdd}>收藏食譜</ActionButton>
           {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 則食譜</p>}
 
           <div className="stack" style={{ gap: 0 }}>
@@ -414,14 +411,11 @@ export default function Page() {
                 <button className="btn sm ghost" onClick={() => setServings(current.baseServings)}>
                   重置
                 </button>
-                <button
-                  type="button"
+                <ActionButton
                   className="btn sm teal"
                   disabled={!scaled.length}
                   onClick={downloadScaledIngredients}
-                >
-                  下載縮放食材
-                </button>
+                >下載縮放食材</ActionButton>
               </div>
               <div>
                 <div className="label">食材清單（可勾選）</div>

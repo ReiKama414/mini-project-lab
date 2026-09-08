@@ -7,13 +7,14 @@ import { clamp, formatBytes } from '../../lib/utils'
 import { downloadBlob, downloadCanvas } from '../../lib/imageCanvas'
 import * as pdfjs from 'pdfjs-dist'
 import JSZip from 'jszip'
+import { ActionButton } from '../../components/ActionButton'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 const fallback: ProjectMeta = {
   slug: 'pdf-to-image',
   title: 'PDF 轉圖片',
-  description: '將 PDF 頁面渲染成 PNG 並下載。',
+  description: '將 PDF 頁面渲染成 PNG 並下載',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -165,7 +166,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        使用 pdf.js 本機渲染。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁；預覽最多前 5 頁。
+        使用 pdf.js 本機渲染單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁；預覽最多前 5 頁
       </p>
       <div className="panel stack">
         <FileDrop
@@ -194,12 +195,10 @@ export default function Page() {
             onChange={(e) => setScale(clamp(Number(e.target.value) / 10, 0.5, 3))}
           />
         </label>
-        <p className="field-hint">變更倍率後請重新上傳以更新預覽；下載會使用目前倍率。</p>
+        <p className="field-hint">變更倍率後請重新上傳以更新預覽；下載會使用目前倍率</p>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {busy && (
-            <button type="button" className="btn sm ghost" onClick={abort}>
-              取消
-            </button>
+            <ActionButton className="btn sm ghost" onClick={abort}>取消</ActionButton>
           )}
           <button type="button" className="btn ghost" disabled={!previews.length || busy} onClick={() => void downloadFirst()}>
             下載第 1 頁

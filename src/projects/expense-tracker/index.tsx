@@ -5,6 +5,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('expense-tracker')!
 
@@ -147,9 +148,8 @@ export default function Page() {
             <div className="muted">{month} 支出</div>
             <div style={{ fontSize: 28 }}>${total.toLocaleString()}</div>
           </div>
-          <button className="btn teal" onClick={exportCsv} disabled={!filtered.length}>
-            匯出 CSV
-          </button>
+          <ActionButton className="btn teal" onClick={exportCsv} disabled={!filtered.length}>匯出 CSV
+     </ActionButton>
         </div>
 
         <div className="grid-2">

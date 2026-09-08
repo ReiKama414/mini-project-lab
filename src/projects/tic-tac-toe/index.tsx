@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, pick, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('tic-tac-toe')!
 
@@ -147,9 +148,8 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={reset}>
             新局
           </button>
-          <button type="button" className="btn sm ghost" disabled={!matches.length} onClick={exportMatches}>
-            匯出戰績
-          </button>
+          <ActionButton className="btn sm ghost" disabled={!matches.length} onClick={exportMatches}>匯出戰績
+       </ActionButton>
         </div>
       }
     >
@@ -281,7 +281,7 @@ export default function Page() {
                 </button>
               </li>
             ))}
-            {!filteredMatches.length && <p className="muted">完成一局後會自動記錄。</p>}
+            {!filteredMatches.length && <p className="muted">完成一局後會自動記錄</p>}
           </ul>
         </div>
       </div>

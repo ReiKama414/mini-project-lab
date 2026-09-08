@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText }
 const meta: ProjectMeta = getProject('sha256') ?? {
   slug: 'sha256',
   title: 'SHA-256',
-  description: '文字或檔案 SHA-256 雜湊。',
+  description: '文字或檔案 SHA-256 雜湊',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -81,7 +81,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          以 Web Crypto 本機計算 SHA-256。文字輸入不寫入 localStorage；大檔案會顯示忙碌狀態。
+          以 Web Crypto 本機計算 SHA-256文字輸入不寫入 localStorage；大檔案會顯示忙碌狀態
         </p>
         <label className="stack">
           <span className="label">文字</span>

@@ -8,7 +8,7 @@ import { copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
 const meta: ProjectMeta = getProject('web-manifest') ?? {
   slug: 'web-manifest',
   title: 'Web Manifest',
-  description: '產生 PWA manifest.json。',
+  description: '產生 PWA manifest.json',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -47,7 +47,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          產生基本 PWA manifest 草稿。icons 為佔位路徑，請自行替換實際圖示與更多尺寸。
+          產生基本 PWA manifest 草稿icons 為佔位路徑，請自行替換實際圖示與更多尺寸
         </p>
         <div className="grid-2">
           <label className="stack">

@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, mapPixels, clampByte, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-saturation',
   title: '圖片飽和度調整',
-  description: '調整色彩飽和度。',
+  description: '調整色彩飽和度',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -72,13 +73,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        以灰階混合調整飽和度，非 HSL 編輯器。大圖可能較慢。僅本機處理，不會上傳。
+        以灰階混合調整飽和度，非 HSL 編輯器大圖可能較慢僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -99,9 +99,8 @@ export default function Page() {
             <span className="label">飽和度 {amount}</span>
             <input type="range" min={-100} max={100} value={amount} onChange={(e) => setAmount(clamp(Number(e.target.value), -100, 100))} />
           </label>
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

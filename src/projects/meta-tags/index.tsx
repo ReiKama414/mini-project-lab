@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, isValidHttpUrl, limitTex
 const meta: ProjectMeta = getProject('meta-tags') ?? {
   slug: 'meta-tags',
   title: 'Meta Tags 產生器',
-  description: '產生 HTML meta／OG 標籤。',
+  description: '產生 HTML meta／OG 標籤',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -42,7 +42,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          產生常用 meta／OG／Twitter 標籤草稿。實際 SEO 與社群預覽仍需依平台驗證。
+          產生常用 meta／OG／Twitter 標籤草稿實際 SEO 與社群預覽仍需依平台驗證
         </p>
         <div className="grid-2">
           <label className="stack">

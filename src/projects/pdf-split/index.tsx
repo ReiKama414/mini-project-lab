@@ -13,7 +13,7 @@ import JSZip from 'jszip'
 const fallback: ProjectMeta = {
   slug: 'pdf-split',
   title: 'PDF 分割',
-  description: '依頁碼範圍或逐頁分割 PDF（縮圖預覽）。',
+  description: '依頁碼範圍或逐頁分割 PDF（縮圖預覽）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -159,8 +159,8 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機分割 PDF，支援範圍與逐頁 ZIP。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES}{' '}
-        頁。點擊縮圖可將頁碼加入範圍。
+        本機分割 PDF，支援範圍與逐頁 ZIP單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES}{' '}
+        頁點擊縮圖可將頁碼加入範圍
       </p>
       <div className="panel stack">
         <FileDrop

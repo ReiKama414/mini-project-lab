@@ -10,7 +10,7 @@ import { formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 const meta: ProjectMeta = getProject('zip-builder') ?? {
   slug: 'zip-builder',
   title: 'ZIP 打包',
-  description: '本機將多檔打包成 ZIP。',
+  description: '本機將多檔打包成 ZIP',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['utility'],
@@ -119,7 +119,7 @@ export default function Page() {
     >
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          上限：{MAX_FILES} 檔、單檔 {formatBytes(MAX_SINGLE)}、合計 {formatBytes(MAX_TOTAL)}。同名檔會自動加 (1)、(2)…
+          上限：{MAX_FILES} 檔、單檔 {formatBytes(MAX_SINGLE)}、合計 {formatBytes(MAX_TOTAL)}同名檔會自動加 (1)、(2)…
         </p>
         <FileDrop
           multiple

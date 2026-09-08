@@ -16,7 +16,7 @@ import JSZip from 'jszip'
 const fallback: ProjectMeta = {
   slug: 'batch-watermark',
   title: '批次浮水印',
-  description: '為多張圖片一次加上浮水印並打包下載。',
+  description: '為多張圖片一次加上浮水印並打包下載',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -156,7 +156,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        一次最多 {MAX_FILES} 張，全部在瀏覽器本機處理。預覽以第一張為準。
+        一次最多 {MAX_FILES} 張，全部在瀏覽器本機處理預覽以第一張為準
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">

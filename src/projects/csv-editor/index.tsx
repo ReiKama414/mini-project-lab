@@ -11,7 +11,7 @@ import { parseCsv, stringifyCsv } from '../../lib/csv'
 const meta: ProjectMeta = getProject('csv-editor') ?? {
   slug: 'csv-editor',
   title: 'CSV 編輯器',
-  description: '支援引號欄位的 CSV 編輯與匯出。',
+  description: '支援引號欄位的 CSV 編輯與匯出',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['data'],
@@ -124,8 +124,8 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          支援引號、逗號與換行欄位（RFC4180）。編輯表格會同步更新匯出內容。載入上限 {ROW_MAX} 列 × {COL_MAX}{' '}
-          欄；預覽可限制顯示列數以免卡頓。
+          支援引號、逗號與換行欄位（RFC4180）編輯表格會同步更新匯出內容載入上限 {ROW_MAX} 列 × {COL_MAX}{' '}
+          欄；預覽可限制顯示列數以免卡頓
         </p>
         <FileDrop
           accept=".csv,text/csv,text/plain"
@@ -220,7 +220,7 @@ export default function Page() {
         </div>
         {truncated && (
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            為避免卡頓，目前僅顯示前 {previewLimit} 列（共 {rows.length} 列仍保留於匯出）。切換為「全部」可編輯其餘列。
+            為避免卡頓，目前僅顯示前 {previewLimit} 列（共 {rows.length} 列仍保留於匯出）切換為「全部」可編輯其餘列
           </p>
         )}
       </div>

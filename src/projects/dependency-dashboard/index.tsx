@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, downloadText, isNonEmpty, limitText, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('dependency-dashboard')!
 
@@ -188,9 +189,8 @@ export default function Page() {
           <button type="button" className="btn ghost sm" disabled={bulkFetching || !deps.length} onClick={() => void checkAllLatest()}>
             {bulkFetching ? '查詢中…' : '從 npm 查最新'}
           </button>
-          <button type="button" className="btn ghost sm" onClick={exportCsv}>
-            匯出 CSV
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportCsv}>匯出 CSV
+    </ActionButton>
         </div>
       }
     >
@@ -390,10 +390,10 @@ export default function Page() {
               </li>
             )
           })}
-          {!rows.length && <p className="muted">沒有符合篩選的套件。</p>}
+          {!rows.length && <p className="muted">沒有符合篩選的套件</p>}
         </ul>
         <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-          可離線手動維護清單；「查最新」會向 npm registry 查詢。版本狀態依 semver 比對，可標記忽略、寫備註，並匯出 CSV。
+          可離線手動維護清單；「查最新」會向 npm registry 查詢版本狀態依 semver 比對，可標記忽略、寫備註，並匯出 CSV
         </p>
       </div>
     </ProjectShell>

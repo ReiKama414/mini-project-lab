@@ -1,6 +1,8 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { ActionButton } from '../../components/ActionButton'
 import { DeleteButton } from '../../components/DeleteButton'
+import { EditButton } from '../../components/EditButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, charCount, isNonEmpty, isValidEmail, limitText } from '../../lib/utils'
@@ -239,15 +241,15 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={exportCsv}>
+          <ActionButton type="button" className="btn ghost sm" onClick={exportCsv}>
             匯出 CSV
-          </button>
-          <button type="button" className="btn ghost sm" disabled={!contacts.length} onClick={exportJson}>
+          </ActionButton>
+          <ActionButton type="button" className="btn ghost sm" disabled={!contacts.length} onClick={exportJson}>
             匯出 JSON
-          </button>
-          <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
+          </ActionButton>
+          <ActionButton type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
             匯入 JSON
-          </button>
+          </ActionButton>
           <input
             ref={importRef}
             type="file"
@@ -258,13 +260,13 @@ export default function Page() {
               e.target.value = ''
             }}
           />
-          <button
+          <ActionButton
             type="button"
             className="btn ghost sm"
             onClick={() => void copyText(filtered.map((c) => `${c.name} <${c.email}>`).join('\n'))}
           >
             複製清單
-          </button>
+          </ActionButton>
         </div>
       }
     >
@@ -369,9 +371,9 @@ export default function Page() {
           </div>
           {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 位聯絡人</p>}
           <div className="row">
-            <button type="button" className="btn accent" onClick={saveForm} disabled={!canSave}>
+            <ActionButton type="button" className="btn accent" onClick={saveForm} disabled={!canSave}>
               {editingId ? '更新' : '儲存'}
-            </button>
+            </ActionButton>
             {editingId && (
               <button
                 type="button"
@@ -439,13 +441,11 @@ export default function Page() {
                         </option>
                       ))}
                     </select>
-                    <button type="button" className="btn sm ghost" onClick={() => startEdit(c)}>
-                      編輯
-                    </button>
+                    <EditButton onClick={() => startEdit(c)} />
                     {c.email && (
-                      <button type="button" className="btn sm ghost" onClick={() => void copyText(c.email)}>
+                      <ActionButton type="button" className="btn sm ghost" onClick={() => void copyText(c.email)}>
                         複製 Email
-                      </button>
+                      </ActionButton>
                     )}
                     <DeleteButton onClick={() => setContacts((xs) => xs.filter((x) => x.id !== c.id))} label="刪除" />
                   </div>

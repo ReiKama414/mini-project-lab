@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-pdf-qa')!
 
@@ -16,17 +17,17 @@ type QA = { id: string; q: string; a: string; hits: Hit[]; at: number; favorite?
 const SAMPLES: { name: string; text: string; questions: string[] }[] = [
   {
     name: '訂閱方案 FAQ',
-    text: '本產品提供訂閱制方案。基本方案每月 299 元，含 5 位成員。專業方案每月 799 元，含 25 位成員與優先支援。企業方案支援 SSO 與審計日誌。客服時間為週一至週五 9:00–18:00。退款政策為購買後 7 天內可申請全額退款。匯出功能支援 CSV 與 Markdown。',
+    text: '本產品提供訂閱制方案基本方案每月 299 元，含 5 位成員專業方案每月 799 元，含 25 位成員與優先支援企業方案支援 SSO 與審計日誌客服時間為週一至週五 9:00–18:00退款政策為購買後 7 天內可申請全額退款匯出功能支援 CSV 與 Markdown',
     questions: ['退款政策是什麼？', '專業方案多少錢？', '客服時間？'],
   },
   {
     name: '內部規範摘要',
-    text: '所有對外文案需經行銷審核。個資僅可存放於核准區域。密碼需至少 12 字元並啟用 MFA。事故回報時限為發現後 1 小時內通知值班。開源授權使用前需法務確認。部署需通過 staging 驗證後才可上 production。',
+    text: '所有對外文案需經行銷審核個資僅可存放於核准區域密碼需至少 12 字元並啟用 MFA事故回報時限為發現後 1 小時內通知值班開源授權使用前需法務確認部署需通過 staging 驗證後才可上 production',
     questions: ['密碼規則？', '事故回報時限？', '部署流程？'],
   },
   {
     name: '產品路線圖',
-    text: 'Q3 重點為儀表板改版與離線草稿。Q4 計畫推出行動版與公開 API。公開 API 預計提供讀取專案與任務的 REST 端點。效能目標為首屏小於 2 秒。無障礙目標為符合 WCAG 2.2 AA。',
+    text: 'Q3 重點為儀表板改版與離線草稿Q4 計畫推出行動版與公開 API公開 API 預計提供讀取專案與任務的 REST 端點效能目標為首屏小於 2 秒無障礙目標為符合 WCAG 2.2 AA',
     questions: ['Q4 有什麼計畫？', '效能目標？', '公開 API 做什麼？'],
   },
 ]
@@ -38,7 +39,7 @@ function chunkDoc(doc: string): Chunk[] {
     .filter(Boolean)
   if (paras.length <= 1) {
     const sentences = doc
-      .split(/(?<=[。！？.!?])/)
+      .split(/(?<=[！？.!?])/)
       .map((s) => s.trim())
       .filter((s) => s.length > 2)
     const size = 2
@@ -53,8 +54,8 @@ function chunkDoc(doc: string): Chunk[] {
 
 function search(chunks: Chunk[], q: string): { answer: string; hits: Hit[] } {
   const query = q.trim().toLowerCase()
-  if (!query) return { answer: '請輸入問題。', hits: [] }
-  if (!chunks.length) return { answer: '請先貼上文件內容。', hits: [] }
+  if (!query) return { answer: '請輸入問題', hits: [] }
+  if (!chunks.length) return { answer: '請先貼上文件內容', hits: [] }
 
   const tokens = query
     .split(/[\s,，?？]+/)
@@ -64,7 +65,7 @@ function search(chunks: Chunk[], q: string): { answer: string; hits: Hit[] } {
   const hits: Hit[] = []
   for (const ch of chunks) {
     const sentences = ch.text
-      .split(/(?<=[。！？.!?])|\n/)
+      .split(/(?<=[！？.!?])|\n/)
       .map((s) => s.trim())
       .filter((s) => s.length > 2)
     for (const sentence of sentences) {
@@ -77,7 +78,7 @@ function search(chunks: Chunk[], q: string): { answer: string; hits: Hit[] } {
   const top = hits.slice(0, 5)
   if (!top.length) {
     return {
-      answer: `找不到直接對應句。文件開頭：${chunks[0]!.text.slice(0, 80)}…`,
+      answer: `找不到直接對應句文件開頭：${chunks[0]!.text.slice(0, 80)}…`,
       hits: [],
     }
   }
@@ -146,9 +147,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" disabled={!history.length} onClick={exportHistory}>
-            匯出問答
-          </button>
+          <ActionButton className="btn ghost sm" disabled={!history.length} onClick={exportHistory}>匯出問答
+       </ActionButton>
           <button
             type="button"
             className="btn ghost sm"
@@ -213,7 +213,7 @@ export default function Page() {
             <span>{charCount(doc)}/{DOC_MAX}</span>
           </div>
           {!isNonEmpty(doc) ? (
-            <p className="field-error">文件不可空白。可貼上文字或選範例（關鍵字匹配，非真實 LLM）。</p>
+            <p className="field-error">文件不可空白可貼上文字或選範例（關鍵字匹配，非真實 LLM）</p>
           ) : (
             <>
               <div className="label">文件區塊預覽</div>
@@ -276,7 +276,7 @@ export default function Page() {
             ) : (
               <div className="list-item">
                 <p className="muted" style={{ margin: 0 }}>
-                  輸入問題或點建議問題。會依關鍵字在文件區塊中找命中句子。
+                  輸入問題或點建議問題會依關鍵字在文件區塊中找命中句子
                 </p>
               </div>
             )}
@@ -303,7 +303,7 @@ export default function Page() {
               <div className="list-item stack">
                 <strong>尚無紀錄</strong>
                 <p className="muted" style={{ margin: 0 }}>
-                  提問後會出現在這裡，可收藏重要回答。
+                  提問後會出現在這裡，可收藏重要回答
                 </p>
               </div>
             ) : (

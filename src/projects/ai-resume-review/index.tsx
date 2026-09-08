@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-resume-review')!
 
@@ -192,9 +193,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" disabled={!result} onClick={exportReport}>
-            匯出報告
-          </button>
+          <ActionButton className="btn ghost sm" disabled={!result} onClick={exportReport}>匯出報告
+       </ActionButton>
           <button
             type="button"
             className="btn ghost sm"
@@ -259,7 +259,7 @@ export default function Page() {
           </div>
           {!isNonEmpty(resume) && (
             <p className="field-hint">
-              貼上履歷或選範例，啟發式規則會評分聯絡、量化、動詞、結構與區塊完整度（無需真實 LLM）。
+              貼上履歷或選範例，啟發式規則會評分聯絡、量化、動詞、結構與區塊完整度（無需真實 LLM）
             </p>
           )}
         </div>
@@ -272,7 +272,7 @@ export default function Page() {
               <div className="list-item stack">
                 <strong>尚無報告</strong>
                 <p className="muted" style={{ margin: 0 }}>
-                  回到上一步貼上履歷並按「健檢」。
+                  回到上一步貼上履歷並按「健檢」
                 </p>
               </div>
             ) : (
@@ -356,7 +356,7 @@ export default function Page() {
             </button>
           </div>
           {history.length === 0 ? (
-            <p className="muted">每次健檢會留下分數快照。</p>
+            <p className="muted">每次健檢會留下分數快照</p>
           ) : (
             <ul className="list" style={{ maxHeight: 200, overflow: 'auto' }}>
               {history.map((h, i) => (
@@ -389,7 +389,7 @@ export default function Page() {
             </button>
           </div>
           {favs.length === 0 ? (
-            <p className="muted">把實用的改寫建議收藏起來。</p>
+            <p className="muted">把實用的改寫建議收藏起來</p>
           ) : (
             <ul className="list" style={{ maxHeight: 200, overflow: 'auto' }}>
               {favs.map((f) => (

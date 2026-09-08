@@ -4,6 +4,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText, downloadText, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('clipboard-manager')!
 
@@ -167,9 +168,8 @@ export default function Page() {
           <button type="button" className="btn teal" onClick={pasteFromSystem}>
             讀取系統剪貼簿
           </button>
-          <button type="button" className="btn ghost" onClick={exportJson} disabled={!items.length}>
-            匯出 JSON
-          </button>
+          <ActionButton className="btn ghost" onClick={exportJson} disabled={!items.length}>匯出 JSON
+    </ActionButton>
           <button type="button" className="btn ghost" onClick={() => importRef.current?.click()}>
             匯入 JSON
           </button>

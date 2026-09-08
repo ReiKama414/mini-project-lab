@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, isValidHttpUrl, limitTex
 const meta: ProjectMeta = getProject('og-preview') ?? {
   slug: 'og-preview',
   title: 'OG 預覽',
-  description: '預覽 Open Graph 分享卡片外觀。',
+  description: '預覽 Open Graph 分享卡片外觀',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -104,7 +104,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        視覺示意預覽，非各社群平台真實渲染。實際外觀依平台裁切與快取而定。可從網址抓取 og:title／description／image。
+        視覺示意預覽，非各社群平台真實渲染實際外觀依平台裁切與快取而定可從網址抓取 og:title／description／image
       </p>
       <div className="grid-2">
         <div className="panel stack">

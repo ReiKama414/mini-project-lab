@@ -10,7 +10,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'images-to-pdf',
   title: '圖片轉 PDF',
-  description: '將多張圖片合併成 PDF。',
+  description: '將多張圖片合併成 PDF',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -144,7 +144,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        支援 JPG／PNG；WebP／GIF 會先轉成 PNG 再嵌入。最多 {MAX_FILES} 張，單張上限 {formatBytes(IMAGE_MAX_BYTES)}。可拖曳列表調整順序。
+        支援 JPG／PNG；WebP／GIF 會先轉成 PNG 再嵌入最多 {MAX_FILES} 張，單張上限 {formatBytes(IMAGE_MAX_BYTES)}可拖曳列表調整順序
       </p>
       <div className="panel stack">
         <FileDrop

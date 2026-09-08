@@ -114,8 +114,8 @@ export default function Page() {
         </div>
         <p className="muted" style={{ fontSize: 12 }}>
           {mode === 'component'
-            ? '適合查詢參數與路徑片段：會編碼 / ? & = 等字元。'
-            : '適合完整 URL：保留 : / ? # 等結構字元，只編碼非 ASCII 等。'}
+            ? '適合查詢參數與路徑片段：會編碼 / ? & = 等字元'
+            : '適合完整 URL：保留 : / ? # 等結構字元，只編碼非 ASCII 等'}
         </p>
         <label className="stack">
           <span className="label">原始字串</span>
@@ -202,7 +202,7 @@ export default function Page() {
             ))}
           </ul>
           <p className="muted" style={{ fontSize: 12 }}>
-            {parts.ok ? '已辨識為完整 URL，依 pathname／search／hash／query 拆解。' : '非完整 URL，改以分隔符片段解碼。'}
+            {parts.ok ? '已辨識為完整 URL，依 pathname／search／hash／query 拆解' : '非完整 URL，改以分隔符片段解碼'}
           </p>
         </div>
       </div>

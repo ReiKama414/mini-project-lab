@@ -382,11 +382,11 @@ export default function Page() {
             </div>
           ) : (
             <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-              變更顏色後會自動記錄於此（本機）。
+              變更顏色後會自動記錄於此（本機）
             </p>
           )}
           <p className="muted" style={{ fontSize: 12 }}>
-            可直接貼上 <code>rgb(...)</code>／<code>hsl(...)</code>。上次顏色：{hex}
+            可直接貼上 <code>rgb(...)</code>／<code>hsl(...)</code>上次顏色：{hex}
           </p>
         </div>
       </div>

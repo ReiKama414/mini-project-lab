@@ -350,7 +350,7 @@ export default function Page() {
             </div>
           ) : (
             <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-              點「加入收藏」把目前顏色存到本機色票。
+              點「加入收藏」把目前顏色存到本機色票
             </p>
           )}
         </div>

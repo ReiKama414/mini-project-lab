@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-pixelate',
   title: '像素化',
-  description: '整圖像素化風格效果。',
+  description: '整圖像素化風格效果',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -77,13 +78,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        整圖縮放再放大形成像素格。若需局部請用馬賽克工具。僅本機處理，不會上傳。
+        整圖縮放再放大形成像素格若需局部請用馬賽克工具僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -104,9 +104,8 @@ export default function Page() {
             <span className="label">像素格 {block}px</span>
             <input type="range" min={2} max={64} value={block} onChange={(e) => setBlock(clamp(Number(e.target.value), 2, 64))} />
           </label>
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

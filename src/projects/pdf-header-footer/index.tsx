@@ -13,7 +13,7 @@ import { usePdfThumbs } from '../../lib/usePdfThumbs'
 const fallback: ProjectMeta = {
   slug: 'pdf-header-footer',
   title: 'PDF 頁首頁尾',
-  description: '為每頁加上頁首與頁尾文字。',
+  description: '為每頁加上頁首與頁尾文字',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -127,7 +127,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        以影像嵌入頁首／頁尾，支援中文。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁。
+        以影像嵌入頁首／頁尾，支援中文單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop

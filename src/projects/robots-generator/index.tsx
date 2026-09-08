@@ -8,7 +8,7 @@ import { copyText, downloadText, isNonEmpty, isValidHttpUrl, limitText } from '.
 const meta: ProjectMeta = getProject('robots-generator') ?? {
   slug: 'robots-generator',
   title: 'robots.txt 產生器',
-  description: '產生 robots.txt 規則。',
+  description: '產生 robots.txt 規則',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -41,7 +41,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          產生簡易 robots.txt。實際爬蟲行為因引擎而異；此工具不涵蓋多 User-agent 區塊。
+          產生簡易 robots.txt實際爬蟲行為因引擎而異；此工具不涵蓋多 User-agent 區塊
         </p>
         <label className="row" style={{ gap: 6 }}>
           <input type="checkbox" checked={allowAll} onChange={(e) => setAllowAll(e.target.checked)} />

@@ -11,7 +11,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('javascript-formatter') ?? {
   slug: 'javascript-formatter',
   title: 'JavaScript Formatter',
-  description: '以 Prettier 美化／壓縮 JS。',
+  description: '以 Prettier 美化／壓縮 JS',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -59,7 +59,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          使用 Prettier（babel parser）於瀏覽器本機格式化。壓縮模式會先解析再去掉多餘空白。
+          使用 Prettier（babel parser）於瀏覽器本機格式化壓縮模式會先解析再去掉多餘空白
         </p>
         <label className="stack">
           <span className="label">JavaScript</span>

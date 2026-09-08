@@ -260,7 +260,7 @@ export default function Page() {
         </label>
         {error && <p className="field-error">{error}</p>}
         <p className="muted" style={{ fontSize: 12 }}>
-          使用 TextEncoder／TextDecoder 處理 UTF-8；大檔案以分塊轉成 Base64，避免呼叫堆疊溢出。疑似二進位解碼結果請下載 .bin。
+          使用 TextEncoder／TextDecoder 處理 UTF-8；大檔案以分塊轉成 Base64，避免呼叫堆疊溢出疑似二進位解碼結果請下載 .bin
         </p>
       </div>
     </ProjectShell>

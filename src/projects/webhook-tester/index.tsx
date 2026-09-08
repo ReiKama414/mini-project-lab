@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('webhook-tester')!
 
@@ -245,7 +246,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機模擬 webhook 收件與簽章流程。簽章為示範用簡易雜湊，非正式 HMAC。Secret 不寫入 localStorage。
+        本機模擬 webhook 收件與簽章流程簽章為示範用簡易雜湊，非正式 HMACSecret 不寫入 localStorage
       </p>
       <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         <span className="label" style={{ margin: 0 }}>
@@ -357,15 +358,12 @@ export default function Page() {
             <button type="button" className="btn ghost sm" onClick={pretty} disabled={!isNonEmpty(body) || bodyTooBig}>
               Pretty Print
             </button>
-            <button type="button" className="btn ghost sm" onClick={signPayload} disabled={!isNonEmpty(body)}>
-              產生簽章
-            </button>
+            <ActionButton className="btn ghost sm" onClick={signPayload} disabled={!isNonEmpty(body)}>產生簽章
+       </ActionButton>
             <button type="button" className="btn ghost sm" onClick={verifySignature}>
               驗證簽章
             </button>
-            <button type="button" className="btn accent" onClick={send} disabled={!canSend}>
-              送出 → {statusCode}
-            </button>
+            <ActionButton className="btn accent" onClick={send} disabled={!canSend}>送出 → {statusCode}</ActionButton>
             <button
               type="button"
               className="btn ghost sm"

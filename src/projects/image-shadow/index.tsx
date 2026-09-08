@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-shadow',
   title: '圖片加陰影',
-  description: '為圖片加上投影效果。',
+  description: '為圖片加上投影效果',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -76,13 +77,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        使用 Canvas 陰影 API，陰影會擴大畫布。匯出透明 PNG。僅本機處理，不會上傳。
+        使用 Canvas 陰影 API，陰影會擴大畫布匯出透明 PNG僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -115,9 +115,8 @@ export default function Page() {
             <span className="label">邊距 {pad}px</span>
             <input type="range" min={0} max={120} value={pad} onChange={(e) => setPad(clamp(Number(e.target.value), 0, 120))} />
           </label>
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

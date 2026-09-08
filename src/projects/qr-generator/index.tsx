@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, copyText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('qr-generator')!
 
@@ -128,9 +129,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" disabled={!canAct} onClick={saveHistory}>
-            存入歷史
-          </button>
+          <ActionButton className="btn sm ghost" disabled={!canAct} onClick={saveHistory}>存入歷史
+       </ActionButton>
           <button type="button" className="btn sm teal" disabled={!canAct} onClick={() => void downloadSvg()}>
             SVG
           </button>
@@ -329,7 +329,7 @@ export default function Page() {
                   </div>
                 </li>
               ))}
-              {!filteredHistory.length && <p className="muted">下載或按「存入歷史」後會出現在此（本機）。</p>}
+              {!filteredHistory.length && <p className="muted">下載或按「存入歷史」後會出現在此（本機）</p>}
             </ul>
           </div>
         </div>

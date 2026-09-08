@@ -9,7 +9,7 @@ import { loadImageFromFile, canvasFromImage, downloadBlob, IMAGE_ACCEPT, IMAGE_M
 const fallback: ProjectMeta = {
   slug: 'image-converter',
   title: '圖片格式轉換',
-  description: '在 JPG／PNG／WebP 之間轉換。',
+  description: '在 JPG／PNG／WebP 之間轉換',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -130,7 +130,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        經 Canvas 重編碼；動畫 GIF 只會輸出第一幀，JPEG 會以白底填透明。本機處理，不會上傳。
+        經 Canvas 重編碼；動畫 GIF 只會輸出第一幀，JPEG 會以白底填透明本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">

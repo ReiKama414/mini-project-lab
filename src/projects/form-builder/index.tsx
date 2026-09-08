@@ -4,6 +4,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, charCount, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('form-builder')!
 
@@ -16,7 +17,7 @@ const PRESETS: { label: string; title: string; desc: string; fields: Omit<Field,
   {
     label: '聯絡我們',
     title: '聯絡我們',
-    desc: '留下訊息，我們會盡快回覆。',
+    desc: '留下訊息，我們會盡快回覆',
     fields: [
       { label: '姓名', type: 'text', required: true },
       { label: 'Email', type: 'email', required: true },
@@ -28,7 +29,7 @@ const PRESETS: { label: string; title: string; desc: string; fields: Omit<Field,
   {
     label: '活動報名',
     title: '活動報名表',
-    desc: '請填寫以下資料完成報名。',
+    desc: '請填寫以下資料完成報名',
     fields: [
       { label: '姓名', type: 'text', required: true },
       { label: 'Email', type: 'email', required: true },
@@ -41,7 +42,7 @@ const PRESETS: { label: string; title: string; desc: string; fields: Omit<Field,
   {
     label: '意見回饋',
     title: '產品意見回饋',
-    desc: '告訴我們哪裡可以更好。',
+    desc: '告訴我們哪裡可以更好',
     fields: [
       { label: '暱稱', type: 'text', required: false },
       { label: 'Email', type: 'email', required: false },
@@ -74,7 +75,7 @@ export default function Page() {
     { id: '5', label: '留言', type: 'textarea', required: false },
   ])
   const [title, setTitle] = useLocalStorage('lab:form-builder:title', '聯絡我們')
-  const [desc, setDesc] = useLocalStorage('lab:form-builder:desc', '留下訊息，我們會盡快回覆。')
+  const [desc, setDesc] = useLocalStorage('lab:form-builder:desc', '留下訊息，我們會盡快回覆')
   const [submissions, setSubmissions] = useLocalStorage<Submission[]>('lab:form-builder:subs', [])
   const [favSchema, setFavSchema] = useLocalStorage<{ title: string; desc: string; fields: Field[] } | null>(
     'lab:form-builder:fav',
@@ -188,12 +189,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={exportSchema}>
-            匯出結構
-          </button>
-          <button type="button" className="btn ghost sm" disabled={!submissions.length} onClick={exportSubs}>
-            匯出回覆
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportSchema}>匯出結構</ActionButton>
+          <ActionButton className="btn ghost sm" disabled={!submissions.length} onClick={exportSubs}>匯出回覆</ActionButton>
         </div>
       }
     >
@@ -267,13 +264,13 @@ export default function Page() {
             <div className="list-item stack">
               <strong>尚無欄位</strong>
               <p className="muted" style={{ margin: 0 }}>
-                選預設模板，或用上方按鈕新增欄位。
+                選預設模板，或用上方按鈕新增欄位
               </p>
             </div>
           ) : (
             <>
               <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                可拖曳欄位重新排序，或使用 ↑↓ 按鈕。
+                可拖曳欄位重新排序，或使用 ↑↓ 按鈕
               </p>
               {fields.map((f, i) => {
                 const isDragging = dragId === f.id
@@ -453,9 +450,7 @@ export default function Page() {
                 <button type="button" className="btn ghost" onClick={() => setTab('build')}>
                   ← 編輯
                 </button>
-                <button type="button" className="btn accent" onClick={submit}>
-                  送出（存本機）
-                </button>
+                <ActionButton className="btn accent" onClick={submit}>送出（存本機）</ActionButton>
               </div>
             </>
           )}
@@ -467,9 +462,7 @@ export default function Page() {
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <span className="label">本機回覆</span>
             <span className="metric">{submissions.length}</span>
-            <button type="button" className="btn sm ghost" disabled={!submissions.length} onClick={exportSubs}>
-              匯出 JSON
-            </button>
+            <ActionButton className="btn sm ghost" disabled={!submissions.length} onClick={exportSubs}>匯出 JSON</ActionButton>
             <button
               type="button"
               className="btn sm ghost"
@@ -496,7 +489,7 @@ export default function Page() {
             <div className="list-item stack">
               <strong>尚無回覆</strong>
               <p className="muted" style={{ margin: 0 }}>
-                在「即時預覽」填寫並送出後，資料會出現在這裡（僅存瀏覽器本機）。
+                在「即時預覽」填寫並送出後，資料會出現在這裡（僅存瀏覽器本機）
               </p>
               <button type="button" className="btn ghost" onClick={() => setTab('preview')}>
                 去預覽填寫 →

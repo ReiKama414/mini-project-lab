@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, downloadText, isNonEmpty, limitText, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('simple-analytics')!
 
@@ -138,7 +139,7 @@ export default function Page() {
   }
 
   function clearData() {
-    if (!confirm('確定清除全部事件資料？此動作無法復原。')) return
+    if (!confirm('確定清除全部事件資料？此動作無法復原')) return
     setEvents([])
   }
 
@@ -147,17 +148,15 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={exportCsv} disabled={!events.length}>
-            匯出 CSV
-          </button>
-          <button type="button" className="btn sm danger" onClick={clearData} disabled={!events.length}>
-            清除資料
-          </button>
+          <ActionButton className="btn sm ghost" onClick={exportCsv} disabled={!events.length}>匯出 CSV
+     </ActionButton>
+          <ActionButton className="btn sm danger" onClick={clearData} disabled={!events.length}>清除資料
+     </ActionButton>
         </div>
       }
     >
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機模擬／示範：事件資料僅存此瀏覽器，非真實網站流量追蹤。
+        本機模擬／示範：事件資料僅存此瀏覽器，非真實網站流量追蹤
       </p>
       <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         {(['24h', '7d', '30d'] as Range[]).map((r) => (
@@ -252,7 +251,7 @@ export default function Page() {
             ))}
           </div>
           <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-            柱高＝當日全部事件；懸停可看 Pageview 數。轉換事件含 signup / purchase 等。
+            柱高＝當日全部事件；懸停可看 Pageview 數轉換事件含 signup / purchase 等
           </p>
         </div>
 

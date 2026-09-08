@@ -146,8 +146,8 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        非正式 GitHub 貢獻熱度圖：依公開 Events（近 100 筆）粗估或本機模擬，與官方 contribution graph 不同。
-        {stats.source === 'mock' && ' 目前顯示為模擬資料。'}
+        非正式 GitHub 貢獻熱度圖：依公開 Events（近 100 筆）粗估或本機模擬，與官方 contribution graph 不同
+        {stats.source === 'mock' && ' 目前顯示為模擬資料'}
       </p>
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <div className="row" style={{ flexWrap: 'wrap' }}>

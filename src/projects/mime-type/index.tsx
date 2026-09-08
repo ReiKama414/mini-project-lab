@@ -9,7 +9,7 @@ import { charCount, copyText, formatBytes, isNonEmpty, limitText } from '../../l
 const meta: ProjectMeta = getProject('mime-type') ?? {
   slug: 'mime-type',
   title: 'MIME 類型偵測',
-  description: '依副檔名與檔案內容判斷 MIME。',
+  description: '依副檔名與檔案內容判斷 MIME',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['utility'],
@@ -112,7 +112,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        依副檔名猜測 MIME；上傳檔案可對照瀏覽器 File.type，並以魔術位元組偵測 PNG／JPEG／GIF／WEBP／PDF／ZIP（不上傳伺服器）。
+        依副檔名猜測 MIME；上傳檔案可對照瀏覽器 File.type，並以魔術位元組偵測 PNG／JPEG／GIF／WEBP／PDF／ZIP（不上傳伺服器）
       </p>
       <div className="panel stack">
         <label className="stack">

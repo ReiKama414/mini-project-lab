@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, parseNumber, copyText, downloadText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('timestamp')!
 
@@ -170,9 +171,8 @@ export default function Page() {
                 maxLength={TS_MAX}
                 onChange={(e) => setTs(limitText(e.target.value, TS_MAX))}
               />
-              <button className="btn accent" onClick={convertOne} disabled={!isNonEmpty(ts)}>
-                轉換
-              </button>
+              <ActionButton className="btn accent" onClick={convertOne} disabled={!isNonEmpty(ts)}>轉換
+       </ActionButton>
             </div>
             <div className="field-meta">
               <span>{charCount(ts)} / {TS_MAX}</span>
@@ -193,9 +193,8 @@ export default function Page() {
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
               />
-              <button className="btn teal" onClick={dateToTs}>
-                轉換
-              </button>
+              <ActionButton className="btn teal" onClick={dateToTs}>轉換
+       </ActionButton>
             </div>
           </label>
           {error && <p className="field-error">{error}</p>}
@@ -203,12 +202,11 @@ export default function Page() {
         <div className="panel stack">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0 }}>批次轉換</h3>
-            <button className="btn sm ghost" disabled={!batchRows.length} onClick={downloadBatch}>
-              下載結果
-            </button>
+            <ActionButton className="btn sm ghost" disabled={!batchRows.length} onClick={downloadBatch}>下載結果
+       </ActionButton>
           </div>
           <p className="muted" style={{ fontSize: 12 }}>
-            每行一個時間戳；&lt; 1e12 視為秒，否則視為毫秒。
+            每行一個時間戳；&lt; 1e12 視為秒，否則視為毫秒
           </p>
           <textarea
             className="field mono"

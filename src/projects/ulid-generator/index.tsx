@@ -4,11 +4,12 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('ulid-generator') ?? {
   slug: 'ulid-generator',
   title: 'ULID 產生器',
-  description: '產生可排序的 ULID。',
+  description: '產生可排序的 ULID',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -66,7 +67,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          ULID = 時間戳（Crockford Base32）+ Web Crypto 亂數。同毫秒批次會遞增時間以利排序；非完整 monotonic ULID 規格實作。
+          ULID = 時間戳（Crockford Base32）+ Web Crypto 亂數同毫秒批次會遞增時間以利排序；非完整 monotonic ULID 規格實作
         </p>
         <label className="stack">
           <span className="label">
@@ -82,9 +83,8 @@ export default function Page() {
           />
         </label>
         <div className="row">
-          <button type="button" className="btn accent" onClick={generate}>
-            產生 ULID
-          </button>
+          <ActionButton className="btn accent" onClick={generate}>產生 ULID
+    </ActionButton>
           <button
             type="button"
             className="btn ghost"

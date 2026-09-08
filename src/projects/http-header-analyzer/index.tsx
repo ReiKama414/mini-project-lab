@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('http-header-analyzer') ?? {
   slug: 'http-header-analyzer',
   title: 'HTTP Header 分析',
-  description: '貼上回應標頭，檢查安全相關欄位。',
+  description: '貼上回應標頭，檢查安全相關欄位',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -56,7 +56,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          靜態檢查常見安全標頭是否存在，不連線、不驗證語意正確性。僅供快速盤點。
+          靜態檢查常見安全標頭是否存在，不連線、不驗證語意正確性僅供快速盤點
         </p>
         <label className="stack">
           <span className="label">原始標頭</span>

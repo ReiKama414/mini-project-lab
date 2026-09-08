@@ -4,13 +4,14 @@ import { FileDrop } from '../../components/FileDrop'
 import { useRef, useState } from 'react'
 import { formatBytes, copyText, downloadText, limitText, charCount } from '../../lib/utils'
 import * as pdfjs from 'pdfjs-dist'
+import { ActionButton } from '../../components/ActionButton'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 const fallback: ProjectMeta = {
   slug: 'pdf-text-extractor',
   title: 'PDF 文字擷取',
-  description: '從 PDF 擷取可選文字。',
+  description: '從 PDF 擷取可選文字',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -102,7 +103,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        僅擷取內嵌文字層；掃描檔需先 OCR。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁。
+        僅擷取內嵌文字層；掃描檔需先 OCR單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop
@@ -121,9 +122,7 @@ export default function Page() {
         )}
         {error && <p className="field-error">{error}</p>}
         {busy && (
-          <button type="button" className="btn sm ghost" onClick={abort}>
-            取消
-          </button>
+          <ActionButton className="btn sm ghost" onClick={abort}>取消</ActionButton>
         )}
         <div className="field-wrap">
           <label className="label">文字內容</label>

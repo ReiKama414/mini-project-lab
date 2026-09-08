@@ -8,7 +8,7 @@ import { copyText, downloadText, hexToRgb, rgbToHex, rgbToHsl, clamp } from '../
 const meta: ProjectMeta = getProject('color-palette') ?? {
   slug: 'color-palette',
   title: '色彩色盤',
-  description: '由基準色產生色階色盤。',
+  description: '由基準色產生色階色盤',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -57,7 +57,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          依基準色色相／飽和度產生明度階（HSL）。近似示意，非正式設計系統色票。
+          依基準色色相／飽和度產生明度階（HSL）近似示意，非正式設計系統色票
         </p>
         <label className="stack">
           <span className="label">基準色</span>

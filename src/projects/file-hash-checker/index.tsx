@@ -8,7 +8,7 @@ import { copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../.
 const meta: ProjectMeta = getProject('file-hash-checker') ?? {
   slug: 'file-hash-checker',
   title: '檔案雜湊核對',
-  description: '計算檔案 SHA-256 並與預期值比對。',
+  description: '計算檔案 SHA-256 並與預期值比對',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -79,7 +79,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          以 Web Crypto 本機計算 SHA-256，檔案不上傳。預期雜湊只留在記憶體。大檔案會顯示忙碌狀態。
+          以 Web Crypto 本機計算 SHA-256，檔案不上傳預期雜湊只留在記憶體大檔案會顯示忙碌狀態
         </p>
         <div className="stack">
           <span className="label">選擇檔案</span>

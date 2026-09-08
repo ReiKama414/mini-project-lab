@@ -4,6 +4,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText, downloadText, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('json-to-csv')!
 
@@ -212,9 +213,8 @@ export default function Page() {
           <button type="button" className="btn sm accent" onClick={() => runAndMaybeSave(true)} disabled={!isNonEmpty(input)}>
             轉換並存歷史
           </button>
-          <button type="button" className="btn sm ghost" disabled={!csv} onClick={download}>
-            下載 CSV
-          </button>
+          <ActionButton className="btn sm ghost" disabled={!csv} onClick={download}>下載 CSV
+     </ActionButton>
         </div>
       }
     >
@@ -301,9 +301,8 @@ export default function Page() {
             >
               {copied ? '已複製' : '複製'}
             </button>
-            <button type="button" className="btn ghost" disabled={!csv} onClick={download}>
-              下載 CSV
-            </button>
+            <ActionButton className="btn ghost" disabled={!csv} onClick={download}>下載 CSV
+     </ActionButton>
             <button type="button" className="btn ghost" disabled={!csv} onClick={() => runAndMaybeSave(true)}>
               存入歷史
             </button>
@@ -369,7 +368,7 @@ export default function Page() {
                 </div>
               </li>
             ))}
-            {!filteredHistory.length && <p className="muted">尚無歷史。轉換後可按「存入歷史」。</p>}
+            {!filteredHistory.length && <p className="muted">尚無歷史轉換後可按「存入歷史」</p>}
           </ul>
         </div>
       </div>

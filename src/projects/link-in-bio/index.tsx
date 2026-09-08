@@ -6,6 +6,7 @@ import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, charCount, isValidHttpUrl, limitText, formatBytes } from '../../lib/utils'
 import { escapeHtml } from '../../lib/sanitize'
 import { IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('link-in-bio')!
 
@@ -135,9 +136,8 @@ ${links
           <button type="button" className="btn ghost sm" onClick={() => downloadText('link-in-bio.txt', sharePageText())}>
             匯出頁面文字
           </button>
-          <button type="button" className="btn accent sm" onClick={exportHtml}>
-            匯出 HTML
-          </button>
+          <ActionButton className="btn accent sm" onClick={exportHtml}>匯出 HTML
+   </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => window.print()}>
             列印預覽
           </button>

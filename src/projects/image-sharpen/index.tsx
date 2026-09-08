@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, clampByte, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-sharpen',
   title: '圖片銳化',
-  description: '簡易銳化濾鏡效果。',
+  description: '簡易銳化濾鏡效果',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -106,13 +107,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage || busy} onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage || busy} onClick={download}>下載 PNG
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        簡易 3×3 卷積銳化，非專業 Unsharp Mask；大圖處理會變慢。僅本機處理，不會上傳。
+        簡易 3×3 卷積銳化，非專業 Unsharp Mask；大圖處理會變慢僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -135,9 +135,8 @@ export default function Page() {
             <input type="range" min={0} max={100} value={amount} disabled={busy} onChange={(e) => setAmount(clamp(Number(e.target.value), 0, 100))} />
           </label>
           {busy && <p className="field-hint">處理中…</p>}
-          <button type="button" className="btn accent" disabled={!hasImage || busy} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage || busy} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

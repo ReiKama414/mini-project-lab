@@ -10,7 +10,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'html-to-pdf',
   title: 'HTML 轉 PDF',
-  description: '將 HTML 渲染成圖片後匯出 PDF。',
+  description: '將 HTML 渲染成圖片後匯出 PDF',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -70,7 +70,7 @@ async function renderPages(safeHtml: string) {
 export default function Page() {
   const [html, setHtml] = useLocalStorage(
     'lab:html-to-pdf:html',
-    '<h1>標題</h1><p>這是本機 HTML → PDF 示範。</p><ul><li>項目 A</li><li>項目 B</li></ul>',
+    '<h1>標題</h1><p>這是本機 HTML → PDF 示範</p><ul><li>項目 A</li><li>項目 B</li></ul>',
   )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -133,7 +133,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機消毒 HTML 後以 SVG 點陣匯出（不執行 script／外連）。支援中文，最多約 {MAX_PAGES} 頁。
+        本機消毒 HTML 後以 SVG 點陣匯出（不執行 script／外連）支援中文，最多約 {MAX_PAGES} 頁
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">

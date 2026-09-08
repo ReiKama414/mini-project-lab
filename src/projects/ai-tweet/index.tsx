@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-tweet')!
 
@@ -47,26 +48,26 @@ function singleVariants(topic: string, tone: Tone, tags: string): Item[] {
   const hooks =
     tone === '專業'
       ? [
-          `${t}：把完成定義寫清楚，交付就穩一半。`,
-          `關於${t}，我學到最重要的一件事——先量測再優化。`,
-          `${t}不是靈感，是系統。建立節奏就贏一半。`,
+          `${t}：把完成定義寫清楚，交付就穩一半`,
+          `關於${t}，我學到最重要的一件事——先量測再優化`,
+          `${t}不是靈感，是系統建立節奏就贏一半`,
         ]
       : tone === '勵志'
         ? [
-            `${t}：一步一步來，也是一種速度。`,
-            `今天先為${t}完成最小一步，明天會感謝你。`,
-            `別等完美。先讓${t}出現第一個可見成果。`,
+            `${t}：一步一步來，也是一種速度`,
+            `今天先為${t}完成最小一步，明天會感謝你`,
+            `別等完美先讓${t}出現第一個可見成果`,
           ]
         : tone === '幽默'
           ? [
-              `${t}進度：理論上很快，實務上很久（經典）。`,
-              `當我說「再五分鐘就好」時，${t}通常會再加一小時。`,
-              `${t}：我與 deadline 的戀愛故事，結局未定。`,
+              `${t}進度：理論上很快，實務上很久（經典）`,
+              `當我說「再五分鐘就好」時，${t}通常會再加一小時`,
+              `${t}：我與 deadline 的戀愛故事，結局未定`,
             ]
           : [
-              `${t}的本質是取捨：少做一點，反而走得更遠。`,
-              `對${t}保持好奇，對雜訊保持距離。`,
-              `${t}：先記錄事實，再下判斷。`,
+              `${t}的本質是取捨：少做一點，反而走得更遠`,
+              `對${t}保持好奇，對雜訊保持距離`,
+              `${t}：先記錄事實，再下判斷`,
             ]
   const tag = tagLine(tone, tags)
   const at = Date.now()
@@ -81,10 +82,10 @@ function thread(topic: string, tone: Tone, tags: string): Item[] {
   const tag = tagLine(tone, tags)
   const at = Date.now()
   const parts = [
-    `1/ ${t}——先講結論：把目標拆成可驗證的小步。`,
-    `2/ 做法：今天只做一件高槓桿任務，其餘進待辦池。`,
-    `3/ 檢查：晚上用三句話回顧卡點與下一步。`,
-    `4/ 收尾：公開一個小成果，讓自己被節奏拉著走。\n\n${tag}`,
+    `1/ ${t}——先講結論：把目標拆成可驗證的小步`,
+    `2/ 做法：今天只做一件高槓桿任務，其餘進待辦池`,
+    `3/ 檢查：晚上用三句話回顧卡點與下一步`,
+    `4/ 收尾：公開一個小成果，讓自己被節奏拉著走\n\n${tag}`,
   ]
   return parts.map((p, i) => {
     const text = clip(p)
@@ -147,9 +148,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" disabled={!items.length && !favs.length} onClick={exportAll}>
-            匯出
-          </button>
+          <ActionButton className="btn ghost sm" disabled={!items.length && !favs.length} onClick={exportAll}>匯出
+         </ActionButton>
           <button
             type="button"
             className="btn ghost sm"
@@ -239,9 +239,8 @@ export default function Page() {
             </button>
           </div>
           <div className="row">
-            <button type="button" className="btn accent" onClick={generate} disabled={!canGenerate}>
-              產生
-            </button>
+            <ActionButton className="btn accent" onClick={generate} disabled={!canGenerate}>產生
+         </ActionButton>
             {mode === 'thread' && items.length > 0 && (
               <button type="button" className="btn ghost" onClick={() => void copy(threadFull, 'thread')}>
                 {copied === 'thread' ? '已複製' : '複製整串'}
@@ -262,7 +261,7 @@ export default function Page() {
             <div className="list-item stack" style={{ gap: 6 }}>
               <strong>尚未產生貼文</strong>
               <p className="muted" style={{ margin: 0 }}>
-                選一個預設或輸入主題，再按「產生」。單則會給 3 個變體；Thread 會拆成 4 則串文。
+                選一個預設或輸入主題，再按「產生」單則會給 3 個變體；Thread 會拆成 4 則串文
               </p>
             </div>
           ) : (
@@ -305,7 +304,7 @@ export default function Page() {
             </button>
           </div>
           {history.length === 0 ? (
-            <p className="muted">產生後會留在這裡，方便還原設定。</p>
+            <p className="muted">產生後會留在這裡，方便還原設定</p>
           ) : (
             <ul className="list" style={{ maxHeight: 260, overflow: 'auto' }}>
               {history.map((h) => (
@@ -342,7 +341,7 @@ export default function Page() {
             </button>
           </div>
           {favs.length === 0 ? (
-            <p className="muted">把喜歡的變體按「收藏」，之後可一鍵複製。</p>
+            <p className="muted">把喜歡的變體按「收藏」，之後可一鍵複製</p>
           ) : (
             <ul className="list" style={{ maxHeight: 260, overflow: 'auto' }}>
               {favs.map((f) => (

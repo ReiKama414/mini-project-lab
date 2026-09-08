@@ -11,7 +11,7 @@ import { downloadBlob } from '../../lib/imageCanvas'
 const meta: ProjectMeta = getProject('batch-rename') ?? {
   slug: 'batch-rename',
   title: '批次重新命名',
-  description: '選檔套用命名規則，打包 ZIP 下載。',
+  description: '選檔套用命名規則，打包 ZIP 下載',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['file'],
@@ -139,7 +139,7 @@ export default function Page() {
       <div className="grid-2">
         <div className="panel stack">
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            瀏覽器無法直接改寫磁碟檔名。選取檔案後依規則重新命名，再以 ZIP 下載。
+            瀏覽器無法直接改寫磁碟檔名選取檔案後依規則重新命名，再以 ZIP 下載
           </p>
           <FileDrop
             multiple

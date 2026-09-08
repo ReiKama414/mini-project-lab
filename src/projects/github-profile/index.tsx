@@ -56,9 +56,9 @@ function friendlyHttpError(status: number, remaining: number | null): string {
   if (status === 404) return '找不到此使用者'
   if (status === 403 || status === 429) {
     if (remaining === 0) {
-      return 'GitHub API 速率已用盡（未登入約每小時 60 次），請稍後再試。'
+      return 'GitHub API 速率已用盡（未登入約每小時 60 次），請稍後再試'
     }
-    return '請求被拒絕（可能觸及速率限制），請稍後再試。'
+    return '請求被拒絕（可能觸及速率限制），請稍後再試'
   }
   return `錯誤 ${status}`
 }

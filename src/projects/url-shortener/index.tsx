@@ -99,7 +99,7 @@ export default function Page() {
       <div className="panel stack">
         <p className="muted">
           本機短網址：複製 <span className="mono">/s/短碼</span>{' '}
-          後在同瀏覽器開啟會自動轉址並累計點擊（資料僅存於此裝置）。
+          後在同瀏覽器開啟會自動轉址並累計點擊（資料僅存於此裝置）
         </p>
 
         <div className="grid-3">

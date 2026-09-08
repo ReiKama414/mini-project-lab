@@ -12,7 +12,7 @@ import { PDFDocument, degrees } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-rotate',
   title: 'PDF 旋轉',
-  description: '旋轉指定頁或全部頁面（縮圖預覽）。',
+  description: '旋轉指定頁或全部頁面（縮圖預覽）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -126,7 +126,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機旋轉 PDF 頁面。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁。未選取時旋轉全部。
+        本機旋轉 PDF 頁面單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁未選取時旋轉全部
       </p>
       <div className="panel stack">
         <FileDrop

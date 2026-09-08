@@ -9,7 +9,7 @@ import exifr from 'exifr'
 const fallback: ProjectMeta = {
   slug: 'exif-cleaner',
   title: 'EXIF 清除器',
-  description: '檢視並清除圖片 EXIF 後重新匯出。',
+  description: '檢視並清除圖片 EXIF 後重新匯出',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility', 'security'],
@@ -62,9 +62,9 @@ export default function Page() {
         if (prev) URL.revokeObjectURL(prev)
         return URL.createObjectURL(blob)
       })
-      if (fmt.mime === 'image/png') setNote('以 PNG 重繪匯出，可保留透明並去除 EXIF。')
-      else if (fmt.mime === 'image/webp') setNote('以 WebP 重繪匯出並去除 EXIF。')
-      else setNote('以 JPEG 重繪匯出並去除 EXIF（有損壓縮）。')
+      if (fmt.mime === 'image/png') setNote('以 PNG 重繪匯出，可保留透明並去除 EXIF')
+      else if (fmt.mime === 'image/webp') setNote('以 WebP 重繪匯出並去除 EXIF')
+      else setNote('以 JPEG 重繪匯出並去除 EXIF（有損壓縮）')
     } catch {
       setError('無法處理圖片')
       setCleanBlob(null)
@@ -91,7 +91,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        透過 Canvas 重繪去除 EXIF／GPS。PNG 會以 PNG 匯出以保留透明；JPEG／WebP 依原格式輸出。
+        透過 Canvas 重繪去除 EXIF／GPSPNG 會以 PNG 匯出以保留透明；JPEG／WebP 依原格式輸出
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">

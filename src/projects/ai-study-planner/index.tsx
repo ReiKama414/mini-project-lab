@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, limitText, charCount, isNonEmpty, clamp, parseNumber, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-study-planner')!
 
@@ -166,12 +167,9 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn accent sm" onClick={exportPlan}>
-            下載計畫
-          </button>
-          <button type="button" className="btn ghost sm" onClick={resetAll}>
-            重置
-          </button>
+          <ActionButton className="btn accent sm" onClick={exportPlan}>下載計畫
+       </ActionButton>
+          <ActionButton className="btn ghost sm" onClick={resetAll}>重置</ActionButton>
         </div>
       }
     >
@@ -245,7 +243,7 @@ export default function Page() {
             <div className="list-item stack">
               <strong>還沒有科目</strong>
               <p className="muted" style={{ margin: 0 }}>
-                選上方預設方案，或自己新增科目與每週時數。
+                選上方預設方案，或自己新增科目與每週時數
               </p>
             </div>
           ) : (
@@ -303,9 +301,8 @@ export default function Page() {
             <button type="button" className="btn sm ghost" onClick={regenerateMilestones} disabled={!subjects.length}>
               依科目重產
             </button>
-            <button type="button" className="btn sm ghost" onClick={clearStats} disabled={!msDone}>
-              清除完成狀態
-            </button>
+            <ActionButton className="btn sm ghost" onClick={clearStats} disabled={!msDone}>清除完成狀態
+   </ActionButton>
           </div>
           <div className="progress">
             <div
@@ -320,7 +317,7 @@ export default function Page() {
           {milestones.length === 0 ? (
             <div className="list-item">
               <p className="muted" style={{ margin: 0 }}>
-                尚無里程碑。請先在「科目」步驟加入科目，再按「依科目重產」。
+                尚無里程碑請先在「科目」步驟加入科目，再按「依科目重產」
               </p>
             </div>
           ) : (
@@ -365,7 +362,7 @@ export default function Page() {
           {subjects.length === 0 ? (
             <div className="list-item">
               <p className="muted" style={{ margin: 0 }}>
-                沒有科目可排程。回到第一步新增科目。
+                沒有科目可排程回到第一步新增科目
               </p>
             </div>
           ) : (
@@ -414,7 +411,7 @@ export default function Page() {
               </tbody>
             </table>
           )}
-          <p className="muted">啟發式排程：每科以最多 2h 切片輪流填入一週七天。</p>
+          <p className="muted">啟發式排程：每科以最多 2h 切片輪流填入一週七天</p>
         </div>
       )}
     </ProjectShell>

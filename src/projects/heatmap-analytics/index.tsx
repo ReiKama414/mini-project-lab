@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, downloadText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('heatmap-analytics')!
 
@@ -11,9 +12,9 @@ type Device = 'desktop' | 'tablet' | 'mobile'
 type PageId = 'home' | 'pricing' | 'docs'
 
 const PAGES: { id: PageId; title: string; blurb: string }[] = [
-  { id: 'home', title: '首頁', blurb: '品牌與主要 CTA。' },
-  { id: 'pricing', title: '方案', blurb: '價格與升級按鈕。' },
-  { id: 'docs', title: '文件', blurb: '導覽與搜尋欄。' },
+  { id: 'home', title: '首頁', blurb: '品牌與主要 CTA' },
+  { id: 'pricing', title: '方案', blurb: '價格與升級按鈕' },
+  { id: 'docs', title: '文件', blurb: '導覽與搜尋欄' },
 ]
 
 const COLS = 24
@@ -87,12 +88,10 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={exportPoints}>
-            匯出 JSON
-          </button>
-          <button type="button" className="btn sm ghost" onClick={clearPageDevice}>
-            清空此頁/裝置
-          </button>
+          <ActionButton className="btn sm ghost" onClick={exportPoints}>匯出 JSON
+    </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={clearPageDevice}>清空此頁/裝置
+  </ActionButton>
           <button type="button" className="btn sm danger" onClick={() => setClicks([])}>
             清空全部
           </button>
@@ -100,7 +99,7 @@ export default function Page() {
       }
     >
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機模擬／示範：點擊熱點僅在此瀏覽器累積，非正式產品熱力分析。
+        本機模擬／示範：點擊熱點僅在此瀏覽器累積，非正式產品熱力分析
       </p>
       <div className="row" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
         <button type="button" className={`btn sm ${mode === 'collect' ? 'accent' : 'ghost'}`} onClick={() => setMode('collect')}>
@@ -165,7 +164,7 @@ export default function Page() {
           >
             <div style={{ padding: 24 }}>
               <h3 style={{ marginTop: 0 }}>{pageMeta.title}</h3>
-              <p className="muted">{pageMeta.blurb} 點擊可新增熱點（收集與熱力模式皆可）。</p>
+              <p className="muted">{pageMeta.blurb} 點擊可新增熱點（收集與熱力模式皆可）</p>
               {page === 'home' && (
                 <div className="row">
                   <span className="btn accent" data-hot="cta-primary">
@@ -254,7 +253,7 @@ export default function Page() {
             {!hotspots.length && <li className="list-item muted">尚無點擊 — 點畫面新增熱點</li>}
           </ul>
           <p className="muted" style={{ fontSize: 12 }}>
-            網格 {COLS}×{ROWS}；依頁面與裝置分開累積。
+            網格 {COLS}×{ROWS}；依頁面與裝置分開累積
           </p>
         </div>
       </div>

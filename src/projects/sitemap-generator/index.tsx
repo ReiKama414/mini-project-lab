@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, isValidHttpUrl, limitTex
 const meta: ProjectMeta = getProject('sitemap-generator') ?? {
   slug: 'sitemap-generator',
   title: 'Sitemap 產生器',
-  description: '從網址清單產生 sitemap.xml。',
+  description: '從網址清單產生 sitemap.xml',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -44,7 +44,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          產生簡易 urlset（僅 &lt;loc&gt;）。不含 lastmod／priority；單次最多 {URL_CAP} 筆有效網址。
+          產生簡易 urlset（僅 &lt;loc&gt;）不含 lastmod／priority；單次最多 {URL_CAP} 筆有效網址
         </p>
         <label className="stack">
           <span className="label">網址（每行一個）</span>

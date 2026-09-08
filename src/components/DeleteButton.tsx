@@ -18,7 +18,7 @@ export function DeleteButton({
   const classes = ['btn', 'ghost', 'sm', 'btn-del', extras].filter(Boolean).join(' ')
   const name = ariaLabel || label
   return (
-    <button type={type} className={classes} aria-label={name} title={title ?? name} {...rest}>
+    <button type={type} className={classes} aria-label={name} data-tooltip={title ?? name} {...rest}>
       <IconTrash size={18} strokeWidth={2} />
     </button>
   )

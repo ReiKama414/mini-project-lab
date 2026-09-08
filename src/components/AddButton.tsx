@@ -3,16 +3,27 @@ import { IconPlus } from './icons'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children?: ReactNode
+  tooltip?: string
 }
 
 /** Primary 「新增」action with a consistent plus icon. */
-export function AddButton({ children = '新增', className = '', type = 'button', ...rest }: Props) {
+export function AddButton({
+  children = '新增',
+  className = '',
+  type = 'button',
+  tooltip,
+  title: _title,
+  ...rest
+}: Props) {
   const extras = className.trim()
   const tone = /\bghost\b/.test(extras) ? 'ghost' : /\bteal\b/.test(extras) ? 'teal' : 'accent'
   const cleaned = extras.replace(/\b(btn|accent|ghost|teal|btn-add)\b/g, '').replace(/\s+/g, ' ').trim()
   const classes = ['btn', tone, 'btn-add', cleaned].filter(Boolean).join(' ')
+  const tip =
+    tooltip ||
+    (typeof children === 'string' || typeof children === 'number' ? String(children) : '新增')
   return (
-    <button type={type} className={classes} {...rest}>
+    <button type={type} className={classes} data-tooltip={tip} {...rest}>
       <IconPlus size={16} strokeWidth={2.5} />
       {children}
     </button>

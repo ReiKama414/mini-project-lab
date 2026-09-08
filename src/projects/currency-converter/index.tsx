@@ -1,7 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
-import { IconReset, IconTarget } from '../../components/icons'
+import { ActionButton } from '../../components/ActionButton'
+import { ExportSelect } from '../../components/ExportSelect'
+import { IconTarget } from '../../components/icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, limitText, parseNumber, uid } from '../../lib/utils'
@@ -239,7 +241,7 @@ export default function Page() {
           },
           false,
         )
-        setError(`線上來源皆失敗，使用上次快取。${errors.join('；')}`)
+        setError(`線上來源皆失敗，使用上次快取${errors.join('；')}`)
         return
       }
       applyRates(
@@ -414,10 +416,9 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn ghost sm" onClick={() => void load()} disabled={loading}>
-          <IconReset size={15} strokeWidth={2.25} />
+        <ActionButton className="btn ghost sm" onClick={() => void load()} disabled={loading} icon="reset">
           {loading ? '更新中…' : '重新抓匯率'}
-        </button>
+        </ActionButton>
       }
     >
       <div className="fx-calc">
@@ -498,7 +499,7 @@ export default function Page() {
                 type="button"
                 className="btn ghost fx-swap"
                 aria-label="交換幣別"
-                title="交換幣別"
+                data-tooltip="交換幣別"
                 onClick={() => {
                   setFrom(to)
                   setTo(from)
@@ -549,19 +550,25 @@ export default function Page() {
             </div>
 
             <div className="fx-actions">
-              <button type="button" className="btn accent" onClick={() => void copyResult()} disabled={!canSave}>
+              <ActionButton
+                className="btn accent"
+                onClick={() => void copyResult()}
+                disabled={!canSave}
+                icon="copy"
+                tooltip={copied ? '已複製' : '複製結果'}
+              >
                 {copied ? '已複製' : '複製結果'}
-              </button>
-              <button type="button" className="btn teal" onClick={saveHistory} disabled={!canSave}>
+              </ActionButton>
+              <ActionButton className="btn teal" onClick={saveHistory} disabled={!canSave}>
                 存入歷史
-              </button>
-              <button
-                type="button"
+              </ActionButton>
+              <ActionButton
                 className={`btn ghost ${isFav(from, to) ? 'accent' : ''}`}
                 onClick={toggleFavorite}
+                icon={isFav(from, to) ? 'close' : 'plus'}
               >
                 {isFav(from, to) ? '取消收藏' : '收藏此幣對'}
-              </button>
+              </ActionButton>
             </div>
           </section>
 
@@ -596,14 +603,15 @@ export default function Page() {
               <div className="fx-panel-head">
                 <h3 className="fx-panel-title">收藏幣對</h3>
                 {!!favorites.length && (
-                  <DeleteButton
-                    label="清空全部收藏"
-                    title="一鍵刪除全部收藏"
+                  <ActionButton
+                    className="btn ghost sm"
                     onClick={() => {
                       if (!confirm(`確定刪除全部 ${favorites.length} 組收藏？`)) return
                       setFavorites([])
                     }}
-                  />
+                  >
+                    清除全部
+                  </ActionButton>
                 )}
               </div>
               {!favorites.length ? (
@@ -664,7 +672,7 @@ export default function Page() {
             <ul className="list fx-watch-list">
               {watchRows.map((r) => (
                 <li key={r.code} className="list-item">
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="fx-watch-meta">
                     <strong>
                       {r.code} {LABELS[r.code] || ''}
                     </strong>
@@ -672,22 +680,24 @@ export default function Page() {
                       1 {from} = {r.rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} {r.code}
                     </div>
                   </div>
-                  <span className="mono" style={{ fontWeight: 600 }}>
+                  <span className="mono fx-watch-value">
                     {r.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                   </span>
-                  <button
-                    type="button"
-                    className="btn sm ghost fx-icon-btn"
-                    aria-label={`設 ${r.code} 為目標`}
-                    title={`設為目標：${r.code}`}
-                    onClick={() => setTo(r.code)}
-                  >
-                    <IconTarget size={16} strokeWidth={2} />
-                  </button>
-                  <DeleteButton
-                    label={`移除監看 ${r.code}`}
-                    onClick={() => setWatch((xs) => xs.filter((x) => x !== r.code))}
-                  />
+                  <div className="fx-watch-actions">
+                    <button
+                      type="button"
+                      className="btn sm ghost fx-icon-btn"
+                      aria-label={`設 ${r.code} 為目標`}
+                      data-tooltip={`設為目標：${r.code}`}
+                      onClick={() => setTo(r.code)}
+                    >
+                      <IconTarget size={16} strokeWidth={2} />
+                    </button>
+                    <DeleteButton
+                      label={`移除監看 ${r.code}`}
+                      onClick={() => setWatch((xs) => xs.filter((x) => x !== r.code))}
+                    />
+                  </div>
                 </li>
               ))}
               {!watchRows.length && <p className="muted fx-empty">點上方幣別加入監看</p>}
@@ -699,31 +709,24 @@ export default function Page() {
               <h3 className="fx-panel-title">換算歷史</h3>
               {!!history.length && (
                 <div className="fx-hist-actions">
-                  <select
-                    className="field"
-                    defaultValue=""
+                  <ExportSelect
                     aria-label="匯出歷史"
-                    onChange={(e) => {
-                      const kind = e.target.value
-                      e.target.value = ''
-                      exportHistory(kind)
-                    }}
-                  >
-                    <option value="" disabled>
-                      匯出…
-                    </option>
-                    <option value="csv">下載 CSV</option>
-                    <option value="txt">下載 TXT</option>
-                    <option value="copy">複製文字</option>
-                  </select>
-                  <DeleteButton
-                    label="清空全部歷史"
-                    title="一鍵刪除全部歷史"
+                    onExport={exportHistory}
+                    options={[
+                      { value: 'csv', label: '下載 CSV' },
+                      { value: 'txt', label: '下載 TXT' },
+                      { value: 'copy', label: '複製文字' },
+                    ]}
+                  />
+                  <ActionButton
+                    className="btn ghost sm"
                     onClick={() => {
                       if (!confirm(`確定刪除全部 ${history.length} 筆歷史？`)) return
                       setHistory([])
                     }}
-                  />
+                  >
+                    清除全部
+                  </ActionButton>
                 </div>
               )}
             </div>
@@ -737,7 +740,7 @@ export default function Page() {
             <ul className="list fx-hist-list">
               {filteredHistory.map((h) => (
                 <li key={h.id} className="list-item">
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="fx-hist-meta">
                     <strong>
                       {h.amount.toLocaleString()} {h.from} →{' '}
                       {h.result.toLocaleString(undefined, { maximumFractionDigits: 4 })} {h.to}
@@ -746,23 +749,24 @@ export default function Page() {
                       {new Date(h.at).toLocaleString('zh-TW')} · 1 {h.from} = {h.rate.toFixed(6)} {h.to}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="btn sm ghost"
-                    onClick={() => {
-                      setAmountDraft(null)
-                      setAmountInvalid(false)
-                      setAmount(h.amount)
-                      setFrom(h.from)
-                      setTo(h.to)
-                    }}
-                  >
-                    套用
-                  </button>
-                  <DeleteButton
-                    label="刪除此筆歷史"
-                    onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))}
-                  />
+                  <div className="fx-hist-actions-row">
+                    <ActionButton
+                      className="btn sm ghost"
+                      onClick={() => {
+                        setAmountDraft(null)
+                        setAmountInvalid(false)
+                        setAmount(h.amount)
+                        setFrom(h.from)
+                        setTo(h.to)
+                      }}
+                    >
+                      套用
+                    </ActionButton>
+                    <DeleteButton
+                      label="刪除此筆歷史"
+                      onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))}
+                    />
+                  </div>
                 </li>
               ))}
               {!filteredHistory.length && <p className="muted fx-empty">尚無歷史</p>}

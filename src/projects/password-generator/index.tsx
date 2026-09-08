@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, copyText, downloadText, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const LENGTH_MIN = 8
 const LENGTH_MAX = 128
@@ -153,9 +154,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm accent" onClick={generate} disabled={!canGenerate}>
-            產生
-          </button>
+          <ActionButton className="btn sm accent" onClick={generate} disabled={!canGenerate}>產生
+         </ActionButton>
           <button
             type="button"
             className="btn sm ghost"
@@ -263,9 +263,8 @@ export default function Page() {
           </label>
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn accent" onClick={generate} disabled={!canGenerate}>
-              產生密碼
-            </button>
+            <ActionButton className="btn accent" onClick={generate} disabled={!canGenerate}>產生密碼
+       </ActionButton>
             <button
               type="button"
               className="btn ghost"
@@ -317,7 +316,7 @@ export default function Page() {
           )}
 
           <p className="muted" style={{ fontSize: 12 }}>
-            僅存在本機，請勿用於真實重要帳號後長期留存。
+            僅存在本機，請勿用於真實重要帳號後長期留存
           </p>
         </div>
 

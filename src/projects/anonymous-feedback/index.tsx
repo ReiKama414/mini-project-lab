@@ -4,6 +4,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, charCount, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('anonymous-feedback')!
 
@@ -121,9 +122,8 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn ghost sm" onClick={exportCsv}>
-          匯出 CSV
-        </button>
+        <ActionButton className="btn ghost sm" onClick={exportCsv}>匯出 CSV
+     </ActionButton>
       }
     >
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>

@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-chat-ui')!
 
@@ -12,18 +13,18 @@ const INPUT_MAX = 4000
 type Msg = { id: string; role: 'user' | 'bot' | 'system'; text: string; at: number }
 
 const PRESETS: { id: string; label: string; prompt: string }[] = [
-  { id: 'default', label: '一般助理', prompt: '你是務實、簡潔的中文助理，用條列與步驟回答。' },
-  { id: 'code', label: '程式教練', prompt: '你是資深工程師，優先給可執行程式與簡潔解釋，標註語言。' },
-  { id: 'writer', label: '寫作顧問', prompt: '你是編輯，著重結構、語氣與可讀性，必要時改寫範例。' },
-  { id: 'tutor', label: '學習導師', prompt: '你是耐心導師，用類比與小測驗確認理解。' },
+  { id: 'default', label: '一般助理', prompt: '你是務實、簡潔的中文助理，用條列與步驟回答' },
+  { id: 'code', label: '程式教練', prompt: '你是資深工程師，優先給可執行程式與簡潔解釋，標註語言' },
+  { id: 'writer', label: '寫作顧問', prompt: '你是編輯，著重結構、語氣與可讀性，必要時改寫範例' },
+  { id: 'tutor', label: '學習導師', prompt: '你是耐心導師，用類比與小測驗確認理解' },
 ]
 
 function intentReply(input: string, system: string): string {
   const lower = input.toLowerCase()
   const sysHint = system.includes('工程') || system.includes('程式') ? 'code' : system.includes('編輯') ? 'writer' : 'default'
 
-  if (/你好|嗨|hello|hi\b/.test(lower)) return '你好！我是本機示範助理。可試：寫 code、幫我摘要、翻譯成英文、列待辦。'
-  if (/謝謝|感謝/.test(lower)) return '不客氣！需要再改寫、拆步驟或重新產生上一則都可以。'
+  if (/你好|嗨|hello|hi\b/.test(lower)) return '你好！我是本機示範助理可試：寫 code、幫我摘要、翻譯成英文、列待辦'
+  if (/謝謝|感謝/.test(lower)) return '不客氣！需要再改寫、拆步驟或重新產生上一則都可以'
 
   if (/code|程式|寫個|實作|function|typescript|python|bug/.test(lower) || sysHint === 'code') {
     const topic = input.replace(/.*(寫|實作|code)\s*/i, '').trim() || '範例函式'
@@ -38,14 +39,14 @@ function intentReply(input: string, system: string): string {
       '}',
       '```',
       ``,
-      '下一步：補上單元測試與錯誤處理。',
+      '下一步：補上單元測試與錯誤處理',
     ].join('\n')
   }
 
   if (/摘要|總結|summarize|重點/.test(lower)) {
     const body = input.replace(/.*(摘要|總結|summarize|重點)[:：\s]*/i, '').trim() || input
-    const parts = body.split(/[。！？\n.!?]/).map((s) => s.trim()).filter((s) => s.length > 4).slice(0, 5)
-    return ['【摘要】', ...parts.map((p, i) => `${i + 1}. ${p}`), '', '一句話：先抓結論，再補細節。'].join('\n')
+    const parts = body.split(/[！？\n.!?]/).map((s) => s.trim()).filter((s) => s.length > 4).slice(0, 5)
+    return ['【摘要】', ...parts.map((p, i) => `${i + 1}. ${p}`), '', '一句話：先抓結論，再補細節'].join('\n')
   }
 
   if (/翻譯|translate|英文|中文/.test(lower)) {
@@ -54,7 +55,7 @@ function intentReply(input: string, system: string): string {
     if (toEn) {
       return `【EN】\n${raw}\n→ Here's a concise English version: "${raw.slice(0, 80)}" (demo paraphrase). Please review tone for your audience.`
     }
-    return `【ZH】\n${raw}\n→ 中文大意：${raw}（示範改寫，實務請再潤飾）。`
+    return `【ZH】\n${raw}\n→ 中文大意：${raw}（示範改寫，實務請再潤飾）`
   }
 
   if (/todo|待辦|清單|checklist|步驟/.test(lower)) {
@@ -70,16 +71,16 @@ function intentReply(input: string, system: string): string {
   }
 
   if (/計畫|plan|規劃/.test(lower)) {
-    return '規劃建議：1) 定義成果 2) 列出任務 3) 估時排序 4) 每日複盤。把主題再說清楚一點，我可以展開週計畫。'
+    return '規劃建議：1) 定義成果 2) 列出任務 3) 估時排序 4) 每日複盤把主題再說清楚一點，我可以展開週計畫'
   }
 
   const tips = [
-    '建議先寫最短可行方案（MVP），再擴充細節。',
-    '用「問題 → 假設 → 驗證」推進，避免一次做太大。',
-    '把時程與風險寫清楚，之後回顧會容易很多。',
+    '建議先寫最短可行方案（MVP），再擴充細節',
+    '用「問題 → 假設 → 驗證」推進，避免一次做太大',
+    '把時程與風險寫清楚，之後回顧會容易很多',
   ]
   const tip = tips[Math.floor(Math.random() * tips.length)]!
-  return `好的，針對「${input.slice(0, 48)}${input.length > 48 ? '…' : ''}」：\n\n• ${tip}\n• 若要更具體，告訴我預算、期限與成功指標。\n\n（系統：${PRESETS.find((p) => p.prompt === system)?.label || '自訂'}）`
+  return `好的，針對「${input.slice(0, 48)}${input.length > 48 ? '…' : ''}」：\n\n• ${tip}\n• 若要更具體，告訴我預算、期限與成功指標\n\n（系統：${PRESETS.find((p) => p.prompt === system)?.label || '自訂'}）`
 }
 
 async function typeOut(
@@ -103,7 +104,7 @@ export default function Page() {
     PRESETS[0]!.prompt,
   )
   const [msgs, setMsgs] = useLocalStorage<Msg[]>('lab:ai-chat-ui', [
-    { id: uid('m'), role: 'bot', text: '嗨！選左側系統提示後直接提問。支援：程式、摘要、翻譯、待辦。', at: Date.now() },
+    { id: uid('m'), role: 'bot', text: '嗨！選左側系統提示後直接提問支援：程式、摘要、翻譯、待辦', at: Date.now() },
   ])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -184,7 +185,7 @@ export default function Page() {
     cancelRef.current.cancelled = true
     setBusy(false)
     setStreaming('')
-    setMsgs([{ id: uid('m'), role: 'bot', text: '對話已清空。有什麼可以幫忙？', at: Date.now() }])
+    setMsgs([{ id: uid('m'), role: 'bot', text: '對話已清空有什麼可以幫忙？', at: Date.now() }])
   }
 
   return (
@@ -192,15 +193,13 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={exportChat} disabled={!msgs.length}>
-            匯出對話
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportChat} disabled={!msgs.length}>匯出對話
+       </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => copyText(msgs.map((m) => m.text).join('\n\n'))}>
             複製
           </button>
-          <button type="button" className="btn ghost sm" onClick={clearChat}>
-            清空
-          </button>
+          <ActionButton className="btn ghost sm" onClick={clearChat}>清空
+       </ActionButton>
         </div>
       }
     >

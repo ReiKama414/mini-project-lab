@@ -6,6 +6,7 @@ import jsQR from 'jsqr'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, formatBytes, isNonEmpty, limitText, uid } from '../../lib/utils'
 import { IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('qr-scanner')!
 
@@ -381,7 +382,7 @@ export default function Page() {
         <div className="panel stack">
           <p className="muted">
             上傳含 QR 的圖片即可自動解碼；支援相機即時掃描
-            {barcodeFast ? '（BarcodeDetector 加速）' : '（jsQR）'}。也可手動貼上內容。
+            {barcodeFast ? '（BarcodeDetector 加速）' : '（jsQR）'}也可手動貼上內容
           </p>
 
           <FileDrop
@@ -400,9 +401,7 @@ export default function Page() {
               </button>
             )}
             {cameraOn && (
-              <button className="btn ghost" type="button" onClick={stopCamera}>
-                關閉相機
-              </button>
+              <ActionButton className="btn ghost" onClick={stopCamera}>關閉相機</ActionButton>
             )}
           </div>
 

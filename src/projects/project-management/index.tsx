@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, charCount, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('project-management')!
 
@@ -140,12 +141,10 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={exportCsv}>
-            匯出 CSV
-          </button>
-          <button type="button" className="btn ghost sm" disabled={!tasks.length} onClick={exportJson}>
-            匯出 JSON
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportCsv}>匯出 CSV
+    </ActionButton>
+          <ActionButton className="btn ghost sm" disabled={!tasks.length} onClick={exportJson}>匯出 JSON
+   </ActionButton>
         </div>
       }
     >

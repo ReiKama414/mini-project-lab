@@ -154,7 +154,7 @@ export default function Page() {
         </span>
       </div>
       <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-        HTML／CSS／JS 分頁編輯，範例可一鍵載入，內容與分頁狀態會存到本機。
+        HTML／CSS／JS 分頁編輯，範例可一鍵載入，內容與分頁狀態會存到本機
       </p>
     </ProjectShell>
   )

@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('random-number')!
 
@@ -242,9 +243,8 @@ export default function Page() {
             )}
           </div>
           <div className="row">
-            <button className="btn accent" onClick={generate} disabled={error === '請輸入有效數字'}>
-              產生
-            </button>
+            <ActionButton className="btn accent" onClick={generate} disabled={error === '請輸入有效數字'}>產生
+         </ActionButton>
             <button className="btn ghost" disabled={!results.length} onClick={() => void copyResults()}>
               {copied ? '已複製' : '複製'}
             </button>
@@ -263,7 +263,7 @@ export default function Page() {
             </div>
           )}
           <p className="muted" style={{ fontSize: 12 }}>
-            使用 Web Crypto <code>getRandomValues</code> 產生亂數。
+            使用 Web Crypto <code>getRandomValues</code> 產生亂數
           </p>
         </div>
         <div className="panel stack">

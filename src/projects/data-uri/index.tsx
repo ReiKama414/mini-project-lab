@@ -4,11 +4,12 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('data-uri') ?? {
   slug: 'data-uri',
   title: 'Data URI 產生器',
-  description: '將文字內容包裝成 Data URI。',
+  description: '將文字內容包裝成 Data URI',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -57,7 +58,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          本機產生文字 Data URI。過長的 URI 可能無法在部分瀏覽器／屬性中使用；此工具不處理二進位檔上傳。
+          本機產生文字 Data URI過長的 URI 可能無法在部分瀏覽器／屬性中使用；此工具不處理二進位檔上傳
         </p>
         <label className="stack">
           <span className="label">MIME</span>
@@ -94,9 +95,8 @@ export default function Page() {
           </label>
         </div>
         <div className="row">
-          <button type="button" className="btn accent" onClick={build}>
-            產生
-          </button>
+          <ActionButton className="btn accent" onClick={build}>產生
+         </ActionButton>
           <button
             type="button"
             className="btn ghost"

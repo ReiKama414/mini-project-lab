@@ -8,7 +8,7 @@ import { charCount, copyText, isNonEmpty, limitText } from '../../lib/utils'
 const meta: ProjectMeta = getProject('jwt-generator') ?? {
   slug: 'jwt-generator',
   title: 'JWT Generator',
-  description: '本機以 HS256 產生 JWT（Web Crypto）。',
+  description: '本機以 HS256 產生 JWT（Web Crypto）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['dev', 'security'],
@@ -90,7 +90,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          以瀏覽器 Web Crypto 產生 <strong>HS256</strong> JWT。Secret 不寫入 localStorage、不上傳。僅供開發／測試。
+          以瀏覽器 Web Crypto 產生 <strong>HS256</strong> JWTSecret 不寫入 localStorage、不上傳僅供開發／測試
         </p>
         <div className="grid-2">
           <label className="stack">

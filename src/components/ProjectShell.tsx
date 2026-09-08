@@ -19,7 +19,7 @@ export function ProjectShell({
       <div className="project-shell-header">
         <div>
           <div className="row" style={{ marginBottom: 12 }}>
-            <Link to="/" className="btn ghost sm btn-back">
+            <Link to="/" className="btn ghost sm btn-back" data-tooltip="返回導覽">
               <IconArrowLeft size={16} strokeWidth={2.25} />
               導覽
             </Link>

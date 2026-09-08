@@ -5,6 +5,7 @@ import { marked } from 'marked'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, limitText, copyText, downloadText } from '../../lib/utils'
 import { sanitizeHtml } from '../../lib/sanitize'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('markdown-previewer')!
 
@@ -15,7 +16,7 @@ const TEMPLATES: Record<string, { label: string; body: string }> = {
     label: '基礎',
     body: `# Markdown 預覽
 
-這是 **粗體** 與 *斜體*，還有 \`inline code\`。
+這是 **粗體** 與 *斜體*，還有 \`inline code\`
 
 ## 清單
 - 第一點
@@ -32,7 +33,7 @@ const TEMPLATES: Record<string, { label: string; body: string }> = {
     label: 'README',
     body: `# 專案名稱
 
-簡短說明這個專案做什麼。
+簡短說明這個專案做什麼
 
 ## 安裝
 
@@ -85,9 +86,8 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm ghost" onClick={exportHtml} disabled={!html}>
-          匯出 HTML
-        </button>
+        <ActionButton className="btn sm ghost" onClick={exportHtml} disabled={!html}>匯出 HTML
+    </ActionButton>
       }
     >
       <div className="panel stack" style={{ marginBottom: 12 }}>
@@ -101,15 +101,14 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={() => void copyText(md)}>
             複製 Markdown
           </button>
-          <button type="button" className="btn sm ghost" onClick={exportHtml} disabled={!html}>
-            匯出 HTML
-          </button>
+          <ActionButton className="btn sm ghost" onClick={exportHtml} disabled={!html}>匯出 HTML
+    </ActionButton>
           <button type="button" className="btn sm ghost" onClick={() => setMd('')}>
             清空
           </button>
         </div>
         <p className="muted" style={{ fontSize: 12 }}>
-          內容會自動儲存在本機。以 Marked 解析，輸出經消毒。
+          內容會自動儲存在本機以 Marked 解析，輸出經消毒
         </p>
       </div>
       <div className="grid-2">

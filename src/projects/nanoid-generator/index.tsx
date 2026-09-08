@@ -4,11 +4,12 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('nanoid-generator') ?? {
   slug: 'nanoid-generator',
   title: 'NanoID 產生器',
-  description: '本機產生 URL 安全短 ID。',
+  description: '本機產生 URL 安全短 ID',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -45,7 +46,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          使用 Web Crypto 亂數與 URL 安全字元集（A–Z a–z 0–9 _-）。非官方 nanoid 套件，行為相近。
+          使用 Web Crypto 亂數與 URL 安全字元集（A–Z a–z 0–9 _-）非官方 nanoid 套件，行為相近
         </p>
         <div className="grid-2">
           <label className="stack">
@@ -76,9 +77,8 @@ export default function Page() {
           </label>
         </div>
         <div className="row">
-          <button type="button" className="btn accent" onClick={generate}>
-            產生
-          </button>
+          <ActionButton className="btn accent" onClick={generate}>產生
+         </ActionButton>
           <button
             type="button"
             className="btn ghost"

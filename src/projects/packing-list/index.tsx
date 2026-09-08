@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { loadJSON, useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('packing-list')!
 
@@ -211,9 +212,8 @@ export default function Page() {
               onKeyDown={(e) => e.key === 'Enter' && saveTripName()}
               placeholder="旅程名稱"
             />
-            <button type="button" className="btn sm ghost" onClick={saveTripName}>
-              重新命名
-            </button>
+            <ActionButton className="btn sm ghost" onClick={saveTripName}>重新命名
+         </ActionButton>
             <button
               type="button"
               className="btn sm danger"

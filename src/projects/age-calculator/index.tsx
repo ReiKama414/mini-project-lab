@@ -285,7 +285,7 @@ export default function Page() {
                 </div>
               ) : (
                 <p className="muted" style={{ margin: 0 }}>
-                  此日期超出農曆對照範圍（請使用 1900–2100）。
+                  此日期超出農曆對照範圍（請使用 1900–2100）
                 </p>
               )}
             </div>
@@ -342,7 +342,7 @@ export default function Page() {
             </ul>
           </>
         ) : (
-          <p className="muted">請確認日期有效，且基準日不早於生日。</p>
+          <p className="muted">請確認日期有效，且基準日不早於生日</p>
         )}
       </div>
     </ProjectShell>

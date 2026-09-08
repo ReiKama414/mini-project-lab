@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('sql-playground')!
 
@@ -70,7 +71,7 @@ function runSelect(sql: string): { cols: string[]; rows: Record<string, string |
     return {
       cols: [],
       rows: [],
-      error: '語法錯誤。支援：SELECT cols|COUNT(*) FROM users [WHERE ...] [ORDER BY col ASC|DESC] [LIMIT n]',
+      error: '語法錯誤支援：SELECT cols|COUNT(*) FROM users [WHERE ...] [ORDER BY col ASC|DESC] [LIMIT n]',
     }
   }
 
@@ -199,9 +200,7 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm ghost" disabled={!result || !!result.error} onClick={exportCsv}>
-          匯出 CSV
-        </button>
+        <ActionButton className="btn sm ghost" disabled={!result || !!result.error} onClick={exportCsv}>匯出 CSV</ActionButton>
       }
     >
       <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
@@ -305,12 +304,8 @@ export default function Page() {
           </div>
           {!isNonEmpty(sql) && <p className="field-error">SQL 不可空白</p>}
           <div className="row">
-            <button type="button" className="btn accent" onClick={run} disabled={!canRun}>
-              執行（Ctrl/⌘+Enter）
-            </button>
-            <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!result || !!result.error}>
-              匯出結果 CSV
-            </button>
+            <ActionButton className="btn accent" onClick={run} disabled={!canRun}>執行（Ctrl/⌘+Enter）</ActionButton>
+            <ActionButton className="btn ghost sm" onClick={exportCsv} disabled={!result || !!result.error}>匯出結果 CSV</ActionButton>
           </div>
           {result?.error && <p className="field-error">SQL 錯誤：{result.error}</p>}
           {result && !result.error && (

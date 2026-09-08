@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { getProject } from '../projects/registry'
 
 const SITE = 'Mini Project Lab'
-const DEFAULT_DESC = '瀏覽器本機小工具集合：圖片、PDF、開發與隱私工具，檔案不上傳伺服器。'
+const DEFAULT_DESC = '瀏覽器本機小工具集合：圖片、PDF、開發與隱私工具，檔案不上傳伺服器'
 
 function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
   let el = document.head.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null

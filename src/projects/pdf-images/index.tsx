@@ -6,13 +6,14 @@ import { formatBytes } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
 import * as pdfjs from 'pdfjs-dist'
 import JSZip from 'jszip'
+import { ActionButton } from '../../components/ActionButton'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 const fallback: ProjectMeta = {
   slug: 'pdf-images',
   title: 'PDF 內嵌圖片擷取',
-  description: '擷取 PDF 中的內嵌圖片並打包。',
+  description: '擷取 PDF 中的內嵌圖片並打包',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -248,8 +249,8 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機擷取內嵌點陣圖；若找不到或數量偏少，可改用「頁面渲染擷圖」。單檔上限 {formatBytes(PDF_MAX)}，最多{' '}
-        {MAX_PAGES} 頁。
+        本機擷取內嵌點陣圖；若找不到或數量偏少，可改用「頁面渲染擷圖」單檔上限 {formatBytes(PDF_MAX)}，最多{' '}
+        {MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop
@@ -281,9 +282,7 @@ export default function Page() {
         )}
         {busy && (
           <div className="row">
-            <button type="button" className="btn sm ghost" onClick={abortBusy}>
-              取消
-            </button>
+            <ActionButton className="btn sm ghost" onClick={abortBusy}>取消</ActionButton>
             <span className="muted">{progress || '處理中…'}</span>
           </div>
         )}

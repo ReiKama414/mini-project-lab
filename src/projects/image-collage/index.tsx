@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-collage',
   title: '圖片拼貼',
-  description: '多圖拼成網格拼貼並下載。',
+  description: '多圖拼成網格拼貼並下載',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -147,13 +148,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!files.length || busy} onClick={download}>
-          下載拼貼
-        </button>
+        <ActionButton className="btn sm accent" disabled={!files.length || busy} onClick={download}>下載拼貼
+       </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        最多 {MAX_FILES} 張；每格置中裁切（cover），非完整縮放。可拖曳列表調整順序。本機處理，不會上傳。
+        最多 {MAX_FILES} 張；每格置中裁切（cover），非完整縮放可拖曳列表調整順序本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -276,9 +276,8 @@ export default function Page() {
             <span className="label">背景色</span>
             <input type="color" value={bg} onChange={(e) => setBg(e.target.value)} />
           </label>
-          <button type="button" className="btn accent" disabled={!files.length || busy} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!files.length || busy} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

@@ -18,7 +18,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-organizer',
   title: 'PDF 頁面整理',
-  description: '重新排序 PDF 頁面後下載。',
+  description: '重新排序 PDF 頁面後下載',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -186,8 +186,8 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機預覽縮圖後可拖曳／上移／下移／刪除／反轉頁序。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多{' '}
-        {PDF_MAX_PAGES} 頁。
+        本機預覽縮圖後可拖曳／上移／下移／刪除／反轉頁序單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多{' '}
+        {PDF_MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop

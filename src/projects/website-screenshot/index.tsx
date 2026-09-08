@@ -101,7 +101,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        預覽卡／OG 佔位，非真實網頁截圖。僅嘗試讀取 Open Graph／title meta，畫面為示意版面。
+        預覽卡／OG 佔位，非真實網頁截圖僅嘗試讀取 Open Graph／title meta，畫面為示意版面
       </p>
       <div className="panel stack">
         <div className="row" style={{ flexWrap: 'wrap' }}>

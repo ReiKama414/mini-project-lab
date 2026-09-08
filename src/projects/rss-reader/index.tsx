@@ -186,7 +186,7 @@ export default function Page() {
       })
       setMsg(`已匯入 ${parsed.length} 則（略過重複）`)
     } catch (e) {
-      setMsg(`擷取失敗：${e instanceof Error ? e.message : String(e)}。可改手動新增。`)
+      setMsg(`擷取失敗：${e instanceof Error ? e.message : String(e)}可改手動新增`)
     } finally {
       setBusy(false)
     }
@@ -242,7 +242,7 @@ export default function Page() {
         }}
       />
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機 RSS 閱讀器：預設僅含真實 HN 來源、無假文章。擷取會依序嘗試 allorigins、corsproxy；訂閱清單可匯入／匯出 OPML。
+        本機 RSS 閱讀器：預設僅含真實 HN 來源、無假文章擷取會依序嘗試 allorigins、corsproxy；訂閱清單可匯入／匯出 OPML
       </p>
       <div className="grid-2">
         <div className="panel stack">
@@ -343,7 +343,7 @@ export default function Page() {
                   title: limitText(title.trim(), TITLE_MAX),
                   sourceId: src?.id || 'manual',
                   source: src?.name || '自訂',
-                  summary: limitText(summary.trim() || '手動加入的訂閱項目。', SUMMARY_MAX),
+                  summary: limitText(summary.trim() || '手動加入的訂閱項目', SUMMARY_MAX),
                   link: '#',
                   read: false,
                   at: new Date().toISOString().slice(0, 10),

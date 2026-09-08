@@ -5,6 +5,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, downloadText, isNonEmpty } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('newsletter-reader')!
 
@@ -33,7 +34,7 @@ const sampleSeed: NL[] = [
     id: 'sample_1',
     from: 'Bytes.dev',
     subject: '【範例可刪】本週前端精選',
-    body: '包含 CSS 新語法、bundler 比較與一則效能案例。此為示範文章，可刪除後改貼你自己的內容。',
+    body: '包含 CSS 新語法、bundler 比較與一則效能案例此為示範文章，可刪除後改貼你自己的內容',
     folder: '前端',
     starred: true,
     archived: false,
@@ -45,7 +46,7 @@ const sampleSeed: NL[] = [
     id: 'sample_2',
     from: 'TLDR',
     subject: '【範例可刪】AI 工具速覽',
-    body: '本地模型推理、評測基準與授權注意事項。範例內容，匯入 JSON／Markdown 或手動貼上即可建立真實歸檔。',
+    body: '本地模型推理、評測基準與授權注意事項範例內容，匯入 JSON／Markdown 或手動貼上即可建立真實歸檔',
     folder: 'AI',
     starred: false,
     archived: false,
@@ -207,9 +208,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={exportJson} disabled={!items.length}>
-            匯出 JSON
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportJson} disabled={!items.length}>匯出 JSON
+   </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => fileRef.current?.click()}>
             匯入 JSON／MD
           </button>
@@ -228,8 +228,8 @@ export default function Page() {
         }}
       />
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機電子報／文章歸檔：資料僅存此瀏覽器。可貼上標題＋內文，或匯入簡易 JSON／Markdown；非真實信箱同步。
-        {sampleCount > 0 && ` 目前有 ${sampleCount} 則標示為「範例可刪」。`}
+        本機電子報／文章歸檔：資料僅存此瀏覽器可貼上標題＋內文，或匯入簡易 JSON／Markdown；非真實信箱同步
+        {sampleCount > 0 && ` 目前有 ${sampleCount} 則標示為「範例可刪」`}
       </p>
 
       <div className="panel stack" style={{ marginBottom: 12 }}>

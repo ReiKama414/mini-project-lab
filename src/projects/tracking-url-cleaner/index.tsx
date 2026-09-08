@@ -8,7 +8,7 @@ import { charCount, copyText, isNonEmpty, isValidHttpUrl, limitText, normalizeHt
 const meta: ProjectMeta = getProject('tracking-url-cleaner') ?? {
   slug: 'tracking-url-cleaner',
   title: '追蹤參數清理',
-  description: '移除常見追蹤 query 參數。',
+  description: '移除常見追蹤 query 參數',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -64,7 +64,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          依啟發式規則移除常見追蹤參數（utm_、fbclid、gclid 等）。非完整清單；業務參數請自行確認後再分享。
+          依啟發式規則移除常見追蹤參數（utm_、fbclid、gclid 等）非完整清單；業務參數請自行確認後再分享
         </p>
         <label className="stack">
           <span className="label">網址</span>

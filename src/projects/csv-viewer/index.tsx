@@ -10,7 +10,7 @@ import { parseCsv } from '../../lib/csv'
 const meta: ProjectMeta = getProject('csv-viewer') ?? {
   slug: 'csv-viewer',
   title: 'CSV 檢視器',
-  description: '貼上或上傳 CSV，表格預覽。',
+  description: '貼上或上傳 CSV，表格預覽',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -57,7 +57,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        支援引號欄位的 CSV 預覽（RFC4180）。上傳上限 {formatBytes(FILE_MAX)}。大型檔案建議限制預覽列數，以免瀏覽器卡住。
+        支援引號欄位的 CSV 預覽（RFC4180）上傳上限 {formatBytes(FILE_MAX)}大型檔案建議限制預覽列數，以免瀏覽器卡住
       </p>
       <div className="panel stack">
         <label className="stack">
@@ -168,7 +168,7 @@ export default function Page() {
             </div>
             {truncated && (
               <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                為避免卡頓，目前僅預覽前 {previewLimit} 列（共 {rowCount.toLocaleString()} 列）。可改為「全部」顯示。
+                為避免卡頓，目前僅預覽前 {previewLimit} 列（共 {rowCount.toLocaleString()} 列）可改為「全部」顯示
               </p>
             )}
           </>

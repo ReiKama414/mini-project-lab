@@ -8,7 +8,7 @@ import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
 const meta: ProjectMeta = getProject('gradient-generator') ?? {
   slug: 'gradient-generator',
   title: '漸層產生器',
-  description: '產生 CSS linear-gradient。',
+  description: '產生 CSS linear-gradient',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -27,7 +27,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          雙色 linear-gradient。設定會記住；若需多色標或 radial，請手動擴充 CSS。
+          雙色 linear-gradient設定會記住；若需多色標或 radial，請手動擴充 CSS
         </p>
         <div className="grid-2">
           <label className="stack">

@@ -10,7 +10,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.m
 const fallback: ProjectMeta = {
   slug: 'pdf-viewer',
   title: 'PDF 檢視器',
-  description: '本機預覽 PDF 頁面。',
+  description: '本機預覽 PDF 頁面',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -101,7 +101,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        檔案僅在瀏覽器開啟，不會上傳。單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁。
+        檔案僅在瀏覽器開啟，不會上傳單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop

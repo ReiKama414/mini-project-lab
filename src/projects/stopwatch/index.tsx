@@ -136,7 +136,7 @@ export default function Page() {
           </div>
 
           <div className="sw-actions">
-            <button type="button" className="btn ghost pomo-icon-btn" onClick={reset} aria-label="重置" title="重置（R）">
+            <button type="button" className="btn ghost pomo-icon-btn" onClick={reset} aria-label="重置" data-tooltip="重置（R）">
               <IconReset size={18} strokeWidth={2.25} />
             </button>
             <button type="button" className="btn accent pomo-main" onClick={() => setRunning((r) => !r)}>
@@ -149,7 +149,7 @@ export default function Page() {
               disabled={elapsed === 0}
               onClick={addLap}
               aria-label="記錄單圈"
-              title="單圈（L）"
+              data-tooltip="單圈（L）"
             >
               <IconFlag size={18} strokeWidth={2.25} />
             </button>

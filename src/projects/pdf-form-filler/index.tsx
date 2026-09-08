@@ -9,7 +9,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-form-filler',
   title: 'PDF 表單填寫',
-  description: '讀取並填寫 PDF AcroForm 欄位。',
+  description: '讀取並填寫 PDF AcroForm 欄位',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -127,8 +127,8 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        僅支援標準 AcroForm 可填表單（文字／下拉等）；不支援 XFA 或純掃描影像表單。匯出時會攤平欄位。單檔上限{' '}
-        {formatBytes(PDF_MAX)}。
+        僅支援標準 AcroForm 可填表單（文字／下拉等）；不支援 XFA 或純掃描影像表單匯出時會攤平欄位單檔上限{' '}
+        {formatBytes(PDF_MAX)}
       </p>
       <div className="panel stack">
         <FileDrop

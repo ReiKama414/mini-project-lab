@@ -9,7 +9,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('graphql-formatter') ?? {
   slug: 'graphql-formatter',
   title: 'GraphQL Formatter',
-  description: '以 Prettier 格式化／壓縮 GraphQL。',
+  description: '以 Prettier 格式化／壓縮 GraphQL',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -98,7 +98,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          優先使用 Prettier（graphql parser）於瀏覽器本機格式化；若外掛無法載入則改用簡易縮排（可能無法驗證語法）。
+          優先使用 Prettier（graphql parser）於瀏覽器本機格式化；若外掛無法載入則改用簡易縮排（可能無法驗證語法）
         </p>
         <label className="stack">
           <span className="label">GraphQL</span>
@@ -144,7 +144,7 @@ export default function Page() {
         </div>
         {usingHeuristic && out && (
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            目前為簡易縮排模式（非完整 GraphQL 語法檢查）。
+            目前為簡易縮排模式（非完整 GraphQL 語法檢查）
           </p>
         )}
         {error && <p className="field-error">{error}</p>}

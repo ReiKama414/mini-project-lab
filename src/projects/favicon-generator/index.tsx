@@ -5,11 +5,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadCanvas, loadImageFromFile, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { charCount, clamp, formatBytes, limitText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'favicon-generator',
   title: 'Favicon 產生器',
-  description: '以文字與色塊產生 favicon PNG。',
+  description: '以文字與色塊產生 favicon PNG',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -93,13 +94,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn sm accent" onClick={download}>下載 PNG
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        僅產生單一尺寸 PNG，不含 .ico 多尺寸封裝。可選上傳圖片當底圖；字型依裝置系統字體。圖片不上傳、不持久化。
+        僅產生單一尺寸 PNG，不含 .ico 多尺寸封裝可選上傳圖片當底圖；字型依裝置系統字體圖片不上傳、不持久化
       </p>
       <div className="panel stack">
         <div className="stack">
@@ -114,9 +114,8 @@ export default function Page() {
           {imgName && (
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
               <span className="field-hint">{imgName}</span>
-              <button type="button" className="btn sm ghost" onClick={clearImage}>
-                清除圖片
-              </button>
+              <ActionButton className="btn sm ghost" onClick={clearImage}>清除圖片
+     </ActionButton>
             </div>
           )}
           {error && <p className="field-error">{error}</p>}
@@ -173,9 +172,8 @@ export default function Page() {
           ))}
         </div>
         <canvas ref={canvasRef} style={{ width: s, height: s, borderRadius: 8, border: '1px solid var(--line)' }} />
-        <button type="button" className="btn accent" onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn accent" onClick={download}>下載 PNG
+     </ActionButton>
       </div>
     </ProjectShell>
   )

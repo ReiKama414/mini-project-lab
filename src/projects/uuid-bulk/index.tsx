@@ -9,7 +9,7 @@ import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
 const meta: ProjectMeta = getProject('uuid-bulk') ?? {
   slug: 'uuid-bulk',
   title: 'UUID 批次產生',
-  description: '大量產生 UUID v4 並匯出。',
+  description: '大量產生 UUID v4 並匯出',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -39,7 +39,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          本機產生 UUID v4（亂數），不上傳。單次上限 {MAX} 組。
+          本機產生 UUID v4（亂數），不上傳單次上限 {MAX} 組
         </p>
         <label className="stack">
           <span className="label">

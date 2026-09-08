@@ -4,11 +4,12 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('secret-generator') ?? {
   slug: 'secret-generator',
   title: '密鑰／Secret 產生',
-  description: '產生 hex／base64 隨機密鑰。',
+  description: '產生 hex／base64 隨機密鑰',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -40,7 +41,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          以 Web Crypto 亂數產生密鑰。輸出只留在記憶體，不寫入 localStorage。位元組數與格式設定可記住。
+          以 Web Crypto 亂數產生密鑰輸出只留在記憶體，不寫入 localStorage位元組數與格式設定可記住
         </p>
         <label className="stack">
           <span className="label">
@@ -66,9 +67,8 @@ export default function Page() {
           </label>
         </div>
         <div className="row">
-          <button type="button" className="btn accent" onClick={generate}>
-            產生
-          </button>
+          <ActionButton className="btn accent" onClick={generate}>產生
+         </ActionButton>
           <button
             type="button"
             className="btn ghost"

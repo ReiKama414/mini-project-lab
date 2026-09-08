@@ -161,7 +161,7 @@ export default function Page() {
       if (!list.length) setItunesError('找不到符合的電影，請試試其他關鍵字')
     } catch {
       setItunesResults([])
-      setItunesError('無法連線 iTunes 搜尋（可能被網路或 CORS 阻擋），請改為手動填寫片名。')
+      setItunesError('無法連線 iTunes 搜尋（可能被網路或 CORS 阻擋），請改為手動填寫片名')
     } finally {
       setItunesLoading(false)
     }

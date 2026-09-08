@@ -5,6 +5,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn, charCount } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('api-docs-gen')!
 
@@ -199,9 +200,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={onCopy}>
-            {copied ? '已複製' : '複製 Markdown'}
-          </button>
+          <ActionButton className="btn sm ghost" onClick={onCopy} icon="copy">{copied ? '已複製' : '複製 Markdown'}</ActionButton>
           <button type="button" className="btn sm ghost" onClick={() => downloadText('api-docs.md', md, 'text/markdown;charset=utf-8')}>
             下載 MD
           </button>
@@ -339,9 +338,7 @@ export default function Page() {
                   </div>
                 </>
               )}
-              <button type="button" className="btn accent" onClick={tryIt} disabled={!current}>
-                送出模擬請求
-              </button>
+              <ActionButton className="btn accent" onClick={tryIt} disabled={!current}>送出模擬請求</ActionButton>
               {tryResult && (
                 <div className="stack" style={{ gap: 4 }}>
                   <div className="row">

@@ -10,7 +10,7 @@ import { formatBytes } from '../../lib/utils'
 const meta: ProjectMeta = getProject('zip-extractor') ?? {
   slug: 'zip-extractor',
   title: 'ZIP 解壓',
-  description: '本機檢視並解壓 ZIP 內容。',
+  description: '本機檢視並解壓 ZIP 內容',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['utility'],
@@ -99,7 +99,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機檢視並下載 ZIP 內檔案。壓縮檔上限 {formatBytes(ZIP_MAX)}，最多 {ENTRY_MAX} 個項目。
+        本機檢視並下載 ZIP 內檔案壓縮檔上限 {formatBytes(ZIP_MAX)}，最多 {ENTRY_MAX} 個項目
       </p>
       <div className="panel stack">
         <FileDrop
@@ -136,7 +136,7 @@ export default function Page() {
               )}
             </li>
           ))}
-          {!entries.length && <p className="muted">上傳 ZIP 後會列出內容；解壓僅在本機進行。</p>}
+          {!entries.length && <p className="muted">上傳 ZIP 後會列出內容；解壓僅在本機進行</p>}
         </ul>
       </div>
     </ProjectShell>

@@ -7,7 +7,7 @@ import { charCount, isNonEmpty, limitText } from '../../lib/utils'
 const meta: ProjectMeta = getProject('password-strength') ?? {
   slug: 'password-strength',
   title: '密碼強度檢查',
-  description: '本機評估密碼強度與改進建議。',
+  description: '本機評估密碼強度與改進建議',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -61,7 +61,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          密碼只留在記憶體，不會寫入 localStorage，也不會上傳。
+          密碼只留在記憶體，不會寫入 localStorage，也不會上傳
         </p>
         <label className="stack">
           <span className="label">密碼（僅本機評估）</span>
@@ -104,7 +104,7 @@ export default function Page() {
                 ))}
               </ul>
             ) : (
-              <p className="field-hint">看起來不錯。正式環境仍建議使用密碼管理器。</p>
+              <p className="field-hint">看起來不錯正式環境仍建議使用密碼管理器</p>
             )}
           </>
         )}

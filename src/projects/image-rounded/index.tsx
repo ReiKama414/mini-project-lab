@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-rounded',
   title: '圖片圓角',
-  description: '套用圓角遮罩並匯出透明 PNG。',
+  description: '套用圓角遮罩並匯出透明 PNG',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -79,13 +80,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        圓角外側透明，請用 PNG 下載；JPEG 不保留透明。僅本機處理，不會上傳。
+        圓角外側透明，請用 PNG 下載；JPEG 不保留透明僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -106,9 +106,8 @@ export default function Page() {
             <span className="label">圓角 {radius}px</span>
             <input type="range" min={0} max={300} value={radius} onChange={(e) => setRadius(clamp(Number(e.target.value), 0, 300))} />
           </label>
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

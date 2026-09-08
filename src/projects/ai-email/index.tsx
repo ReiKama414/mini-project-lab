@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-email')!
 
@@ -62,9 +63,9 @@ function generate(
         : 2
 
   const angle = [
-    lang === 'ZH' ? '以下整理重點供您參考。' : 'Here are the key points for your review.',
-    lang === 'ZH' ? '希望能儘快對齊下一步行動。' : 'I hope we can align on next steps soon.',
-    lang === 'ZH' ? '若時程允許，想邀請您給一點回饋。' : 'If timing allows, I would appreciate your feedback.',
+    lang === 'ZH' ? '以下整理重點供您參考' : 'Here are the key points for your review.',
+    lang === 'ZH' ? '希望能儘快對齊下一步行動' : 'I hope we can align on next steps soon.',
+    lang === 'ZH' ? '若時程允許，想邀請您給一點回饋' : 'If timing allows, I would appreciate your feedback.',
   ][variant % 3]!
 
   let body: string
@@ -89,17 +90,17 @@ function generate(
       body = bullets.map((b) => `• ${b}`).join('\n') || '• （請補充重點）'
     } else if (tone === '說服') {
       body = [
-        '我想與您分享一個能帶來明確成果的提案。',
+        '我想與您分享一個能帶來明確成果的提案',
         '',
         bullets.map((b, i) => `${i + 1}. ${b}`).join('\n') || '1. （請補充賣點）',
         '',
-        '若方便，希望本週能安排 15 分鐘快速討論。',
+        '若方便，希望本週能安排 15 分鐘快速討論',
       ].join('\n')
     } else {
       body = [`關於「${subj}」，整理如下：`, '', ...bullets.map((b) => `- ${b}`), '', angle].join('\n')
     }
-    if (expand >= 1) body += `\n\n補充：目前優先確保對齊與可追蹤的下一步。`
-    if (expand >= 2) body += `\n\n風險／備註：若有阻塞請儘早告知，我們可調整範圍。`
+    if (expand >= 1) body += `\n\n補充：目前優先確保對齊與可追蹤的下一步`
+    if (expand >= 2) body += `\n\n風險／備註：若有阻塞請儘早告知，我們可調整範圍`
   }
 
   const closeZH = tone === '正式' ? '此致\n敬礼' : tone === '友善' ? '謝謝你！\n祝好' : '謝謝'
@@ -228,9 +229,8 @@ export default function Page() {
               </button>
             ))}
           </div>
-          <button type="button" className="btn accent" onClick={regen} disabled={!canGenerate}>
-            產生 3 個變體
-          </button>
+          <ActionButton className="btn accent" onClick={regen} disabled={!canGenerate}>產生 3 個變體
+   </ActionButton>
         </div>
         <div className="panel stack">
           <div className="row" style={{ flexWrap: 'wrap' }}>

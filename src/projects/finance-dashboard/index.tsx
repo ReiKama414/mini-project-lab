@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('finance-dashboard')!
 
@@ -122,12 +123,10 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!monthTxs.length}>
-            匯出本月 CSV
-          </button>
-          <button type="button" className="btn ghost sm" onClick={exportJson} disabled={!monthTxs.length}>
-            匯出本月 JSON
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportCsv} disabled={!monthTxs.length}>匯出本月 CSV
+   </ActionButton>
+          <ActionButton className="btn ghost sm" onClick={exportJson} disabled={!monthTxs.length}>匯出本月 JSON
+  </ActionButton>
         </div>
       }
     >

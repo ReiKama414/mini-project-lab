@@ -40,24 +40,24 @@ function buildVariants(keywords: string, scene: string, style: Style): Variant[]
 
   const pool: Record<Style, string[]> = {
     ig: [
-      `${main}的這個瞬間，${rest}剛剛好。${sceneBit}\n\n今天想慢一點看光。\n\n${tags}`,
-      `當${main}遇上${rest}——心情直接被點亮。${sceneBit}\n\n你最近有什麼小確幸？\n\n${tags}`,
-      `存進回憶夾：${main} × ${rest}${sceneBit}\n\n願你也被溫柔的光線找到。\n\n${tags}`,
+      `${main}的這個瞬間，${rest}剛剛好${sceneBit}\n\n今天想慢一點看光\n\n${tags}`,
+      `當${main}遇上${rest}——心情直接被點亮${sceneBit}\n\n你最近有什麼小確幸？\n\n${tags}`,
+      `存進回憶夾：${main} × ${rest}${sceneBit}\n\n願你也被溫柔的光線找到\n\n${tags}`,
     ],
     product: [
-      `【熱銷推薦】${main}\n重點賣點：${rest}\n${sceneBit}\n立即提升點擊的主圖說明。\n\n${tags}`,
-      `新品上架｜${main}\n為什麼值得入手：${rest}\n${sceneBit}\n限量優惠進行中。\n\n${tags}`,
-      `${main} — 為在意${rest}的你設計\n規格清晰、開箱即用。${sceneBit}\n\n${tags}`,
+      `【熱銷推薦】${main}\n重點賣點：${rest}\n${sceneBit}\n立即提升點擊的主圖說明\n\n${tags}`,
+      `新品上架｜${main}\n為什麼值得入手：${rest}\n${sceneBit}\n限量優惠進行中\n\n${tags}`,
+      `${main} — 為在意${rest}的你設計\n規格清晰、開箱即用${sceneBit}\n\n${tags}`,
     ],
     alt: [
-      `一張顯示「${main}」的照片，畫面中可見${rest}${sceneBit}，光線自然。`,
-      `特寫：${main}置於中央，背景帶有${rest}${sceneBit}，適合說明產品外觀。`,
-      `場景照：${main}與${rest}同框${sceneBit}，色彩真實、無文字浮水印。`,
+      `一張顯示「${main}」的照片，畫面中可見${rest}${sceneBit}，光線自然`,
+      `特寫：${main}置於中央，背景帶有${rest}${sceneBit}，適合說明產品外觀`,
+      `場景照：${main}與${rest}同框${sceneBit}，色彩真實、無文字浮水印`,
     ],
     linkedin: [
-      `今天從「${main}」學到一件事：${rest}。${sceneBit}\n\n分享給正在迭代產品的你。\n\n${tags}`,
-      `觀察筆記｜${main}\n關鍵洞察：${rest}${sceneBit}\n\n歡迎交流你的做法。\n\n${tags}`,
-      `${main} 不是終點，而是驗證假設的過程。重點在 ${rest}。${sceneBit}\n\n${tags}`,
+      `今天從「${main}」學到一件事：${rest}${sceneBit}\n\n分享給正在迭代產品的你\n\n${tags}`,
+      `觀察筆記｜${main}\n關鍵洞察：${rest}${sceneBit}\n\n歡迎交流你的做法\n\n${tags}`,
+      `${main} 不是終點，而是驗證假設的過程重點在 ${rest}${sceneBit}\n\n${tags}`,
     ],
   }
 
@@ -130,7 +130,7 @@ export default function Page() {
           >
             產生多則變體
           </button>
-          <p className="field-hint">本機模板產生，可當靈感起點再微調。</p>
+          <p className="field-hint">本機模板產生，可當靈感起點再微調</p>
         </div>
 
         <div className="panel stack">

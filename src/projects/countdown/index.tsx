@@ -425,7 +425,7 @@ export default function Page() {
           )}
 
           <div className="cd-actions">
-            <button type="button" className="btn ghost pomo-icon-btn" onClick={resetActive} aria-label="重置" title="重置（R）">
+            <button type="button" className="btn ghost pomo-icon-btn" onClick={resetActive} aria-label="重置" data-tooltip="重置（R）">
               <IconReset size={18} strokeWidth={2.25} />
             </button>
             {!active.running ? (

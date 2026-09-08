@@ -172,7 +172,7 @@ export default function Page() {
             </button>
           </div>
           <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-            快捷鍵：在數量欄按 Enter 產生。結果會寫入左側清單與右側歷史。
+            快捷鍵：在數量欄按 Enter 產生結果會寫入左側清單與右側歷史
           </p>
           <ul className="list">
             {display.map((id, i) => (
@@ -186,7 +186,7 @@ export default function Page() {
               </li>
             ))}
             {!display.length && (
-              <p className="muted">尚未產生。設定數量後按「產生 v4」，可一次批次建立多組 UUID。</p>
+              <p className="muted">尚未產生設定數量後按「產生 v4」，可一次批次建立多組 UUID</p>
             )}
           </ul>
         </div>
@@ -209,7 +209,7 @@ export default function Page() {
               {validation?.ok && <p className="field-hint">{validation.message}</p>}
             </label>
             <p className="muted" style={{ fontSize: 12 }}>
-              使用 <code>uuid</code> 套件產生與驗證 RFC 4122 UUID v4。
+              使用 <code>uuid</code> 套件產生與驗證 RFC 4122 UUID v4
             </p>
           </div>
           <div className="panel stack">
@@ -242,7 +242,7 @@ export default function Page() {
                   </button>
                 </li>
               ))}
-              {!historyDisplay.length && <p className="muted">產生後會自動保存於此（本機）。</p>}
+              {!historyDisplay.length && <p className="muted">產生後會自動保存於此（本機）</p>}
             </ul>
             {historyDisplay.length > 0 && (
               <button

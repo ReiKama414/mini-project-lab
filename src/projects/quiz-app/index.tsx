@@ -281,7 +281,7 @@ export default function Page() {
           <div className="stack" style={{ gap: 8 }}>
             <strong>匯入自訂題（JSON）</strong>
             <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-              格式：[{'{'}q, options: string[], answer: number, category?: string{'}'}]，會與內建題庫合併。
+              格式：[{'{'}q, options: string[], answer: number, category?: string{'}'}]，會與內建題庫合併
             </p>
             <textarea
               className="field mono"

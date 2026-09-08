@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'social-cropper',
   title: '社群裁切',
-  description: '依常見社群比例裁切封面圖。',
+  description: '依常見社群比例裁切封面圖',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -148,12 +149,11 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-          下載裁切
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載裁切
+       </ActionButton>
       }
     >
-      <p className="muted" style={{ marginBottom: 12 }}>依社群比例裁切；可拖曳預覽或用滑桿分別調整水平／垂直位置。</p>
+      <p className="muted" style={{ marginBottom: 12 }}>依社群比例裁切；可拖曳預覽或用滑桿分別調整水平／垂直位置</p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
           <FileDrop
@@ -185,9 +185,8 @@ export default function Page() {
             <span className="label">垂直位置</span>
             <input type="range" min={0} max={100} value={Math.round(offsetY * 100)} onChange={(e) => setOffsetY(clamp(Number(e.target.value) / 100, 0, 1))} />
           </label>
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽（可拖曳）</div>

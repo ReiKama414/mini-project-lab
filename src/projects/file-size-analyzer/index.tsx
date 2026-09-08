@@ -8,7 +8,7 @@ import { formatBytes } from '../../lib/utils'
 const meta: ProjectMeta = getProject('file-size-analyzer') ?? {
   slug: 'file-size-analyzer',
   title: '檔案大小分析',
-  description: '本機分析多檔大小與佔比。',
+  description: '本機分析多檔大小與佔比',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['utility'],
@@ -45,7 +45,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        檔案僅在瀏覽器本機分析，不會上傳。最多 {MAX_FILES} 個、單檔上限 {formatBytes(FILE_MAX)}。
+        檔案僅在瀏覽器本機分析，不會上傳最多 {MAX_FILES} 個、單檔上限 {formatBytes(FILE_MAX)}
       </p>
       <div className="panel stack">
         <FileDrop
@@ -81,7 +81,7 @@ export default function Page() {
                 </div>
               </li>
             ))}
-          {!rows.length && <p className="muted">尚未選擇檔案。</p>}
+          {!rows.length && <p className="muted">尚未選擇檔案</p>}
         </ul>
       </div>
     </ProjectShell>

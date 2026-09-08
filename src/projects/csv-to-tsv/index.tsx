@@ -10,7 +10,7 @@ import { parseCsv, stringifyCsv } from '../../lib/csv'
 const meta: ProjectMeta = getProject('csv-to-tsv') ?? {
   slug: 'csv-to-tsv',
   title: 'CSV → TSV',
-  description: '逗號分隔轉 Tab 分隔。',
+  description: '逗號分隔轉 Tab 分隔',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -50,7 +50,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        以 RFC4180 解析來源後輸出 Tab 分隔。上傳上限 {formatBytes(FILE_MAX)}。
+        以 RFC4180 解析來源後輸出 Tab 分隔上傳上限 {formatBytes(FILE_MAX)}
       </p>
       <div className="panel stack">
         <label className="stack">

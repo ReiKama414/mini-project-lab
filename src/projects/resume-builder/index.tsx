@@ -44,7 +44,7 @@ const PRESETS: { label: string; data: Omit<Snapshot, 'id' | 'label' | 'at'> }[] 
       email: 'hello@example.com',
       phone: '0912-345-678',
       location: '台北',
-      summary: '專注設計系統與效能優化的前端工程師，喜歡把複雜流程做成簡單工具。',
+      summary: '專注設計系統與效能優化的前端工程師，喜歡把複雜流程做成簡單工具',
       skills: 'React, TypeScript, CSS, Node.js',
       exps: [
         {
@@ -66,7 +66,7 @@ const PRESETS: { label: string; data: Omit<Snapshot, 'id' | 'label' | 'at'> }[] 
       email: 'design@example.com',
       phone: '0922-111-222',
       location: '新竹',
-      summary: '以研究驅動介面決策，擅長把訪談洞察轉成可驗證原型。',
+      summary: '以研究驅動介面決策，擅長把訪談洞察轉成可驗證原型',
       skills: 'Figma, User Research, Prototyping, Design System',
       exps: [
         {
@@ -113,7 +113,7 @@ export default function Page() {
   const [location, setLocation] = useLocalStorage('lab:resume:loc', '台北')
   const [summary, setSummary] = useLocalStorage(
     'lab:resume:summary',
-    '專注設計系統與效能優化的前端工程師，喜歡把複雜流程做成簡單工具。',
+    '專注設計系統與效能優化的前端工程師，喜歡把複雜流程做成簡單工具',
   )
   const [skills, setSkills] = useLocalStorage('lab:resume:skills', 'React, TypeScript, CSS, Node.js')
   const [section, setSection] = useLocalStorage<Section>('lab:resume:section', 'basic')
@@ -320,7 +320,7 @@ export default function Page() {
               {!isNonEmpty(summary) ? (
                 <p className="field-error">建議填寫簡介（1–3 句話定位角色與強項）</p>
               ) : (
-                <p className="field-hint">用 1–3 句話定位你的角色與強項。</p>
+                <p className="field-hint">用 1–3 句話定位你的角色與強項</p>
               )}
             </>
           )}
@@ -339,7 +339,7 @@ export default function Page() {
                 placeholder="React, TypeScript…"
               />
               {skillList.length === 0 ? (
-                <p className="field-hint">尚未加入技能標籤。</p>
+                <p className="field-hint">尚未加入技能標籤</p>
               ) : (
                 <div className="row" style={{ flexWrap: 'wrap' }}>
                   {skillList.map((s) => (
@@ -363,7 +363,7 @@ export default function Page() {
               {exps.length === 0 ? (
                 <div className="list-item">
                   <p className="muted" style={{ margin: 0 }}>
-                    尚無經歷。建議每段用量化成果描述。
+                    尚無經歷建議每段用量化成果描述
                   </p>
                 </div>
               ) : (
@@ -428,7 +428,7 @@ export default function Page() {
               {edus.length === 0 ? (
                 <div className="list-item">
                   <p className="muted" style={{ margin: 0 }}>
-                    尚無學歷資料。
+                    尚無學歷資料
                   </p>
                 </div>
               ) : (
@@ -445,7 +445,7 @@ export default function Page() {
           )}
           {section === 'preview' && (
             <div className="stack">
-              <p className="muted">右側為即時預覽。可複製 Markdown、列印／另存 PDF，或存快照版本。</p>
+              <p className="muted">右側為即時預覽可複製 Markdown、列印／另存 PDF，或存快照版本</p>
               <button type="button" className="btn accent" onClick={() => downloadText('resume.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
                 下載履歷.md
               </button>
@@ -480,7 +480,7 @@ export default function Page() {
             <div className="list-item stack">
               <strong>履歷還是空的</strong>
               <p className="muted" style={{ margin: 0 }}>
-                選預設範本，或從「基本」步驟開始填寫。
+                選預設範本，或從「基本」步驟開始填寫
               </p>
             </div>
           ) : (
@@ -553,7 +553,7 @@ export default function Page() {
           </button>
         </div>
         {history.length === 0 ? (
-          <p className="muted">按「存快照」可保留目前履歷版本，方便還原或標記收藏。</p>
+          <p className="muted">按「存快照」可保留目前履歷版本，方便還原或標記收藏</p>
         ) : (
           <ul className="list">
             {history.map((h) => (

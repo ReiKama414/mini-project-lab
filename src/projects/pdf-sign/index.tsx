@@ -9,11 +9,12 @@ import { downloadBlob } from '../../lib/imageCanvas'
 import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES } from '../../lib/pdf'
 import { usePdfThumbs } from '../../lib/usePdfThumbs'
 import { PDFDocument, rgb } from 'pdf-lib'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-sign',
   title: 'PDF 簽名',
-  description: '在指定頁加上手寫簽名與姓名（支援中文）。',
+  description: '在指定頁加上手寫簽名與姓名（支援中文）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -213,8 +214,8 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        手寫簽名以影像嵌入；姓名以中文字型畫成圖片後嵌入（避免 Helvetica 無法顯示中文）。單檔上限{' '}
-        {formatBytes(PDF_MAX_BYTES)}；空白簽名板不會寫入。點擊縮圖可選擇簽署頁。
+        手寫簽名以影像嵌入；姓名以中文字型畫成圖片後嵌入（避免 Helvetica 無法顯示中文）單檔上限{' '}
+        {formatBytes(PDF_MAX_BYTES)}；空白簽名板不會寫入點擊縮圖可選擇簽署頁
       </p>
       <div className="panel stack">
         <FileDrop
@@ -292,9 +293,8 @@ export default function Page() {
           onPointerCancel={endDraw}
         />
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={clearPad}>
-            清除簽名
-          </button>
+          <ActionButton className="btn sm ghost" onClick={clearPad}>清除簽名
+     </ActionButton>
           <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
             {busy ? '處理中…' : '套用並下載'}
           </button>

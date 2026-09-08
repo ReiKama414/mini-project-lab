@@ -5,6 +5,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, limitText, isNonEmpty, charCount, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('feature-flags')!
 
@@ -151,12 +152,10 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={() => fileRef.current?.click()}>
             匯入 Flags
           </button>
-          <button type="button" className="btn sm ghost" onClick={exportFlags} disabled={!flags.length}>
-            匯出 Flags
-          </button>
-          <button type="button" className="btn sm ghost" onClick={exportAudit} disabled={!audit.length}>
-            匯出稽核
-          </button>
+          <ActionButton className="btn sm ghost" onClick={exportFlags} disabled={!flags.length}>匯出 Flags
+   </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={exportAudit} disabled={!audit.length}>匯出稽核
+       </ActionButton>
         </div>
       }
     >

@@ -5,11 +5,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-compressor',
   title: '圖片壓縮',
-  description: '以品質與最長邊壓縮圖片。',
+  description: '以品質與最長邊壓縮圖片',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -94,12 +95,11 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage || busy} onClick={download}>
-          下載
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage || busy} onClick={download}>下載
+        </ActionButton>
       }
     >
-      <p className="muted" style={{ marginBottom: 12 }}>本機壓縮，調整參數會即時重算。不會上傳。</p>
+      <p className="muted" style={{ marginBottom: 12 }}>本機壓縮，調整參數會即時重算不會上傳</p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
           <FileDrop
@@ -139,9 +139,8 @@ export default function Page() {
             <input type="range" min={200} max={6000} step={10} value={maxSide} onChange={(e) => setMaxSide(clamp(Number(e.target.value), 200, 6000))} />
           </label>
           {busy && <p className="field-hint">處理中…</p>}
-          <button type="button" className="btn accent" disabled={!hasImage || busy} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage || busy} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

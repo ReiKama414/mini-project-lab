@@ -7,7 +7,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('jwt-decoder') ?? {
   slug: 'jwt-decoder',
   title: 'JWT 解碼器',
-  description: '解碼 JWT header／payload（不驗證簽章）。',
+  description: '解碼 JWT header／payload（不驗證簽章）',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -58,7 +58,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          僅解碼顯示，不驗證簽章。Token 只留在記憶體，不寫入 localStorage、不上傳。請勿貼正式環境密鑰或含敏感資料的 token。
+          僅解碼顯示，不驗證簽章Token 只留在記憶體，不寫入 localStorage、不上傳請勿貼正式環境密鑰或含敏感資料的 token
         </p>
         <label className="stack">
           <span className="label">JWT</span>

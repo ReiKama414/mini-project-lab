@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('book-tracker')!
 
@@ -138,7 +139,7 @@ export default function Page() {
       if (!docs.length) setOlError('找不到符合的書籍')
     } catch {
       setOlResults([])
-      setOlError('無法連線 Open Library，請改為手動填寫。')
+      setOlError('無法連線 Open Library，請改為手動填寫')
     } finally {
       setOlLoading(false)
     }
@@ -174,12 +175,10 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row" style={{ gap: 8 }}>
-          <button type="button" className="btn ghost sm" disabled={!books.length} onClick={exportJson}>
-            匯出 JSON
-          </button>
-          <button type="button" className="btn ghost sm" disabled={!books.length} onClick={exportCsv}>
-            匯出 CSV
-          </button>
+          <ActionButton className="btn ghost sm" disabled={!books.length} onClick={exportJson}>匯出 JSON
+    </ActionButton>
+          <ActionButton className="btn ghost sm" disabled={!books.length} onClick={exportCsv}>匯出 CSV
+     </ActionButton>
         </div>
       }
     >

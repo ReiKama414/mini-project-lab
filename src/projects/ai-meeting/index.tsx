@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-meeting')!
 
@@ -52,7 +53,7 @@ function extractRisks(lines: string[]): string[] {
 export default function Page() {
   const [notes, setNotes] = useLocalStorage(
     'lab:ai-meeting',
-    '出席：小明、雅婷、志豪\n確認 Q3 里程碑。同意採用新設計稿。小明負責 API 整合，截止週五。風險：第三方延遲可能影響上線。請產品跟進用戶訪談。決議：下週一再 review。',
+    '出席：小明、雅婷、志豪\n確認 Q3 里程碑同意採用新設計稿小明負責 API 整合，截止週五風險：第三方延遲可能影響上線請產品跟進用戶訪談決議：下週一再 review',
   )
   const [title, setTitle] = useLocalStorage('lab:ai-meeting:title', '週會摘要')
   const [attendees, setAttendees] = useState<string[]>([])
@@ -67,7 +68,7 @@ export default function Page() {
   function analyze() {
     if (!canAnalyze) return
     const lines = notes
-      .split(/\n|[。！？.!?]/)
+      .split(/\n|[！？.!?]/)
       .map((s) => s.trim())
       .filter((s) => s.length > 3)
     const att = extractAttendees(notes)
@@ -152,9 +153,8 @@ export default function Page() {
             <span>{charCount(notes)}/{NOTES_MAX}</span>
           </div>
           {!canAnalyze && <p className="field-error">筆記不可空白</p>}
-          <button type="button" className="btn accent" onClick={analyze} disabled={!canAnalyze}>
-            產生摘要
-          </button>
+          <ActionButton className="btn accent" onClick={analyze} disabled={!canAnalyze}>產生摘要
+       </ActionButton>
         </div>
         <div className="panel stack">
           {!ready ? (

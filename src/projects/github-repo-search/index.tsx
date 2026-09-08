@@ -98,8 +98,8 @@ export default function Page() {
         if (res.status === 403 || res.status === 429) {
           throw new Error(
             rl.remaining === 0
-              ? 'GitHub API 速率已用盡（搜尋 API 限制較嚴），請稍後再試。'
-              : '請求被拒絕（可能觸及速率限制），請稍後再試。',
+              ? 'GitHub API 速率已用盡（搜尋 API 限制較嚴），請稍後再試'
+              : '請求被拒絕（可能觸及速率限制），請稍後再試',
           )
         }
         throw new Error(`API 錯誤 ${res.status}`)

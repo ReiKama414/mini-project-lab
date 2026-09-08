@@ -1,7 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { ActionButton } from '../../components/ActionButton'
 import { DeleteButton } from '../../components/DeleteButton'
+import { EditButton } from '../../components/EditButton'
 import { IconCalendar } from '../../components/icons'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -250,14 +252,14 @@ export default function Page() {
             <span className="muted toolbar-stat">
               剩餘 {left} · 完成 {doneCount}
             </span>
-            <button
+            <ActionButton
               type="button"
               className="btn ghost sm"
               onClick={() => setTodos(todos.filter((t) => !t.done))}
               disabled={!doneCount}
             >
               清除已完成
-            </button>
+            </ActionButton>
           </div>
         </div>
 
@@ -300,7 +302,7 @@ export default function Page() {
                     className="todo-grip"
                     role="button"
                     tabIndex={0}
-                    title={filtering ? `拖曳調整順序（目前第 ${order} 筆）` : '拖曳調整順序'}
+                    data-tooltip={filtering ? `拖曳調整順序（目前第 ${order} 筆）` : '拖曳調整順序'}
                     aria-label={`第 ${order} 筆，拖曳調整順序`}
                     draggable={editing !== t.id}
                     onDragStart={(e) => {
@@ -383,7 +385,7 @@ export default function Page() {
                         setEditText(t.text)
                         setError('')
                       }}
-                      title="雙擊編輯"
+                      data-tooltip="雙擊編輯"
                     >
                       {t.text}
                     </button>
@@ -398,17 +400,13 @@ export default function Page() {
                     </span>
                   )}
                   <div className="todo-actions">
-                    <button
-                      type="button"
-                      className="btn ghost sm"
+                    <EditButton
                       onClick={() => {
                         setEditing(t.id)
                         setEditText(t.text)
                         setError('')
                       }}
-                    >
-                      編輯
-                    </button>
+                    />
                     <DeleteButton
                       onClick={() => {
                         if (editing === t.id) setEditing(null)
@@ -424,7 +422,7 @@ export default function Page() {
         )}
 
         <p className="muted todo-hint">
-          有序清單：左側序號可拖曳調整順序；列表以「3★」顯示優先度，點選可改。
+          有序清單：左側序號可拖曳調整順序；列表以「3★」顯示優先度，點選可改
         </p>
       </div>
     </ProjectShell>

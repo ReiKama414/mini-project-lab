@@ -8,7 +8,7 @@ import { clamp, copyText, parseNumber } from '../../lib/utils'
 const meta: ProjectMeta = getProject('secure-password') ?? {
   slug: 'secure-password',
   title: '安全密碼產生',
-  description: 'Web Crypto 產生高熵密碼。',
+  description: 'Web Crypto 產生高熵密碼',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -52,7 +52,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          使用 crypto.getRandomValues。密碼只留在記憶體，不寫入 localStorage。長度設定可記住。
+          使用 crypto.getRandomValues密碼只留在記憶體，不寫入 localStorage長度設定可記住
         </p>
         <label className="stack">
           <span className="label">長度：{n}（12–64）</span>

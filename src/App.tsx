@@ -27,7 +27,7 @@ function ProjectRoute() {
     return (
       <div className="panel stack">
         <h2>找不到專案</h2>
-        <p className="muted">slug「{slug}」尚未實作或不存在。</p>
+        <p className="muted">slug「{slug}」尚未實作或不存在</p>
       </div>
     )
   }

@@ -9,7 +9,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-metadata',
   title: 'PDF 中繼資料',
-  description: '檢視與編輯 PDF 標題／作者等資訊。',
+  description: '檢視與編輯 PDF 標題／作者等資訊',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -112,7 +112,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機讀寫 PDF Info 字典。單檔上限 {formatBytes(PDF_MAX)}。
+        本機讀寫 PDF Info 字典單檔上限 {formatBytes(PDF_MAX)}
       </p>
       <div className="panel stack">
         <FileDrop

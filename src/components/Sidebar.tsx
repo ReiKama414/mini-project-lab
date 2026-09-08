@@ -44,7 +44,7 @@ export function Sidebar({
           type="button"
           className="sidebar-collapse-btn"
           aria-label="收合左側導覽"
-          title="收合導覽"
+          data-tooltip="收合導覽"
           onClick={onToggleCollapse}
         >
           <IconSidebarClose size={16} strokeWidth={2.25} />

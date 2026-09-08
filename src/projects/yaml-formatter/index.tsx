@@ -9,7 +9,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('yaml-formatter') ?? {
   slug: 'yaml-formatter',
   title: 'YAML Formatter',
-  description: '以 js-yaml 解析並格式化 YAML。',
+  description: '以 js-yaml 解析並格式化 YAML',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -55,7 +55,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          使用 js-yaml 於瀏覽器本機解析並重新輸出。壓縮模式會改為較緊湊的 flow 風格。
+          使用 js-yaml 於瀏覽器本機解析並重新輸出壓縮模式會改為較緊湊的 flow 風格
         </p>
         <label className="stack">
           <span className="label">YAML</span>

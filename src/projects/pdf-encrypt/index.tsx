@@ -9,7 +9,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-encrypt',
   title: 'PDF 容器加密',
-  description: 'AES-GCM 本機封裝／解密 PDF（非標準 PDF 密碼）。',
+  description: 'AES-GCM 本機封裝／解密 PDF（非標準 PDF 密碼）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility', 'security'],
@@ -92,7 +92,7 @@ export default function Page() {
       out.set(iv, header.length + 16)
       out.set(cipher, header.length + 28)
       downloadBlob(new Blob([Uint8Array.from(out)], { type: 'application/octet-stream' }), `${file.name.replace(/\.pdf$/i, '')}.pdf.enc`)
-      setNote('已下載 .pdf.enc。此為本機 AES-GCM 封裝，需用同頁解密還原為 PDF。')
+      setNote('已下載 .pdf.enc此為本機 AES-GCM 封裝，需用同頁解密還原為 PDF')
     } catch (e) {
       setError('加密失敗：' + (e instanceof Error ? e.message : '未知錯誤'))
     } finally {
@@ -126,7 +126,7 @@ export default function Page() {
         ),
       )
       downloadBlob(new Blob([Uint8Array.from(plain)], { type: 'application/pdf' }), encFile.name.replace(/\.pdf\.enc$/i, '') + '-decrypted.pdf')
-      setNote('已解密還原為 PDF。')
+      setNote('已解密還原為 PDF')
     } catch (e) {
       setError('解密失敗（密碼錯誤或檔案損毀）')
       void e
@@ -158,8 +158,8 @@ export default function Page() {
         本機 AES-GCM 容器封裝（.pdf.enc），非標準 PDF 開啟密碼
       </p>
       <p className="muted" style={{ marginBottom: 12 }}>
-        這<strong>不是</strong> Adobe／瀏覽器可直接開啟的標準 PDF 密碼保護，而是本機 AES-GCM 容器（.pdf.enc）。需用同頁解密還原為一般 PDF。單檔上限{' '}
-        {formatBytes(PDF_MAX)}；密碼不會上傳。
+        這<strong>不是</strong> Adobe／瀏覽器可直接開啟的標準 PDF 密碼保護，而是本機 AES-GCM 容器（.pdf.enc）需用同頁解密還原為一般 PDF單檔上限{' '}
+        {formatBytes(PDF_MAX)}；密碼不會上傳
       </p>
       <div className="panel stack">
         <FileDrop

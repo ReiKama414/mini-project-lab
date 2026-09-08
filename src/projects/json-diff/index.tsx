@@ -8,7 +8,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('json-diff') ?? {
   slug: 'json-diff',
   title: 'JSON Diff',
-  description: '比較兩段 JSON 的鍵值差異。',
+  description: '比較兩段 JSON 的鍵值差異',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -86,7 +86,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        以路徑扁平化比較鍵值（非完整 tree / LCS diff）。陣列以索引比對，重排可能顯示為多處變更。
+        以路徑扁平化比較鍵值（非完整 tree / LCS diff）陣列以索引比對，重排可能顯示為多處變更
       </p>
       <div className="grid-2">
         <label className="stack panel">

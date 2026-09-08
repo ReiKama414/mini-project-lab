@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('stock-watchlist')!
 
@@ -171,9 +172,9 @@ export default function Page() {
       setUsingCache(true)
       if (results.some((r) => r.price > 0)) {
         setAsOf(cached?.at || '—')
-        setError('無法連線 Stooq（CORS／網路）。已改顯示本機上次已知報價。')
+        setError('無法連線 Stooq（CORS／網路）已改顯示本機上次已知報價')
       } else {
-        setError('無法取得報價，且沒有本機快取。請檢查網路後再試，或稍後重新整理。')
+        setError('無法取得報價，且沒有本機快取請檢查網路後再試，或稍後重新整理')
       }
     }
     setLoading(false)
@@ -213,9 +214,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={exportCsv} disabled={!sorted.length}>
-            匯出 CSV
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportCsv} disabled={!sorted.length}>匯出 CSV
+     </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => void load()} disabled={loading}>
             {loading ? '更新中…' : '重新整理'}
           </button>
@@ -223,7 +223,7 @@ export default function Page() {
       }
     >
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        Stooq 延遲日線；若直連失敗會改走 CORS 代理，仍失敗則顯示本機上次已知報價（不會空白 silently）。
+        Stooq 延遲日線；若直連失敗會改走 CORS 代理，仍失敗則顯示本機上次已知報價（不會空白 silently）
         {asOf && ` · ${usingCache ? '快取' : '更新'}於 ${asOf}`}
       </p>
       {error && (

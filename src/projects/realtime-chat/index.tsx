@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, downloadText, isNonEmpty, limitText, pick, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('realtime-chat')!
 
@@ -150,12 +151,10 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row" style={{ gap: 6 }}>
-          <button type="button" className="btn ghost sm" onClick={exportRoom} disabled={!roomMsgs.length}>
-            匯出本房
-          </button>
-          <button type="button" className="btn ghost sm" onClick={exportAll} disabled={!msgs.length}>
-            匯出全部
-          </button>
+          <ActionButton className="btn ghost sm" onClick={exportRoom} disabled={!roomMsgs.length}>匯出本房
+       </ActionButton>
+          <ActionButton className="btn ghost sm" onClick={exportAll} disabled={!msgs.length}>匯出全部
+       </ActionButton>
         </div>
       }
     >
@@ -223,12 +222,10 @@ export default function Page() {
             <button type="button" className={`btn sm ${botOn ? 'teal' : 'ghost'}`} onClick={() => setBotOn((v) => !v)}>
               {botOn ? '模擬在線 ON' : '模擬在線 OFF'}
             </button>
-            <button type="button" className="btn sm ghost" onClick={clearRoom} disabled={!roomMsgs.length}>
-              清空本房
-            </button>
-            <button type="button" className="btn sm ghost" onClick={clearAll} disabled={!msgs.length}>
-              清空全部
-            </button>
+            <ActionButton className="btn sm ghost" onClick={clearRoom} disabled={!roomMsgs.length}>清空本房
+     </ActionButton>
+            <ActionButton className="btn sm ghost" onClick={clearAll} disabled={!msgs.length}>清空全部
+     </ActionButton>
           </div>
           <div style={{ flex: 1, overflow: 'auto', maxHeight: 360 }}>
             {roomMsgs.map((m) => (
@@ -248,7 +245,7 @@ export default function Page() {
             ))}
             {!roomMsgs.length && (
               <p className="muted" style={{ fontSize: 13 }}>
-                這個房間還沒有訊息。打個招呼，或開啟「模擬在線」讓 bot 加入對話。
+                這個房間還沒有訊息打個招呼，或開啟「模擬在線」讓 bot 加入對話
               </p>
             )}
             {typing && (
@@ -276,9 +273,7 @@ export default function Page() {
             <span className="muted" style={{ fontSize: 11 }}>
               {charCount(input)}/{MSG_MAX}
             </span>
-            <button type="button" className="btn accent" onClick={send} disabled={!isNonEmpty(input)}>
-              送出
-            </button>
+            <ActionButton className="btn accent" onClick={send} disabled={!isNonEmpty(input)}>送出</ActionButton>
           </div>
         </section>
 
@@ -309,7 +304,7 @@ export default function Page() {
             ))}
           </ul>
           <p className="muted" style={{ fontSize: 11 }}>
-            本機模擬多房間聊天：presence、輸入中狀態與匯出紀錄。
+            本機模擬多房間聊天：presence、輸入中狀態與匯出紀錄
           </p>
         </aside>
       </div>

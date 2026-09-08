@@ -10,7 +10,7 @@ import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../
 const meta: ProjectMeta = getProject('xml-formatter') ?? {
   slug: 'xml-formatter',
   title: 'XML Formatter',
-  description: '以 Prettier（html parser）格式化／壓縮 XML。',
+  description: '以 Prettier（html parser）格式化／壓縮 XML',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -56,7 +56,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          使用 Prettier（html parser）處理類 XML 標記。複雜／嚴格 XML 可能不完全適用。壓縮模式會去掉多餘空白。
+          使用 Prettier（html parser）處理類 XML 標記複雜／嚴格 XML 可能不完全適用壓縮模式會去掉多餘空白
         </p>
         <label className="stack">
           <span className="label">XML</span>

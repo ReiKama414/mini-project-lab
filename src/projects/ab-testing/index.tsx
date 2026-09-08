@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ab-testing')!
 
@@ -42,8 +43,8 @@ function pickWinner(rates: Record<Variant, number>, z: number | null): Variant |
 
 export default function Page() {
   const [content, setContent] = useLocalStorage('lab:ab-testing:content', {
-    A: { title: '立即開始', body: '經典 CTA 文案，強調行動。' },
-    B: { title: '免費試用 14 天', body: '強調零風險試用的變體。' },
+    A: { title: '立即開始', body: '經典 CTA 文案，強調行動' },
+    B: { title: '免費試用 14 天', body: '強調零風險試用的變體' },
   })
   const [split, setSplit] = useLocalStorage('lab:ab-testing:split', 50)
   const [impressions, setImpressions] = useLocalStorage<Record<Variant, number>>('lab:ab-testing:imp', { A: 120, B: 118 })
@@ -73,12 +74,12 @@ export default function Page() {
     const needA = Math.max(0, MIN_SAMPLE - impressions.A)
     const needB = Math.max(0, MIN_SAMPLE - impressions.B)
     if (needA === 0 && needB === 0) {
-      return `兩邊皆達建議樣本（≥ ${MIN_SAMPLE}）。可依 z-score 評估是否停止實驗。`
+      return `兩邊皆達建議樣本（≥ ${MIN_SAMPLE}）可依 z-score 評估是否停止實驗`
     }
     const parts: string[] = []
     if (needA) parts.push(`A 還差約 ${needA} 次曝光`)
     if (needB) parts.push(`B 還差約 ${needB} 次曝光`)
-    return `建議每組至少 ${MIN_SAMPLE} 次曝光以降低偶然波動。${parts.join('；')}。`
+    return `建議每組至少 ${MIN_SAMPLE} 次曝光以降低偶然波動${parts.join('；')}`
   }, [impressions])
 
   const hint =
@@ -167,14 +168,12 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={snapshot}>
             存快照
           </button>
-          <button type="button" className="btn sm danger" onClick={reset}>
-            重置數據
-          </button>
+          <ActionButton className="btn sm danger" onClick={reset}>重置數據</ActionButton>
         </div>
       }
     >
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機模擬／示範：曝光與轉換為本機計數，z-score 僅供粗略示意，非正式實驗平台。
+        本機模擬／示範：曝光與轉換為本機計數，z-score 僅供粗略示意，非正式實驗平台
       </p>
       <div className="panel stack" style={{ marginBottom: 12 }}>
         <label className="label">流量分配 · A {split}% / B {100 - split}%</label>

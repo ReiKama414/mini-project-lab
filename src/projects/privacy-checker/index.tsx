@@ -7,7 +7,7 @@ import { charCount, isNonEmpty, limitText } from '../../lib/utils'
 const fallback: ProjectMeta = {
   slug: 'privacy-checker',
   title: '隱私風險檢查',
-  description: '掃描文字中的 email／電話／身分相關模式。',
+  description: '掃描文字中的 email／電話／身分相關模式',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -47,7 +47,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        簡易正則啟發式掃描，可能誤判或漏判，不能取代正式個資審查。文字僅在本機處理。
+        簡易正則啟發式掃描，可能誤判或漏判，不能取代正式個資審查文字僅在本機處理
       </p>
       <div className="panel stack">
         <label className="stack">

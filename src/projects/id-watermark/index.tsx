@@ -4,6 +4,7 @@ import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('id-watermark')!
 
@@ -188,17 +189,15 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={clearImage} disabled={!src}>
-            清除圖片
-          </button>
-          <button type="button" className="btn sm accent" onClick={download} disabled={!canExport}>
-            下載 PNG
-          </button>
+          <ActionButton className="btn sm ghost" onClick={clearImage} disabled={!src}>清除圖片
+     </ActionButton>
+          <ActionButton className="btn sm accent" onClick={download} disabled={!canExport}>下載 PNG
+     </ActionButton>
         </div>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        圖片僅在瀏覽器本機處理，不會上傳。浮水印可降低證件被挪作他用的風險，但仍請謹慎分享。
+        圖片僅在瀏覽器本機處理，不會上傳浮水印可降低證件被挪作他用的風險，但仍請謹慎分享
       </p>
 
       <div className="grid-2" style={{ alignItems: 'start' }}>
@@ -338,9 +337,8 @@ export default function Page() {
           </label>
 
           <div className="row">
-            <button type="button" className="btn accent" onClick={download} disabled={!canExport}>
-              下載浮水印圖片
-            </button>
+            <ActionButton className="btn accent" onClick={download} disabled={!canExport}>下載浮水印圖片
+    </ActionButton>
             <button
               type="button"
               className="btn ghost"

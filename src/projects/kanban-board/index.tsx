@@ -1,7 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
+import { ActionButton } from '../../components/ActionButton'
 import { DeleteButton } from '../../components/DeleteButton'
+import { EditButton } from '../../components/EditButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -124,7 +126,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <div className="panel stack">
-        <p className="muted">可拖曳卡片至其他欄位，或使用按鈕移動。看板會自動儲存在本機。</p>
+        <p className="muted">可拖曳卡片至其他欄位，或使用按鈕移動看板會自動儲存在本機</p>
         <div className="row">
           <div className="field-wrap" style={{ flex: 1 }}>
             <input
@@ -283,12 +285,12 @@ export default function Page() {
                               <option value="low">低</option>
                             </select>
                             <div className="row">
-                              <button className="btn sm accent" onClick={saveEdit} disabled={!editTitleOk}>
+                              <ActionButton className="btn sm accent" onClick={saveEdit} disabled={!editTitleOk}>
                                 儲存
-                              </button>
-                              <button className="btn sm ghost" onClick={() => setEditing(null)}>
+                              </ActionButton>
+                              <ActionButton className="btn sm ghost" onClick={() => setEditing(null)}>
                                 取消
-                              </button>
+                              </ActionButton>
                             </div>
                           </div>
                         ) : (
@@ -337,9 +339,7 @@ export default function Page() {
                                   → {x.label}
                                 </button>
                               ))}
-                              <button className="btn sm ghost" onClick={() => startEdit(c)}>
-                                編輯
-                              </button>
+                              <EditButton onClick={() => startEdit(c)} />
                               <DeleteButton
                                 onClick={() => setCards(cards.filter((x) => x.id !== c.id))}
                                 label="刪除"

@@ -4,11 +4,12 @@ import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-cropper',
   title: '圖片裁切',
-  description: '自由框選裁切並下載。',
+  description: '自由框選裁切並下載',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -123,13 +124,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-          下載裁切
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載裁切
+       </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        拖曳裁切框（支援觸控），或用滑桿調整位置與大小。無法還原。僅本機處理，不會上傳。
+        拖曳裁切框（支援觸控），或用滑桿調整位置與大小無法還原僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -201,9 +201,8 @@ export default function Page() {
               </label>
             </>
           )}
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽（可拖曳）</div>

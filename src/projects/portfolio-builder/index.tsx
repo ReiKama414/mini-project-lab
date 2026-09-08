@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, limitText, charCount, isNonEmpty, isValidEmail, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('portfolio-builder')!
 
@@ -25,7 +26,7 @@ export default function Page() {
   const [bio, setBio] = useLocalStorage('lab:portfolio:bio', '前端工程師 · 喜歡打造小而美的工具')
   const [about, setAbout] = useLocalStorage(
     'lab:portfolio:about',
-    '專注 React／TypeScript 與設計系統。偏好本機優先、可落地的產品原型。',
+    '專注 React／TypeScript 與設計系統偏好本機優先、可落地的產品原型',
   )
   const [email, setEmail] = useLocalStorage('lab:portfolio:email', 'hello@example.com')
   const [accent, setAccent] = useLocalStorage('lab:portfolio:accent', '#0d9488')
@@ -87,9 +88,8 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
           <button type="button" className="btn ghost sm" onClick={() => downloadText('portfolio.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
             匯出 Markdown
           </button>
-          <button type="button" className="btn accent sm" onClick={exportHtml}>
-            匯出 HTML
-          </button>
+          <ActionButton className="btn accent sm" onClick={exportHtml}>匯出 HTML
+   </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => window.print()}>
             列印預覽
           </button>

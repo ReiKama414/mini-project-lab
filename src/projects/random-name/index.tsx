@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber, pick, randomInt } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('random-name')!
 
@@ -254,18 +255,16 @@ export default function Page() {
             本批不重複
           </label>
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn accent" onClick={generate} disabled={!countOk}>
-              產生
-            </button>
+            <ActionButton className="btn accent" onClick={generate} disabled={!countOk}>產生
+         </ActionButton>
             <button type="button" className="btn teal" disabled={!names.length || !countOk} onClick={generate}>
               全部重新產生
             </button>
             <button type="button" className="btn ghost" disabled={!names.length} onClick={() => void copyAll()}>
               {copied ? '已複製' : '全部複製'}
             </button>
-            <button type="button" className="btn ghost" disabled={!names.length} onClick={downloadCsv}>
-              下載 CSV
-            </button>
+            <ActionButton className="btn ghost" disabled={!names.length} onClick={downloadCsv}>下載 CSV
+     </ActionButton>
           </div>
           <ul className="list">
             {names.map((n, i) => (
@@ -288,7 +287,7 @@ export default function Page() {
             ))}
             {!names.length && (
               <p className="muted">
-                選擇類別後產生假資料。人名池偏台灣常見姓／名；也可產生公司、產品與使用者名稱。
+                選擇類別後產生假資料人名池偏台灣常見姓／名；也可產生公司、產品與使用者名稱
               </p>
             )}
           </ul>
@@ -317,7 +316,7 @@ export default function Page() {
                 </button>
               </li>
             ))}
-            {!favorites.length && <p className="muted">點「收藏」把喜歡的名字留在本機。</p>}
+            {!favorites.length && <p className="muted">點「收藏」把喜歡的名字留在本機</p>}
           </ul>
           {favorites.length > 0 && (
             <button type="button" className="btn ghost" onClick={() => void copyText(favorites.join('\n'))}>

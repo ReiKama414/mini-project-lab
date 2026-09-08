@@ -9,7 +9,7 @@ import { loadImageFromFile, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '
 const fallback: ProjectMeta = {
   slug: 'image-resizer',
   title: '圖片縮放',
-  description: '依寬高或最長邊縮放圖片。',
+  description: '依寬高或最長邊縮放圖片',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -135,7 +135,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        單邊上限 8000px；JPEG 以白底填補透明。僅本機處理，不會上傳。
+        單邊上限 8000px；JPEG 以白底填補透明僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">

@@ -4,11 +4,12 @@ import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, mapPixels, clampByte, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'image-grayscale',
   title: '黑白圖片',
-  description: '將圖片轉為灰階並下載。',
+  description: '將圖片轉為灰階並下載',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -68,13 +69,12 @@ export default function Page() {
     <ProjectShell
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage} onClick={download}>
-          下載 PNG
-        </button>
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
+     </ActionButton>
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        依 ITU-R BT.601 權重轉灰階。大圖可能較慢。僅本機處理，不會上傳。
+        依 ITU-R BT.601 權重轉灰階大圖可能較慢僅本機處理，不會上傳
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">
@@ -91,9 +91,8 @@ export default function Page() {
             </p>
           )}
           {error && <p className="field-error">{error}</p>}
-          <button type="button" className="btn accent" disabled={!hasImage} onClick={download}>
-            下載
-          </button>
+          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
+         </ActionButton>
         </div>
         <div className="panel stack">
           <div className="label">預覽</div>

@@ -1,6 +1,8 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { DeleteButton } from '../../components/DeleteButton'
+import { ActionButton } from '../../components/ActionButton'
+import { ExportSelect } from '../../components/ExportSelect'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber, uid } from '../../lib/utils'
@@ -80,7 +82,7 @@ function inRange(n: number, min: number, max: number) {
   return Number.isFinite(n) && n >= min && n <= max
 }
 
-/** 編輯中允許清空／中間值；失焦後再夾限。避免「刪不掉、打不出 58」的 UX。 */
+/** 編輯中允許清空／中間值；失焦後再夾限避免「刪不掉、打不出 58」的 UX */
 function BmiNumberField({
   label,
   value,
@@ -258,8 +260,8 @@ export default function Page() {
     const under = grade.includes('過輕') || bmi < 18.5
 
     const waistLine = waistRisk
-      ? `腰圍 ${metric.waistCm.toFixed(1)} cm，已達${sex === 'male' ? '男性' : '女性'}腹部肥胖切點（≥${waistCutoff} cm）。`
-      : `腰圍 ${metric.waistCm.toFixed(1)} cm，尚未達腹部肥胖切點（${sex === 'male' ? '男' : '女'} ≥${waistCutoff} cm）。`
+      ? `腰圍 ${metric.waistCm.toFixed(1)} cm，已達${sex === 'male' ? '男性' : '女性'}腹部肥胖切點（≥${waistCutoff} cm）`
+      : `腰圍 ${metric.waistCm.toFixed(1)} cm，尚未達腹部肥胖切點（${sex === 'male' ? '男' : '女'} ≥${waistCutoff} cm）`
 
     let advice = ''
     let diseases: string[] = []
@@ -268,15 +270,15 @@ export default function Page() {
     let sleep: string[] = []
 
     if (under) {
-      advice = '體重偏輕，需評估營養是否足夠，避免不健康減重或潛在疾病。'
+      advice = '體重偏輕，需評估營養是否足夠，避免不健康減重或潛在疾病'
       diseases = ['營養不良／肌少風險', '免疫力下降', '骨質疏鬆風險', '貧血、荷爾蒙失調（視個案）']
       diet = ['三餐定時，增加優質蛋白（蛋豆魚肉）', '健康脂肪：堅果、酪梨、橄欖油', '必要時營養師評估熱量與微量營養素', '避免以含糖飲料「硬增重」']
       exercise = ['阻力訓練 2～3 次／週，優先長肌肉', '避免過長有氧導致熱量赤字過大', '活動後補充蛋白質與碳水化合物']
       sleep = ['每晚 7～9 小時', '固定作息，睡前少咖啡因', '壓力大時優先恢復睡眠再增訓']
     } else if (!overweight && !obese) {
       advice = waistRisk
-        ? 'BMI 雖正常，但腰圍偏高，仍有中心型肥胖與代謝風險。'
-        : 'BMI 與腰圍目前較理想，重點是維持良好生活型態。'
+        ? 'BMI 雖正常，但腰圍偏高，仍有中心型肥胖與代謝風險'
+        : 'BMI 與腰圍目前較理想，重點是維持良好生活型態'
       diseases = waistRisk
         ? ['代謝症候群風險（腰圍已超標）', '第二型糖尿病風險上升', '高血壓、血脂異常', '心血管疾病風險']
         : ['維持現況可降低代謝相關疾病風險', '仍建議定期健檢（血壓／血糖／血脂）']
@@ -294,8 +296,8 @@ export default function Page() {
       sleep = ['每晚 7～9 小時', '固定起床時間', '睡前 1 小時減少螢幕藍光']
     } else if (overweight && !obese) {
       advice = waistRisk
-        ? '過重且腰圍超標，建議優先減少腹部脂肪並追蹤三高。'
-        : '屬過重，建議透過飲食與運動讓 BMI 回到正常範圍。'
+        ? '過重且腰圍超標，建議優先減少腹部脂肪並追蹤三高'
+        : '屬過重，建議透過飲食與運動讓 BMI 回到正常範圍'
       diseases = ['高血壓', '血脂異常', '第二型糖尿病前期／糖尿病', '脂肪肝', '痛風、關節負擔', ...(waistRisk ? ['代謝症候群'] : [])]
       diet = [
         '每日熱量略低於維持量（約少 300～500 kcal，勿極端節食）',
@@ -310,7 +312,7 @@ export default function Page() {
       ]
       sleep = ['每晚 7～9 小時，睡不夠會影響食慾荷爾蒙', '固定就寢／起床', '打鼾嚴重者評估睡眠呼吸中止']
     } else if (severe) {
-      advice = '已達重度肥胖等級，慢性病與手術風險明顯升高，建議儘速就醫或減重門診。'
+      advice = '已達重度肥胖等級，慢性病與手術風險明顯升高，建議儘速就醫或減重門診'
       diseases = [
         '第二型糖尿病',
         '高血壓、冠心病、中風風險',
@@ -340,8 +342,8 @@ export default function Page() {
       ]
     } else {
       advice = waistRisk
-        ? '已屬肥胖且腰圍超標，代謝症候群風險較高，建議就醫擬定減重計畫。'
-        : '已屬肥胖等級，建議專業評估體脂與共病，並開始可長期執行的減重計畫。'
+        ? '已屬肥胖且腰圍超標，代謝症候群風險較高，建議就醫擬定減重計畫'
+        : '已屬肥胖等級，建議專業評估體脂與共病，並開始可長期執行的減重計畫'
       diseases = [
         '第二型糖尿病',
         '高血壓、血脂異常',
@@ -528,7 +530,7 @@ export default function Page() {
 
   function clearHistory() {
     if (!history.length) return
-    if (!confirm(`確定刪除全部 ${history.length} 筆歷史紀錄？此動作無法復原。`)) return
+    if (!confirm(`確定刪除全部 ${history.length} 筆歷史紀錄？此動作無法復原`)) return
     setHistory([])
   }
 
@@ -650,9 +652,8 @@ export default function Page() {
               )}
             </div>
             <div className="row bmi-main-actions" style={{ flexWrap: 'wrap' }}>
-              <button type="button" className="btn accent" onClick={save} disabled={!canSave}>
-                儲存本次紀錄
-              </button>
+              <ActionButton className="btn accent" onClick={save} disabled={!canSave}>儲存本次紀錄
+     </ActionButton>
               <button type="button" className="btn ghost" onClick={() => void copyResult()} disabled={!bmi}>
                 {copied ? '已複製' : '複製結果'}
               </button>
@@ -764,7 +765,7 @@ export default function Page() {
                 </div>
               </div>
               <p className="bmi-risk-disclaimer">
-                以上為一般健康教育建議，非個人處方；有疾病或用藥請遵從醫師指示。
+                以上為一般健康教育建議，非個人處方；有疾病或用藥請遵從醫師指示
               </p>
             </>
           )}
@@ -778,25 +779,19 @@ export default function Page() {
               </h3>
               {!!history.length && (
                 <div className="bmi-history-actions">
-                  <select
-                    className="field"
-                    defaultValue=""
+                  <ExportSelect
                     aria-label="匯出歷史紀錄"
-                    onChange={(e) => {
-                      const kind = e.target.value
-                      e.target.value = ''
-                      void exportHistory(kind)
-                    }}
-                  >
-                    <option value="" disabled>
-                      匯出…
-                    </option>
-                    <option value="csv">下載 CSV</option>
-                    <option value="txt">下載 TXT</option>
-                    <option value="json">下載 JSON</option>
-                    <option value="copy">複製文字</option>
-                  </select>
-                  <DeleteButton label="清空全部紀錄" title="一鍵刪除全部" onClick={clearHistory} />
+                    onExport={(kind) => void exportHistory(kind)}
+                    options={[
+                      { value: 'csv', label: '下載 CSV' },
+                      { value: 'txt', label: '下載 TXT' },
+                      { value: 'json', label: '下載 JSON' },
+                      { value: 'copy', label: '複製文字' },
+                    ]}
+                  />
+                  <ActionButton className="btn ghost sm" onClick={clearHistory}>
+                    清除全部
+                  </ActionButton>
                 </div>
               )}
             </div>

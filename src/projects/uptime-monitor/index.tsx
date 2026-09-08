@@ -117,7 +117,7 @@ export default function Page() {
       }
     >
       <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機示範／proxy 限制：經公開 CORS proxy（allorigins）探測，非正式監控服務；延遲含 proxy 往返，結果可能受代理可用性影響。可每分鐘自動檢查。
+        本機示範／proxy 限制：經公開 CORS proxy（allorigins）探測，非正式監控服務；延遲含 proxy 往返，結果可能受代理可用性影響可每分鐘自動檢查
       </p>
       <div className="grid-3" style={{ marginBottom: 12 }}>
         <div className="metric panel">站點 {sites.length}</div>

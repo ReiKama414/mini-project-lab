@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, downloadText, copyText, charCount, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('survey-app')!
 
@@ -129,9 +130,7 @@ export default function Page() {
           >
             匯出 JSON
           </button>
-          <button type="button" className="btn ghost sm" disabled={!responses.length} onClick={exportCsv}>
-            匯出 CSV
-          </button>
+          <ActionButton className="btn ghost sm" disabled={!responses.length} onClick={exportCsv}>匯出 CSV</ActionButton>
         </div>
       }
     >
@@ -198,7 +197,7 @@ export default function Page() {
             <div className="list-item stack">
               <strong>還沒有題目</strong>
               <p className="muted" style={{ margin: 0 }}>
-                選預設問卷或新增題目。選項用逗號分隔。
+                選預設問卷或新增題目選項用逗號分隔
               </p>
             </div>
           ) : (
@@ -303,11 +302,9 @@ export default function Page() {
                 >
                   下一題
                 </button>
-                <button type="button" className="btn accent" disabled={!allAnswered} onClick={submit}>
-                  送出回覆
-                </button>
+                <ActionButton className="btn accent" disabled={!allAnswered} onClick={submit}>送出回覆</ActionButton>
               </div>
-              {!allAnswered && <p className="muted">請答完所有題目後才能送出。</p>}
+              {!allAnswered && <p className="muted">請答完所有題目後才能送出</p>}
             </>
           )}
         </div>
@@ -346,7 +343,7 @@ export default function Page() {
             <div className="list-item stack">
               <strong>尚無資料</strong>
               <p className="muted" style={{ margin: 0 }}>
-                先在「填寫」步驟送出至少一筆回覆。
+                先在「填寫」步驟送出至少一筆回覆
               </p>
               <button type="button" className="btn ghost" onClick={() => setMode('take')}>
                 去填寫 →

@@ -281,13 +281,13 @@ export default function Page() {
             ))}
             {!upcoming.length && (
               <p className="muted">
-                {hasError ? '欄位語法有誤，修正後即可預覽下次執行時間。' : '無法在一年內找到符合的時間，請檢查表達式。'}
+                {hasError ? '欄位語法有誤，修正後即可預覽下次執行時間' : '無法在一年內找到符合的時間，請檢查表達式'}
               </p>
             )}
           </ul>
         </div>
         <p className="muted" style={{ fontSize: 12 }}>
-          標準 5 欄位 cron。下次時間以分鐘掃描近似，複雜日／週交叉條件在真實 crontab 可能略有差異。
+          標準 5 欄位 cron下次時間以分鐘掃描近似，複雜日／週交叉條件在真實 crontab 可能略有差異
         </p>
       </div>
     </ProjectShell>

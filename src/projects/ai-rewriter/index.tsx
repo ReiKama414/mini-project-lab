@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-rewriter')!
 
@@ -23,7 +24,7 @@ function rewrite(text: string, mode: Mode) {
   const t = text.trim()
   if (!t) return ''
   const sentences = t
-    .split(/(?<=[。！？.!?])/)
+    .split(/(?<=[！？.!?])/)
     .map((s) => s.trim())
     .filter(Boolean)
 
@@ -48,21 +49,21 @@ function rewrite(text: string, mode: Mode) {
       return sentences
         .slice(0, Math.max(1, Math.ceil(sentences.length / 2)))
         .map((s) => s.replace(/，[^，]{10,}，/g, '，').replace(/\s+/g, ' ').slice(0, 120))
-        .join(sentences[0]?.includes('。') ? '' : ' ')
+        .join(sentences[0]?.includes('') ? '' : ' ')
     case 'expand':
       return [
         t,
         '',
-        '補充說明：可拆成背景、作法與預期成果三部分，方便對齊。',
-        '落地建議：先定義成功指標與時程，再分配負責人。',
-        '風險提醒：範圍蔓延時優先保護核心交付。',
+        '補充說明：可拆成背景、作法與預期成果三部分，方便對齊',
+        '落地建議：先定義成功指標與時程，再分配負責人',
+        '風險提醒：範圍蔓延時優先保護核心交付',
       ].join('\n')
     case 'bullet': {
       const parts =
         sentences.length > 1
           ? sentences
           : t.split(/[,，;；]/).map((s) => s.trim()).filter(Boolean)
-      return parts.map((p) => `• ${p.replace(/[。．.]$/, '')}`).join('\n')
+      return parts.map((p) => `• ${p.replace(/[．.]$/, '')}`).join('\n')
     }
     case 'en':
       return [
@@ -87,7 +88,7 @@ type Hist = { at: number; mode: Mode; input: string; output: string }
 export default function Page() {
   const [input, setInput] = useLocalStorage(
     'lab:ai-rewriter',
-    '我覺得這個方案還不錯，我們可以再討論一下細節，然後看看能不能本週開始。',
+    '我覺得這個方案還不錯，我們可以再討論一下細節，然後看看能不能本週開始',
   )
   const [mode, setMode] = useLocalStorage<Mode>('lab:ai-rewriter:mode', 'formal')
   const [out, setOut] = useState('')
@@ -160,9 +161,8 @@ export default function Page() {
             </button>
           )}
           {auto && (
-            <button type="button" className="btn ghost sm" onClick={run} disabled={!canRun}>
-              存入歷史
-            </button>
+            <ActionButton className="btn ghost sm" onClick={run} disabled={!canRun}>存入歷史
+       </ActionButton>
           )}
           {delta && <span className="tag">{delta}</span>}
         </div>

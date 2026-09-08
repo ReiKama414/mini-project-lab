@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, limitText, pick, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('log-viewer')!
 
@@ -198,15 +199,13 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={() => fileRef.current?.click()}>
             匯入日誌
           </button>
-          <button type="button" className="btn sm ghost" onClick={generate}>
-            產生樣本
-          </button>
+          <ActionButton className="btn sm ghost" onClick={generate}>產生樣本
+       </ActionButton>
           <button type="button" className="btn sm ghost" disabled={!shown.length} onClick={() => void copyText(exportText())}>
             複製篩選
           </button>
-          <button type="button" className="btn sm teal" disabled={!shown.length} onClick={exportLogs}>
-            下載篩選
-          </button>
+          <ActionButton className="btn sm teal" disabled={!shown.length} onClick={exportLogs}>下載篩選
+       </ActionButton>
         </div>
       }
     >

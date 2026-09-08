@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, downloadText, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('shopping-list')!
 
@@ -152,12 +153,8 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" onClick={shareText}>
-            {copied ? '已複製！' : '複製分享文字'}
-          </button>
-          <button type="button" className="btn ghost sm" disabled={!items.length} onClick={exportJson}>
-            匯出 JSON
-          </button>
+          <ActionButton className="btn ghost sm" onClick={shareText} icon="copy">{copied ? '已複製！' : '複製分享文字'}</ActionButton>
+          <ActionButton className="btn ghost sm" disabled={!items.length} onClick={exportJson}>匯出 JSON</ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
             匯入 JSON
           </button>

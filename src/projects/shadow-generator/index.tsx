@@ -8,7 +8,7 @@ import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
 const meta: ProjectMeta = getProject('shadow-generator') ?? {
   slug: 'shadow-generator',
   title: '陰影產生器',
-  description: '調整 box-shadow 參數。',
+  description: '調整 box-shadow 參數',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['design'],
@@ -38,7 +38,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          單一 box-shadow。多層陰影請自行疊加；預覽底為白底示意。
+          單一 box-shadow多層陰影請自行疊加；預覽底為白底示意
         </p>
         {(
           [

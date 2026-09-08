@@ -9,7 +9,7 @@ import { charCount, copyText, formatBytes, isNonEmpty, limitText } from '../../l
 const meta: ProjectMeta = getProject('filename-cleaner') ?? {
   slug: 'filename-cleaner',
   title: '檔名清理',
-  description: '移除非法字元、空白與多餘符號。',
+  description: '移除非法字元、空白與多餘符號',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['utility'],
@@ -40,7 +40,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        移除 Windows／跨平台常見非法字元，並可正規化空白。亦可從檔案讀取檔名（不讀內容）。
+        移除 Windows／跨平台常見非法字元，並可正規化空白亦可從檔案讀取檔名（不讀內容）
       </p>
       <div className="panel stack">
         <label className="stack">

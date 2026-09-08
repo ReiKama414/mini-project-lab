@@ -10,7 +10,7 @@ import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText }
 const meta: ProjectMeta = getProject('yaml-to-json') ?? {
   slug: 'yaml-to-json',
   title: 'YAML → JSON',
-  description: '將 YAML 轉成 JSON。',
+  description: '將 YAML 轉成 JSON',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -49,7 +49,7 @@ export default function Page() {
   return (
     <ProjectShell meta={meta}>
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機以 js-yaml 解析（不上傳）。上傳上限 {formatBytes(FILE_MAX)}。
+        本機以 js-yaml 解析（不上傳）上傳上限 {formatBytes(FILE_MAX)}
       </p>
       <div className="panel stack">
         <label className="stack">

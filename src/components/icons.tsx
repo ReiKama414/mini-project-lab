@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pause,
+  Pencil,
   Play,
   Plus,
   RotateCcw,
@@ -82,6 +83,10 @@ export function IconTarget(props: LucideProps) {
 
 export function IconTrash(props: LucideProps) {
   return <Trash2 {...defaultProps} {...props} />
+}
+
+export function IconEdit(props: LucideProps) {
+  return <Pencil {...defaultProps} {...props} />
 }
 
 export function IconFlag(props: LucideProps) {

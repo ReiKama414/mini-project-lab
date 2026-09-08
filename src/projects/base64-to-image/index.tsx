@@ -8,7 +8,7 @@ import { charCount, isNonEmpty, limitText } from '../../lib/utils'
 const fallback: ProjectMeta = {
   slug: 'base64-to-image',
   title: 'Base64 → 圖片',
-  description: '將 Data URL／Base64 還原成圖片。',
+  description: '將 Data URL／Base64 還原成圖片',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
@@ -71,7 +71,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        純 Base64 會預設當成 PNG；內容過長可能超出瀏覽器記憶體。僅本機解碼，不會上傳。
+        純 Base64 會預設當成 PNG；內容過長可能超出瀏覽器記憶體僅本機解碼，不會上傳
       </p>
       <div className="panel stack">
         <label className="stack">

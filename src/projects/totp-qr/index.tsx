@@ -6,11 +6,12 @@ import * as OTPAuth from 'otpauth'
 import { QRCodeSVG } from 'qrcode.react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('totp-qr') ?? {
   slug: 'totp-qr',
   title: 'TOTP QR',
-  description: '產生 otpauth URI 與 QR Code。',
+  description: '產生 otpauth URI 與 QR Code',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['security'],
@@ -97,7 +98,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="panel stack">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          Secret 預設只留在記憶體。勾選「記住」才會寫入本機。
+          Secret 預設只留在記憶體勾選「記住」才會寫入本機
         </p>
         <div className="grid-2">
           <label className="stack">
@@ -157,9 +158,8 @@ export default function Page() {
               >
                 {copied ? '已複製' : '複製 otpauth URI'}
               </button>
-              <button type="button" className="btn teal" onClick={downloadPng}>
-                下載 QR PNG
-              </button>
+              <ActionButton className="btn teal" onClick={downloadPng}>下載 QR PNG
+  </ActionButton>
               <button type="button" className="btn ghost" onClick={() => downloadText('totp-uri.txt', uri)}>
                 下載 URI
               </button>

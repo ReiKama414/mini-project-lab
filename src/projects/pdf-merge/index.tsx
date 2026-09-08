@@ -10,7 +10,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'pdf-merge',
   title: 'PDF 合併',
-  description: '將多個 PDF 合併成單一檔案（縮圖預覽）。',
+  description: '將多個 PDF 合併成單一檔案（縮圖預覽）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -158,7 +158,7 @@ export default function Page() {
     >
       <p className="muted" style={{ marginBottom: 12 }}>
         本機合併，單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {MAX_FILES} 個、合併後最多 {MAX_TOTAL_PAGES}{' '}
-        頁。可拖曳列表調整順序。
+        頁可拖曳列表調整順序
       </p>
       <div className="panel stack">
         <FileDrop

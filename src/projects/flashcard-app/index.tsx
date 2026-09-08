@@ -2,6 +2,7 @@ import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
+import { EditButton } from '../../components/EditButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
@@ -491,7 +492,7 @@ export default function Page() {
           </div>
           {csvMsg && <span className="tag">{csvMsg}</span>}
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-            CSV 格式：每列「正面,背面」（或 Tab 分隔）。舊卡會自動補上複習欄位。
+            CSV 格式：每列「正面,背面」（或 Tab 分隔）舊卡會自動補上複習欄位
           </p>
           <ul className="list">
             {(deck?.cards ?? []).map((c) => (
@@ -506,9 +507,7 @@ export default function Page() {
                 <span className="tag">
                   ✓{c.know} / ✗{c.again}
                 </span>
-                <button type="button" className="btn sm ghost" onClick={() => startEdit(c)}>
-                  編輯
-                </button>
+                <EditButton onClick={() => startEdit(c)} />
                 <button type="button" className="btn sm ghost" onClick={() => deleteCard(c.id)}>
                   刪
                 </button>

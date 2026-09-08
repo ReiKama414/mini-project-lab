@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('readme-generator')!
 
@@ -108,9 +109,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={onCopy}>
-            {copied ? '已複製' : '複製'}
-          </button>
+          <ActionButton className="btn sm ghost" onClick={onCopy} icon="copy">{copied ? '已複製' : '複製'}</ActionButton>
           <button type="button" className="btn sm teal" onClick={() => downloadText('README.md', md, 'text/markdown;charset=utf-8')}>
             下載 README.md
           </button>

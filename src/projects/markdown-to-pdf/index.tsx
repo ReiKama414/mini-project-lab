@@ -10,7 +10,7 @@ import { PDFDocument } from 'pdf-lib'
 const fallback: ProjectMeta = {
   slug: 'markdown-to-pdf',
   title: 'Markdown 轉 PDF',
-  description: '簡易 Markdown 轉多分頁 PDF（本機點陣）。',
+  description: '簡易 Markdown 轉多分頁 PDF（本機點陣）',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -116,7 +116,7 @@ async function renderPages(html: string, onProgress?: (msg: string) => void) {
 export default function Page() {
   const [md, setMd] = useLocalStorage(
     'lab:markdown-to-pdf:md',
-    '# 標題\n\n這是 **粗體** 與 *斜體*。\n\n## 清單\n\n- 項目一\n- 項目二\n\n長文會自動分頁匯出為多頁 PDF。\n',
+    '# 標題\n\n這是 **粗體** 與 *斜體*\n\n## 清單\n\n- 項目一\n- 項目二\n\n長文會自動分頁匯出為多頁 PDF\n',
   )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -168,7 +168,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        本機將 Markdown 轉為消毒後 HTML，再以多分頁點陣匯出（支援中文）。最多 {MAX_PAGES} 頁。
+        本機將 Markdown 轉為消毒後 HTML，再以多分頁點陣匯出（支援中文）最多 {MAX_PAGES} 頁
       </p>
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <div className="panel stack">

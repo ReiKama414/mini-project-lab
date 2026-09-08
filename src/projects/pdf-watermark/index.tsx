@@ -19,7 +19,7 @@ import { usePdfThumbs } from '../../lib/usePdfThumbs'
 const fallback: ProjectMeta = {
   slug: 'pdf-watermark',
   title: 'PDF 浮水印',
-  description: '為 PDF 每一頁加上文字浮水印。',
+  description: '為 PDF 每一頁加上文字浮水印',
   tier: 'feature',
   effort: '1～3 天',
   tags: ['utility'],
@@ -124,7 +124,7 @@ export default function Page() {
       }
     >
       <p className="muted" style={{ marginBottom: 12 }}>
-        以影像嵌入浮水印，支援中文。單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁。
+        以影像嵌入浮水印，支援中文單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁
       </p>
       <div className="panel stack">
         <FileDrop
