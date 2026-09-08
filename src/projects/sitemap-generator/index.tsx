@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, isValidHttpUrl, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('sitemap-generator') ?? {
   slug: 'sitemap-generator',
@@ -65,17 +66,16 @@ export default function Page() {
         {!!bad.length && <p className="field-error">無效網址：{bad.slice(0, 5).join(', ')}{bad.length > 5 ? ` 等 ${bad.length} 筆` : ''}</p>}
         {truncated && <p className="field-error">超過 {URL_CAP} 筆，已截斷</p>}
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn accent"
             disabled={!canExport}
             onClick={async () => {
               await copyText(xml)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製 XML'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

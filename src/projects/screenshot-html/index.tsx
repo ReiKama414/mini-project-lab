@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('screenshot-html')!
 
@@ -134,9 +135,9 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" onClick={() => void copyText(out)}>
+          <ActionButton className="btn sm ghost" onClick={() => void copyText(out)}>
             複製
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn sm teal"

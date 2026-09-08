@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, hexToRgb, limitText, rgbToHex, rgbToHsl } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('hex-rgb-hsl')!
 
@@ -207,9 +208,9 @@ export default function Page() {
                 maxLength={HEX_MAX}
                 onChange={(e) => fromHex(e.target.value)}
               />
-              <button className="btn ghost sm" onClick={() => void copyText(preview)}>
+              <ActionButton className="btn ghost sm" onClick={() => void copyText(preview)}>
                 複製
-              </button>
+              </ActionButton>
             </div>
             <div className="field-meta">
               <span>{hexInput.length} / {HEX_MAX}</span>
@@ -227,9 +228,9 @@ export default function Page() {
                 onChange={(e) => fromRgbText(e.target.value)}
                 placeholder="rgb(233, 163, 25)"
               />
-              <button className="btn ghost sm" onClick={() => void copyText(`rgb(${r}, ${g}, ${b})`)}>
+              <ActionButton className="btn ghost sm" onClick={() => void copyText(`rgb(${r}, ${g}, ${b})`)}>
                 複製
-              </button>
+              </ActionButton>
             </div>
             <div className="field-meta">
               <span>{rgbInput.length} / {RGB_TEXT_MAX}</span>
@@ -247,9 +248,9 @@ export default function Page() {
                 onChange={(e) => fromHslText(e.target.value)}
                 placeholder="hsl(40, 84%, 51%)"
               />
-              <button className="btn ghost sm" onClick={() => void copyText(`hsl(${h}, ${s}%, ${l}%)`)}>
+              <ActionButton className="btn ghost sm" onClick={() => void copyText(`hsl(${h}, ${s}%, ${l}%)`)}>
                 複製
-              </button>
+              </ActionButton>
             </div>
             <div className="field-meta">
               <span>{hslInput.length} / {HSL_TEXT_MAX}</span>
@@ -376,9 +377,9 @@ export default function Page() {
                   {hx}
                 </button>
               ))}
-              <button type="button" className="btn sm ghost" onClick={() => setRecent([])}>
+              <ActionButton className="btn sm ghost" onClick={() => setRecent([])}>
                 清空
-              </button>
+              </ActionButton>
             </div>
           ) : (
             <p className="muted" style={{ fontSize: 12, margin: 0 }}>

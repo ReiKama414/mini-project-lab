@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('csp-generator') ?? {
   slug: 'csp-generator',
@@ -67,17 +68,16 @@ export default function Page() {
         ))}
         {empty && <p className="field-error">請填寫所有指令來源</p>}
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn accent"
             disabled={empty}
             onClick={async () => {
               await copyText(header)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製 Header 值'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

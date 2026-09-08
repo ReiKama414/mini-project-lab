@@ -245,8 +245,7 @@ export default function Page() {
           </div>
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost"
               disabled={!canAct}
               onClick={async () => {
@@ -254,9 +253,9 @@ export default function Page() {
                 setCopied(true)
                 setTimeout(() => setCopied(false), 1500)
               }}
-            >
+              icon="copy">
               {copied ? '已複製' : '複製文字'}
-            </button>
+            </ActionButton>
             <button type="button" className="btn teal" disabled={!canAct} onClick={() => void downloadSvg()}>
               下載 SVG
             </button>
@@ -313,12 +312,12 @@ export default function Page() {
                     <span className="muted mono" style={{ fontSize: 11 }}>
                       {new Date(h.at).toLocaleString('zh-TW')} · {h.size}px · {h.level}
                     </span>
-                    <button type="button" className="btn sm ghost" onClick={() => applyHistory(h)}>
+                    <ActionButton className="btn sm ghost" onClick={() => applyHistory(h)}>
                       套用
-                    </button>
-                    <button type="button" className="btn sm ghost" onClick={() => void copyText(h.text)}>
+                    </ActionButton>
+                    <ActionButton className="btn sm ghost" onClick={() => void copyText(h.text)}>
                       複製
-                    </button>
+                    </ActionButton>
                     <button
                       type="button"
                       className="btn sm danger"

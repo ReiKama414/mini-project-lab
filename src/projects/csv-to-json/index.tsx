@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 import { parseCsv } from '../../lib/csv'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('csv-to-json') ?? {
   slug: 'csv-to-json',
@@ -120,17 +121,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={convert} disabled={!isNonEmpty(input) || busy}>
             轉成 JSON
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!out}
             onClick={async () => {
               await copyText(out)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!out} onClick={() => downloadText('data.json', out, 'application/json')}>
             下載
           </button>

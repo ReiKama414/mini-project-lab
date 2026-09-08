@@ -97,17 +97,16 @@ export default function Page() {
         <div className="row">
           <ActionButton className="btn accent" onClick={build}>產生
          </ActionButton>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!out}
             onClick={async () => {
               await copyText(out)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!out} onClick={() => downloadText('data-uri.txt', out)}>
             下載
           </button>

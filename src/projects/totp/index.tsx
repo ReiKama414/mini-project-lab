@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import * as OTPAuth from 'otpauth'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('totp') ?? {
   slug: 'totp',
@@ -128,16 +129,15 @@ export default function Page() {
               {code}
             </span>
             <span className="tag">{remain}s</span>
-            <button
-              type="button"
+            <ActionButton
               className="btn sm ghost"
               onClick={async () => {
                 await copyText(code)
                 setCopied(true)
               }}
-            >
+              icon="copy">
               {copied ? '已複製' : '複製'}
-            </button>
+            </ActionButton>
           </div>
         )}
         <label className="stack">

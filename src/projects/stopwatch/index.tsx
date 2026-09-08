@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { IconCrown, IconFlag, IconPause, IconPlay, IconReset, IconTurtle } from '../../components/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { copyText, downloadText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('stopwatch')!
 
@@ -183,22 +184,20 @@ export default function Page() {
             <div className="pomo-history-head">
               <h3>單圈紀錄</h3>
               <div className="sw-lap-tools">
-                <button
-                  type="button"
+                <ActionButton
                   className="btn ghost sm"
                   disabled={!laps.length}
                   onClick={() => void copyLaps()}
-                >
+                  icon="copy">
                   {copied ? '已複製' : '複製'}
-                </button>
-                <button
-                  type="button"
+                </ActionButton>
+                <ActionButton
                   className="btn ghost sm"
                   disabled={!laps.length}
                   onClick={() => downloadText(`laps-${Date.now()}.txt`, exportText)}
                 >
                   匯出
-                </button>
+                </ActionButton>
                 <button
                   type="button"
                   className="btn ghost sm"

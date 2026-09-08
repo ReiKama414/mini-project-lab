@@ -7,6 +7,7 @@ import * as prettierPluginBabel from 'prettier/plugins/babel'
 import * as prettierPluginEstree from 'prettier/plugins/estree'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('javascript-formatter') ?? {
   slug: 'javascript-formatter',
@@ -83,17 +84,16 @@ export default function Page() {
           <button type="button" className="btn teal" disabled={!isNonEmpty(input) || busy} onClick={() => void run(true)}>
             壓縮
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!out}
             onClick={async () => {
               await copyText(out)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!out} onClick={() => downloadText('formatted.js', out, 'text/javascript')}>
             下載
           </button>

@@ -9,6 +9,7 @@ import {
   Upload,
 } from 'lucide-react'
 import {
+  IconBell,
   IconClose,
   IconCopy,
   IconPause,
@@ -34,6 +35,7 @@ export type ActionIconKey =
   | 'search'
   | 'close'
   | 'swap'
+  | 'bell'
 
 type IconFn = (props: LucideProps) => ReactNode
 
@@ -52,6 +54,7 @@ const iconMap: Record<ActionIconKey, IconFn> = {
   search: (p) => <IconSearch {...p} />,
   close: (p) => <IconClose {...p} />,
   swap: (p) => <ArrowLeftRight size={16} strokeWidth={2} aria-hidden {...p} />,
+  bell: (p) => <IconBell {...p} />,
 }
 
 /** Resolve icon key from visible action label (Chinese / English verbs). */
@@ -61,6 +64,7 @@ export function resolveActionIconKey(label: string): ActionIconKey | null {
 
   if (/清空|刪除|清除|移除|銷毀/.test(t)) return 'trash'
   if (/已複製|複製|拷貝|copy/i.test(t)) return 'copy'
+  if (/通知/.test(t) || /notif/i.test(t)) return 'bell'
   if (/重新|刷新|更新中|抓匯率|重置|重設|reload|refresh/i.test(t)) return 'reset'
   if (/下載|匯出|導出|export|download/i.test(t)) return 'download'
   if (/匯入|上傳|import|upload/i.test(t)) return 'upload'
@@ -70,7 +74,7 @@ export function resolveActionIconKey(label: string): ActionIconKey | null {
   if (/套用|確認|確定|完成|apply|done/i.test(t)) return 'check'
   if (/搜尋|搜索|查找|search/i.test(t)) return 'search'
   if (/暫停|pause/i.test(t)) return 'pause'
-  if (/開始|播放|繼續|start|play|resume/i.test(t)) return 'play'
+  if (/再來一次|開始|播放|繼續|start|play|resume/i.test(t)) return 'play'
   if (/交換|對調|swap/i.test(t) || t.includes('⇄')) return 'swap'
   if (/收藏/.test(t)) return 'plus'
   if (/取消|關閉|close|cancel/i.test(t)) return 'close'

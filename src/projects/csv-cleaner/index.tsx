@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 import { parseCsv, stringifyCsv } from '../../lib/csv'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('csv-cleaner') ?? {
   slug: 'csv-cleaner',
@@ -129,17 +130,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={clean} disabled={!isNonEmpty(input) || busy}>
             清理
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!out}
             onClick={async () => {
               await copyText(out)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!out} onClick={() => downloadText('cleaned.csv', out, 'text/csv')}>
             下載
           </button>

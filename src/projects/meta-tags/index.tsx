@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, isValidHttpUrl, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('meta-tags') ?? {
   slug: 'meta-tags',
@@ -87,17 +88,16 @@ export default function Page() {
           {!imgOk && <p className="field-error">圖片網址無效</p>}
         </label>
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn accent"
             disabled={invalid}
             onClick={async () => {
               await copyText(html)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製 HTML'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

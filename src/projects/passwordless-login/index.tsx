@@ -158,9 +158,9 @@ export default function Page() {
         <div className="row">
           <ActionButton className="btn sm ghost" disabled={!logs.length} onClick={exportLogs}>匯出 CSV
      </ActionButton>
-          <button type="button" className="btn sm ghost" disabled={!logs.length} onClick={() => setLogs([])}>
+          <ActionButton className="btn sm ghost" disabled={!logs.length} onClick={() => setLogs([])}>
             清空
-          </button>
+          </ActionButton>
         </div>
       </div>
       <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -227,9 +227,9 @@ export default function Page() {
             </div>
             <p className="muted">Session 已寫入 localStorage，重新整理後仍會保持登入</p>
             <div className="row">
-              <button type="button" className="btn ghost" onClick={() => void copyText(session.email)}>
+              <ActionButton className="btn ghost" onClick={() => void copyText(session.email)}>
                 複製 Email
-              </button>
+              </ActionButton>
               <button type="button" className="btn danger" onClick={logout}>
                 登出
               </button>

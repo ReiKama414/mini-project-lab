@@ -295,9 +295,9 @@ export default function Page() {
           <div className="panel stack">
             <div className="row">
               <div className="label">問答紀錄</div>
-              <button type="button" className="btn sm ghost" onClick={() => setHistory([])} disabled={!history.length}>
+              <ActionButton className="btn sm ghost" onClick={() => setHistory([])} disabled={!history.length}>
                 清空
-              </button>
+              </ActionButton>
             </div>
             {history.length === 0 ? (
               <div className="list-item stack">
@@ -329,9 +329,9 @@ export default function Page() {
                       >
                         載入
                       </button>
-                      <button type="button" className="btn sm ghost" onClick={() => void copyText(`Q: ${item.q}\nA: ${item.a}`)}>
+                      <ActionButton className="btn sm ghost" onClick={() => void copyText(`Q: ${item.q}\nA: ${item.a}`)}>
                         複製
-                      </button>
+                      </ActionButton>
                       <button
                         type="button"
                         className={`btn sm ${item.favorite ? 'accent' : 'ghost'}`}

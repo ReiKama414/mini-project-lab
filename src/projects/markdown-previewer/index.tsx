@@ -103,9 +103,9 @@ export default function Page() {
           </button>
           <ActionButton className="btn sm ghost" onClick={exportHtml} disabled={!html}>匯出 HTML
     </ActionButton>
-          <button type="button" className="btn sm ghost" onClick={() => setMd('')}>
+          <ActionButton className="btn sm ghost" onClick={() => setMd('')}>
             清空
-          </button>
+          </ActionButton>
         </div>
         <p className="muted" style={{ fontSize: 12 }}>
           內容會自動儲存在本機以 Marked 解析，輸出經消毒

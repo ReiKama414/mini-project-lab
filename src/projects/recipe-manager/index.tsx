@@ -408,9 +408,9 @@ export default function Page() {
                 <button className="btn sm ghost" onClick={() => setServings(Math.min(MAX_SERVINGS, servings + 1))}>
                   ＋
                 </button>
-                <button className="btn sm ghost" onClick={() => setServings(current.baseServings)}>
+                <ActionButton className="btn sm ghost" onClick={() => setServings(current.baseServings)}>
                   重置
-                </button>
+                </ActionButton>
                 <ActionButton
                   className="btn sm teal"
                   disabled={!scaled.length}

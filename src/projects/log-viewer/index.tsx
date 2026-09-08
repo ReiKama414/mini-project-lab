@@ -250,9 +250,9 @@ export default function Page() {
         <button type="button" className={`btn sm ${paused ? 'ghost' : 'teal'}`} onClick={() => setPaused((v) => !v)}>
           {paused ? '繼續串流' : '暫停串流'}
         </button>
-        <button type="button" className="btn sm danger" onClick={() => setLogs([])}>
+        <ActionButton className="btn sm danger" onClick={() => setLogs([])}>
           清空
-        </button>
+        </ActionButton>
       </div>
       <div className="muted" style={{ marginBottom: 8, fontSize: 13 }}>
         顯示 {shown.length} / {list.length} · {paused ? '已暫停' : '即時串流中'}

@@ -4,6 +4,7 @@ import { IconPause, IconPlay, IconReset, IconSkip } from '../../components/icons
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('pomodoro')!
 
@@ -452,25 +453,23 @@ export default function Page() {
             </label>
 
             <div className="pomo-setting-actions">
-              <button
-                type="button"
+              <ActionButton
                 className="btn ghost sm"
                 onClick={() => void enableNotif()}
                 disabled={notif === 'granted'}
-              >
+                icon="bell">
                 {notif === 'granted' ? '通知已開啟' : '開啟桌面通知'}
-              </button>
-              <button type="button" className="btn ghost sm" onClick={() => setCycles(0)}>
+              </ActionButton>
+              <ActionButton className="btn ghost sm" onClick={() => setCycles(0)}>
                 重置連續計數
-              </button>
+              </ActionButton>
             </div>
           </div>
 
           <div className="pomo-history panel stack">
             <div className="pomo-history-head">
               <h3>紀錄</h3>
-              <button
-                type="button"
+              <ActionButton
                 className="btn ghost sm"
                 disabled={!history.length}
                 onClick={() => {
@@ -478,7 +477,7 @@ export default function Page() {
                 }}
               >
                 清除
-              </button>
+              </ActionButton>
             </div>
             {!history.length && <p className="muted">完成一輪後會出現在這裡（本機儲存）</p>}
             {grouped.map(([day, items]) => (

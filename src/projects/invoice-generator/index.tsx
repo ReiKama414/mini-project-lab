@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, copyText, uid, charCount, clamp, isNonEmpty, limitText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('invoice-generator')!
 
@@ -90,9 +91,9 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" disabled={!canExport} onClick={() => void copyText(bodyTxt())}>
+          <ActionButton className="btn ghost sm" disabled={!canExport} onClick={() => void copyText(bodyTxt())}>
             複製
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost sm" disabled={!canExport} onClick={() => downloadText(`${invNo}.txt`, bodyTxt())}>
             下載 TXT
           </button>

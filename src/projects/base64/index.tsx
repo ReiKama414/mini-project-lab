@@ -4,6 +4,7 @@ import { FileDrop } from '../../components/FileDrop'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText, downloadText, formatBytes } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('base64')!
 
@@ -184,38 +185,35 @@ export default function Page() {
           <button type="button" className="btn teal" onClick={decode} disabled={!isNonEmpty(encoded)}>
             ← 解碼
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost sm"
             onClick={async () => {
               await copyText(plain)
               flashCopied('plain')
             }}
-          >
+            icon="copy">
             {copied === 'plain' ? '已複製文字' : '複製文字'}
-          </button>
-          <button
-            type="button"
+          </ActionButton>
+          <ActionButton
             className="btn ghost sm"
             disabled={!encoded}
             onClick={async () => {
               await copyText(encoded)
               flashCopied('b64')
             }}
-          >
+            icon="copy">
             {copied === 'b64' ? '已複製 Base64' : '複製 Base64'}
-          </button>
-          <button
-            type="button"
+          </ActionButton>
+          <ActionButton
             className="btn ghost sm"
             disabled={!dataUrl}
             onClick={async () => {
               await copyText(dataUrl)
               flashCopied('data')
             }}
-          >
+            icon="copy">
             {copied === 'data' ? '已複製 Data URL' : '複製 Data URL'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost sm"

@@ -156,9 +156,9 @@ export default function Page() {
             <div style={{ fontSize: 22 }}>{fmt(now, true)}</div>
             <div className="mono row" style={{ marginTop: 8 }}>
               {displayNow}
-              <button className="btn sm ghost" onClick={() => void copyText(String(displayNow))}>
+              <ActionButton className="btn sm ghost" onClick={() => void copyText(String(displayNow))}>
                 複製
-              </button>
+              </ActionButton>
             </div>
           </div>
           <label className="stack">

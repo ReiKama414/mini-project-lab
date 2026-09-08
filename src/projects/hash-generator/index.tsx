@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('hash-generator') ?? {
   slug: 'hash-generator',
@@ -90,17 +91,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={() => void run()} disabled={!isNonEmpty(input) || busy}>
             {busy ? '計算中…' : '計算'}
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!hex}
             onClick={async () => {
               await copyText(hex)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!hex} onClick={() => downloadText('hash.txt', hex)}>
             下載
           </button>

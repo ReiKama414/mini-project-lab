@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('website-screenshot')!
 
@@ -154,9 +155,9 @@ export default function Page() {
               <div className="label" style={{ margin: 0 }}>
                 最近網址
               </div>
-              <button type="button" className="btn sm ghost" onClick={() => setHistory([])}>
+              <ActionButton className="btn sm ghost" onClick={() => setHistory([])}>
                 清空
-              </button>
+              </ActionButton>
             </div>
             <div className="row" style={{ flexWrap: 'wrap' }}>
               {history.map((h) => (

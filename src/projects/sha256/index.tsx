@@ -4,6 +4,7 @@ import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useEffect, useState } from 'react'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('sha256') ?? {
   slug: 'sha256',
@@ -102,17 +103,16 @@ export default function Page() {
           <button type="button" className="btn accent" disabled={busy || !isNonEmpty(input)} onClick={() => void hashText()}>
             {busy ? '計算中…' : '計算文字'}
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!hex}
             onClick={async () => {
               await copyText(hex)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!hex} onClick={() => downloadText('sha256.txt', hex)}>
             下載
           </button>

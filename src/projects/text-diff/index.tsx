@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('text-diff') ?? {
   slug: 'text-diff',
@@ -88,17 +89,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={compare}>
             比較
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!diffCount}
             onClick={async () => {
               await copyText(report)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製差異'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!diffCount} onClick={() => downloadText('text-diff.txt', report)}>
             下載
           </button>

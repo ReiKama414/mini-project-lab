@@ -141,9 +141,9 @@ export default function Page() {
       actions={
         <div className="row">
           {active && !previewOnly && (
-            <button type="button" className="btn ghost sm" onClick={() => exportDeck(active)}>
+            <ActionButton className="btn ghost sm" onClick={() => exportDeck(active)}>
               匯出目前牌組
-            </button>
+            </ActionButton>
           )}
           <button
             type="button"
@@ -285,9 +285,9 @@ export default function Page() {
                     >
                       {d.favorite ? '取消收藏' : '收藏'}
                     </button>
-                    <button type="button" className="btn sm ghost" onClick={() => exportDeck(d)}>
+                    <ActionButton className="btn sm ghost" onClick={() => exportDeck(d)}>
                       匯出
-                    </button>
+                    </ActionButton>
                     <button type="button" className="btn sm danger" onClick={() => setDecks((xs) => xs.filter((x) => x.id !== d.id))}>
                       刪
                     </button>
@@ -323,9 +323,9 @@ export default function Page() {
                           移除
                         </button>
                       )}
-                      <button type="button" className="btn sm ghost" onClick={() => void copyText(`Q: ${c.front}\nA: ${c.back}`)}>
+                      <ActionButton className="btn sm ghost" onClick={() => void copyText(`Q: ${c.front}\nA: ${c.back}`)}>
                         複製
-                      </button>
+                      </ActionButton>
                     </div>
                   </li>
                 ))}

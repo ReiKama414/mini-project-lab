@@ -245,8 +245,7 @@ export default function Page() {
          </ActionButton>
             <ActionButton className="btn teal" onClick={generateAndSave}>產生並存歷史
      </ActionButton>
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost"
               disabled={!output}
               onClick={async () => {
@@ -254,9 +253,9 @@ export default function Page() {
                 setCopied(true)
                 setTimeout(() => setCopied(false), 1500)
               }}
-            >
+              icon="copy">
               {copied ? '已複製' : '複製'}
-            </button>
+            </ActionButton>
             <button
               type="button"
               className="btn ghost"
@@ -282,9 +281,9 @@ export default function Page() {
         <div className="panel stack">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0 }}>產生歷史</h3>
-            <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
+            <ActionButton className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           <input
             className="field"
@@ -323,9 +322,9 @@ export default function Page() {
                   >
                     還原
                   </button>
-                  <button type="button" className="btn sm ghost" onClick={() => void copyText(h.htmlWrap ? wrapHtml(h.text, h.mode) : h.text)}>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyText(h.htmlWrap ? wrapHtml(h.text, h.mode) : h.text)}>
                     複製
-                  </button>
+                  </ActionButton>
                   <button
                     type="button"
                     className="btn sm danger"

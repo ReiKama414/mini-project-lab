@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, limitText, copyText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('cron-generator')!
 
@@ -249,9 +250,9 @@ export default function Page() {
             <code className="mono" style={{ fontSize: 22 }}>
               {expr}
             </code>
-            <button type="button" className="btn sm accent" disabled={hasError} onClick={() => void copyText(expr)}>
+            <ActionButton className="btn sm accent" disabled={hasError} onClick={() => void copyText(expr)}>
               複製
-            </button>
+            </ActionButton>
           </div>
         </div>
         <div className="metric">

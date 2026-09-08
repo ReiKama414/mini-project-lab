@@ -5,6 +5,7 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('mime-type') ?? {
   slug: 'mime-type',
@@ -136,17 +137,16 @@ export default function Page() {
         {(invalid || error) && <p className="field-error">{error || '請輸入檔名'}</p>}
         <div className="metric mono">{guessed}</div>
         <p className="muted">副檔名：{ext || '（無）'}</p>
-        <button
-          type="button"
+        <ActionButton
           className="btn accent"
           disabled={invalid}
           onClick={async () => {
             await copyText(guessed)
             setCopied(true)
           }}
-        >
+          icon="copy">
           {copied ? '已複製' : '複製 MIME'}
-        </button>
+        </ActionButton>
         <FileDrop
           maxBytes={FILE_MAX}
           label="拖放檔案到此，或點擊選擇"

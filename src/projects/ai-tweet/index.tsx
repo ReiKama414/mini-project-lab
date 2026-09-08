@@ -242,9 +242,9 @@ export default function Page() {
             <ActionButton className="btn accent" onClick={generate} disabled={!canGenerate}>產生
          </ActionButton>
             {mode === 'thread' && items.length > 0 && (
-              <button type="button" className="btn ghost" onClick={() => void copy(threadFull, 'thread')}>
+              <ActionButton className="btn ghost" onClick={() => void copy(threadFull, 'thread')} icon="copy">
                 {copied === 'thread' ? '已複製' : '複製整串'}
-              </button>
+              </ActionButton>
             )}
           </div>
           {items.length > 0 && (
@@ -280,9 +280,9 @@ export default function Page() {
                     {it.text}
                   </pre>
                   <div className="row">
-                    <button type="button" className="btn sm ghost" onClick={() => void copy(it.text, it.id)}>
+                    <ActionButton className="btn sm ghost" onClick={() => void copy(it.text, it.id)} icon="copy">
                       {copied === it.id ? '已複製' : '複製'}
-                    </button>
+                    </ActionButton>
                     <button type="button" className={`btn sm ${isFav ? 'accent' : 'ghost'}`} onClick={() => toggleFav(it)}>
                       {isFav ? '已收藏' : '收藏'}
                     </button>
@@ -299,9 +299,9 @@ export default function Page() {
           <div className="row">
             <div className="label">產生歷史</div>
             <span className="muted">{history.length}</span>
-            <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
+            <ActionButton className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           {history.length === 0 ? (
             <p className="muted">產生後會留在這裡，方便還原設定</p>
@@ -336,9 +336,9 @@ export default function Page() {
           <div className="row">
             <div className="label">收藏</div>
             <span className="muted">{favs.length}</span>
-            <button type="button" className="btn sm ghost" disabled={!favs.length} onClick={() => setFavs([])}>
+            <ActionButton className="btn sm ghost" disabled={!favs.length} onClick={() => setFavs([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           {favs.length === 0 ? (
             <p className="muted">把喜歡的變體按「收藏」，之後可一鍵複製</p>
@@ -353,9 +353,9 @@ export default function Page() {
                     </span>
                   </div>
                   <span style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>{f.text}</span>
-                  <button type="button" className="btn sm ghost" onClick={() => void copy(f.text, `fav-${f.id}`)}>
+                  <ActionButton className="btn sm ghost" onClick={() => void copy(f.text, `fav-${f.id}`)} icon="copy">
                     {copied === `fav-${f.id}` ? '已複製' : '複製'}
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>

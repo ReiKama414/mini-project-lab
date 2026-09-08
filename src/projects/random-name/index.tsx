@@ -260,9 +260,9 @@ export default function Page() {
             <button type="button" className="btn teal" disabled={!names.length || !countOk} onClick={generate}>
               全部重新產生
             </button>
-            <button type="button" className="btn ghost" disabled={!names.length} onClick={() => void copyAll()}>
+            <ActionButton className="btn ghost" disabled={!names.length} onClick={() => void copyAll()} icon="copy">
               {copied ? '已複製' : '全部複製'}
-            </button>
+            </ActionButton>
             <ActionButton className="btn ghost" disabled={!names.length} onClick={downloadCsv}>下載 CSV
      </ActionButton>
           </div>
@@ -280,9 +280,9 @@ export default function Page() {
                 >
                   {favSet.has(n) ? '已收藏' : '收藏'}
                 </button>
-                <button type="button" className="btn sm ghost" onClick={() => void copyText(n)}>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(n)}>
                   複製
-                </button>
+                </ActionButton>
               </li>
             ))}
             {!names.length && (
@@ -295,22 +295,21 @@ export default function Page() {
         <div className="panel stack">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0 }}>收藏（{favorites.length}）</h3>
-            <button
-              type="button"
+            <ActionButton
               className="btn sm ghost"
               disabled={!favorites.length}
               onClick={() => setFavorites([])}
             >
               清空
-            </button>
+            </ActionButton>
           </div>
           <ul className="list">
             {favorites.map((n) => (
               <li key={n} className="list-item">
                 <span style={{ flex: 1 }}>{n}</span>
-                <button type="button" className="btn sm ghost" onClick={() => void copyText(n)}>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(n)}>
                   複製
-                </button>
+                </ActionButton>
                 <button type="button" className="btn sm ghost" onClick={() => toggleFav(n)}>
                   移除
                 </button>

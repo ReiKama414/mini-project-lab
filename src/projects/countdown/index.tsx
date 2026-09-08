@@ -6,6 +6,7 @@ import { IconPause, IconPlay, IconReset } from '../../components/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadJSON, useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('countdown')!
 
@@ -589,23 +590,22 @@ export default function Page() {
                 <input type="checkbox" checked={soundOn} onChange={() => setSoundOn(!soundOn)} />
                 <span>結束時播放提示音</span>
               </label>
-              <button
-                type="button"
+              <ActionButton
                 className="btn ghost sm"
                 onClick={() => void enableNotif()}
                 disabled={notif === 'granted'}
-              >
+                icon="bell">
                 {notif === 'granted' ? '通知已開啟' : '開啟桌面通知'}
-              </button>
+              </ActionButton>
             </div>
           </div>
 
           <div className="panel stack cd-panel">
             <div className="pomo-history-head">
               <h3>最近設定</h3>
-              <button type="button" className="btn ghost sm" disabled={!recentSafe.length} onClick={() => setRecent([])}>
+              <ActionButton className="btn ghost sm" disabled={!recentSafe.length} onClick={() => setRecent([])}>
                 清除
-              </button>
+              </ActionButton>
             </div>
             {!recentSafe.length && <p className="muted">開始倒數後會記住設定</p>}
             <ul className="cd-list">
@@ -615,14 +615,13 @@ export default function Page() {
                     <strong>{h.label}</strong>
                     <span className="muted">{formatDuration(h.seconds)}</span>
                   </div>
-                  <button
-                    type="button"
+                  <ActionButton
                     className="btn ghost sm"
                     disabled={active.running}
                     onClick={() => applyDuration(Math.floor(h.seconds / 60), h.seconds % 60, h.label)}
                   >
                     套用
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>
@@ -631,8 +630,7 @@ export default function Page() {
           <div className="panel stack cd-panel">
             <div className="pomo-history-head">
               <h3>完成紀錄</h3>
-              <button
-                type="button"
+              <ActionButton
                 className="btn ghost sm"
                 disabled={!completed.length}
                 onClick={() => {
@@ -640,7 +638,7 @@ export default function Page() {
                 }}
               >
                 清除
-              </button>
+              </ActionButton>
             </div>
             {!completed.length && <p className="muted">倒數結束後會出現在這裡</p>}
             <ul className="cd-list">
@@ -652,14 +650,13 @@ export default function Page() {
                       {formatDuration(h.seconds)} · {formatWhen(h.at)}
                     </span>
                   </div>
-                  <button
-                    type="button"
+                  <ActionButton
                     className="btn ghost sm"
                     disabled={active.running}
                     onClick={() => applyDuration(Math.floor(h.seconds / 60), h.seconds % 60, h.label)}
                   >
                     再來一次
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>

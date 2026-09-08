@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('gradient-generator') ?? {
   slug: 'gradient-generator',
@@ -53,16 +54,15 @@ export default function Page() {
         <div style={{ height: 160, borderRadius: 12, background: css, border: '1px solid var(--border)' }} />
         <code className="metric mono">{rule}</code>
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn accent"
             onClick={async () => {
               await copyText(rule)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製 CSS'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" onClick={() => downloadText('gradient.css', rule, 'text/css')}>
             下載
           </button>

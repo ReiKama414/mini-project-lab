@@ -252,9 +252,9 @@ export default function Page() {
               <button type="button" className="btn sm ghost" onClick={() => togglePin(c.id)}>
                 {c.pinned ? '取消釘選' : '釘選'}
               </button>
-              <button type="button" className="btn sm accent" onClick={() => copyText(c.text)}>
+              <ActionButton className="btn sm accent" onClick={() => copyText(c.text)}>
                 複製
-              </button>
+              </ActionButton>
               <DeleteButton onClick={() => setItems(items.filter((x) => x.id !== c.id))} label="刪除" />
             </li>
           ))}

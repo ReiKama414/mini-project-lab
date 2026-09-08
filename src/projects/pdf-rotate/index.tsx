@@ -8,6 +8,7 @@ import { downloadBlob } from '../../lib/imageCanvas'
 import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES } from '../../lib/pdf'
 import { usePdfThumbs } from '../../lib/usePdfThumbs'
 import { PDFDocument, degrees } from 'pdf-lib'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-rotate',
@@ -172,14 +173,13 @@ export default function Page() {
               >
                 全選
               </button>
-              <button
-                type="button"
+              <ActionButton
                 className="btn sm ghost"
                 disabled={busy || selected.size === 0}
                 onClick={() => setSelected(new Set())}
               >
                 清除
-              </button>
+              </ActionButton>
             </div>
             {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
             <PdfThumbGrid

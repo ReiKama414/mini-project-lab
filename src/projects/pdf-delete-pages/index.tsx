@@ -8,6 +8,7 @@ import { downloadBlob } from '../../lib/imageCanvas'
 import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES } from '../../lib/pdf'
 import { usePdfThumbs } from '../../lib/usePdfThumbs'
 import { PDFDocument } from 'pdf-lib'
+import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-delete-pages',
@@ -168,14 +169,13 @@ export default function Page() {
               <span className="label" style={{ margin: 0 }}>
                 要刪除：{delText || '（尚未選取）'}
               </span>
-              <button
-                type="button"
+              <ActionButton
                 className="btn sm ghost"
                 disabled={busy || selected.size === 0}
                 onClick={() => setSelected(new Set())}
               >
                 清除
-              </button>
+              </ActionButton>
             </div>
             <label className="stack">
               <span className="label">頁碼（與縮圖同步，例：2,4,7）</span>

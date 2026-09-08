@@ -372,9 +372,9 @@ export default function Page() {
             >
               複製 curl（上次／草稿）
             </button>
-            <button type="button" className="btn ghost" onClick={() => setEvents([])}>
+            <ActionButton className="btn ghost" onClick={() => setEvents([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
         </div>
         <div className="panel stack">

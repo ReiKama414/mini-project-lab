@@ -273,9 +273,9 @@ export default function Page() {
                 <div className="label" style={{ margin: 0 }}>
                   查詢歷史
                 </div>
-                <button type="button" className="btn sm ghost" onClick={() => setHistory([])}>
+                <ActionButton className="btn sm ghost" onClick={() => setHistory([])}>
                   清空
-                </button>
+                </ActionButton>
               </div>
               {history.map((h) => (
                 <button key={h} type="button" className="btn sm ghost" style={{ textAlign: 'left' }} onClick={() => setSql(h)}>

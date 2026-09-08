@@ -204,13 +204,12 @@ export default function Page() {
           <button type="button" className="btn sm ghost" onClick={() => downloadText('api-docs.md', md, 'text/markdown;charset=utf-8')}>
             下載 MD
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn sm teal"
             onClick={() => downloadText('openapi.json', JSON.stringify(openapi, null, 2), 'application/json;charset=utf-8')}
           >
             匯出 OpenAPI JSON
-          </button>
+          </ActionButton>
         </div>
       }
     >

@@ -652,11 +652,17 @@ export default function Page() {
               )}
             </div>
             <div className="row bmi-main-actions" style={{ flexWrap: 'wrap' }}>
-              <ActionButton className="btn accent" onClick={save} disabled={!canSave}>儲存本次紀錄
-     </ActionButton>
-              <button type="button" className="btn ghost" onClick={() => void copyResult()} disabled={!bmi}>
+              <ActionButton className="btn accent" onClick={save} disabled={!canSave}>
+                儲存本次紀錄
+              </ActionButton>
+              <ActionButton
+                className="btn ghost"
+                onClick={() => void copyResult()}
+                disabled={!bmi}
+                icon="copy"
+              >
                 {copied ? '已複製' : '複製結果'}
-              </button>
+              </ActionButton>
             </div>
           </section>
 

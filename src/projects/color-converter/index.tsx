@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, hexToRgb, limitText, parseNumber, rgbToHex, rgbToHsl } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('color-converter')!
 
@@ -156,9 +157,9 @@ export default function Page() {
                   maxLength={HEX_MAX}
                   onChange={(e) => fromHex(limitText(e.target.value, HEX_MAX))}
                 />
-                <button className="btn sm ghost" onClick={() => void copyText(hexNorm)} disabled={!valid}>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(hexNorm)} disabled={!valid}>
                   複製
-                </button>
+                </ActionButton>
               </div>
               {!valid && <p className="field-error">請輸入有效 HEX（#RGB 或 #RRGGBB）</p>}
               <div className="field-meta">
@@ -249,9 +250,9 @@ export default function Page() {
                 <code className="mono" style={{ flex: 1 }}>
                   {val}
                 </code>
-                <button className="btn sm ghost" onClick={() => void copyText(val)}>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(val)}>
                   複製
-                </button>
+                </ActionButton>
               </div>
             ))}
           </div>

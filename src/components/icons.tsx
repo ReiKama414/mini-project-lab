@@ -2,6 +2,7 @@ import type { LucideProps } from 'lucide-react'
 import type { SVGProps } from 'react'
 import {
   ArrowLeft,
+  Bell,
   CalendarDays,
   Copy,
   Crown,
@@ -55,6 +56,10 @@ export function IconGrid(props: LucideProps) {
 
 export function IconCopy(props: LucideProps) {
   return <Copy {...defaultProps} {...props} />
+}
+
+export function IconBell(props: LucideProps) {
+  return <Bell {...defaultProps} {...props} />
 }
 
 export function IconCalendar(props: LucideProps) {

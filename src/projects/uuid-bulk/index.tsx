@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('uuid-bulk') ?? {
   slug: 'uuid-bulk',
@@ -58,17 +59,16 @@ export default function Page() {
           <button type="button" className="btn accent" disabled={busy} onClick={generate}>
             {busy ? '產生中…' : '產生'}
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!list.length}
             onClick={async () => {
               await copyText(list.join('\n'))
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '全部複製'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

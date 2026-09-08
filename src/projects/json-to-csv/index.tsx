@@ -289,8 +289,7 @@ export default function Page() {
             <button type="button" className="btn accent" onClick={() => runAndMaybeSave(false)} disabled={!isNonEmpty(input)}>
               轉成 CSV
             </button>
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost"
               disabled={!csv}
               onClick={async () => {
@@ -298,9 +297,9 @@ export default function Page() {
                 setCopied(true)
                 setTimeout(() => setCopied(false), 1500)
               }}
-            >
+              icon="copy">
               {copied ? '已複製' : '複製'}
-            </button>
+            </ActionButton>
             <ActionButton className="btn ghost" disabled={!csv} onClick={download}>下載 CSV
      </ActionButton>
             <button type="button" className="btn ghost" disabled={!csv} onClick={() => runAndMaybeSave(true)}>
@@ -330,9 +329,9 @@ export default function Page() {
         <div className="panel stack">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0 }}>轉換歷史</h3>
-            <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
+            <ActionButton className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           <input
             className="field"

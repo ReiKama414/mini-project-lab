@@ -84,16 +84,15 @@ export default function Page() {
           <>
             <img src={dataUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 8 }} />
             <div className="row" style={{ flexWrap: 'wrap' }}>
-              <button
-                type="button"
+              <ActionButton
                 className="btn accent"
                 onClick={async () => {
                   await copyText(dataUrl)
                   setCopied(true)
                 }}
-              >
+                icon="copy">
                 {copied ? '已複製' : '複製 Data URL'}
-              </button>
+              </ActionButton>
               <button type="button" className="btn ghost" onClick={() => void copyText(b64)}>
                 複製純 Base64
               </button>

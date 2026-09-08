@@ -271,8 +271,7 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <button
-            type="button"
+          <ActionButton
             className="btn sm ghost"
             onClick={() => {
               setFilterProject('全部')
@@ -282,7 +281,7 @@ export default function Page() {
             }}
           >
             清除篩選
-          </button>
+          </ActionButton>
         </div>
 
         <div className="progress">

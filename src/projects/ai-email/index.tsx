@@ -246,9 +246,9 @@ export default function Page() {
                   變體 {i + 1}
                 </button>
               ))}
-            <button type="button" className="btn sm ghost" disabled={!out} onClick={() => copyText(out)}>
+            <ActionButton className="btn sm ghost" disabled={!out} onClick={() => copyText(out)}>
               複製
-            </button>
+            </ActionButton>
             <button type="button" className="btn sm ghost" disabled={!out} onClick={() => downloadText('email-draft.txt', out)}>
               下載
             </button>

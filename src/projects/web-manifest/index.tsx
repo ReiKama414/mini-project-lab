@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('web-manifest') ?? {
   slug: 'web-manifest',
@@ -87,17 +88,16 @@ export default function Page() {
         </div>
         {invalid && <p className="field-error">請輸入名稱</p>}
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn accent"
             disabled={invalid}
             onClick={async () => {
               await copyText(json)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

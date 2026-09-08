@@ -351,9 +351,9 @@ export default function Page() {
         <div className="panel stack">
           <div className="row">
             <div className="label">健檢歷史</div>
-            <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
+            <ActionButton className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           {history.length === 0 ? (
             <p className="muted">每次健檢會留下分數快照</p>
@@ -384,9 +384,9 @@ export default function Page() {
         <div className="panel stack">
           <div className="row">
             <div className="label">收藏建議</div>
-            <button type="button" className="btn sm ghost" disabled={!favs.length} onClick={() => setFavs([])}>
+            <ActionButton className="btn sm ghost" disabled={!favs.length} onClick={() => setFavs([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           {favs.length === 0 ? (
             <p className="muted">把實用的改寫建議收藏起來</p>
@@ -398,9 +398,9 @@ export default function Page() {
                     [{f.severity}] {f.text}
                   </strong>
                   <span className="muted">{f.rewrite}</span>
-                  <button type="button" className="btn sm ghost" onClick={() => void copyText(f.rewrite)}>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyText(f.rewrite)}>
                     複製
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>

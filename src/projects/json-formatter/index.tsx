@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText, downloadText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('json-formatter')!
 
@@ -166,7 +167,7 @@ export default function Page() {
           >
             寫回輸入
           </button>
-          <button
+          <ActionButton
             className="btn ghost"
             disabled={!output}
             onClick={async () => {
@@ -174,9 +175,9 @@ export default function Page() {
               setCopied(true)
               setTimeout(() => setCopied(false), 1500)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button
             className="btn ghost"
             disabled={!output}
@@ -206,9 +207,9 @@ export default function Page() {
             <button className="btn accent" onClick={queryPath} disabled={!isNonEmpty(input) || !isNonEmpty(path)}>
               查詢
             </button>
-            <button className="btn ghost sm" disabled={!pathResult} onClick={() => void copyText(pathResult)}>
+            <ActionButton className="btn ghost sm" disabled={!pathResult} onClick={() => void copyText(pathResult)}>
               複製結果
-            </button>
+            </ActionButton>
           </div>
           {pathResult && (
             <pre className="metric mono" style={{ whiteSpace: 'pre-wrap' }}>

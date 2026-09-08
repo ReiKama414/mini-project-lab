@@ -105,9 +105,9 @@ export default function Page() {
                 {d > 0 ? `+${d}°` : `${d}°`}
               </button>
             ))}
-            <button type="button" className="btn sm ghost" onClick={() => setAngle(0)}>
+            <ActionButton className="btn sm ghost" onClick={() => setAngle(0)}>
               重置
-            </button>
+            </ActionButton>
           </div>
           <label className="stack">
             <span className="label">角度 {angle}°</span>

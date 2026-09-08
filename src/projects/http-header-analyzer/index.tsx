@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('http-header-analyzer') ?? {
   slug: 'http-header-analyzer',
@@ -77,17 +78,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={analyze}>
             分析
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!rows.length}
             onClick={async () => {
               await copyText(report)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製結果'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

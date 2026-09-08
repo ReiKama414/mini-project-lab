@@ -133,9 +133,9 @@ ${links
           <button type="button" className="btn ghost sm" onClick={() => void copyText(sharePageText())}>
             複製分享文字
           </button>
-          <button type="button" className="btn ghost sm" onClick={() => downloadText('link-in-bio.txt', sharePageText())}>
+          <ActionButton className="btn ghost sm" onClick={() => downloadText('link-in-bio.txt', sharePageText())}>
             匯出頁面文字
-          </button>
+          </ActionButton>
           <ActionButton className="btn accent sm" onClick={exportHtml}>匯出 HTML
    </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => window.print()}>

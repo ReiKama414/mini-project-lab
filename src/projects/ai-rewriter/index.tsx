@@ -190,9 +190,9 @@ export default function Page() {
           <div className="row">
             <span className="label">改寫後 · {MODE_LABEL[mode]}</span>
             <span className="muted mono">{out.length} 字</span>
-            <button type="button" className="btn sm ghost" disabled={!out} onClick={() => void copyText(out)}>
+            <ActionButton className="btn sm ghost" disabled={!out} onClick={() => void copyText(out)}>
               複製結果
-            </button>
+            </ActionButton>
           </div>
           <pre className="mono" style={{ whiteSpace: 'pre-wrap', margin: 0, minHeight: 240 }}>
             {out || '選擇模式後顯示結果'}
@@ -203,9 +203,9 @@ export default function Page() {
         <div className="panel stack" style={{ marginTop: 12 }}>
           <div className="row">
             <h3 style={{ margin: 0 }}>歷史</h3>
-            <button type="button" className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setHistory([])}>
+            <ActionButton className="btn ghost sm" style={{ marginLeft: 'auto' }} onClick={() => setHistory([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           <ul className="list">
             {history.map((h) => (

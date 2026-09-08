@@ -199,9 +199,9 @@ export default function Page() {
       actions={
         <div className="row">
           <ActionButton className="btn sm ghost" onClick={copyMermaid} icon="copy">{copied ? '已複製' : '複製 Mermaid'}</ActionButton>
-          <button type="button" className="btn sm teal" onClick={() => downloadText('schema.mmd', mermaid, 'text/plain;charset=utf-8')}>
+          <ActionButton className="btn sm teal" onClick={() => downloadText('schema.mmd', mermaid, 'text/plain;charset=utf-8')}>
             匯出 Mermaid
-          </button>
+          </ActionButton>
           <AddButton type="button"  className="sm" onClick={addTable}>
             新增資料表</AddButton>
         </div>

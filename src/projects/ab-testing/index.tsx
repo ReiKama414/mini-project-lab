@@ -340,9 +340,9 @@ export default function Page() {
             <div className="label" style={{ margin: 0 }}>
               實驗歷史（可選）
             </div>
-            <button type="button" className="btn sm ghost" onClick={() => setHistory([])}>
+            <ActionButton className="btn sm ghost" onClick={() => setHistory([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           <ul className="list">
             {history.map((h) => (

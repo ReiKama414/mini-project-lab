@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, limitText, parseNumber, randomInt } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('server-monitor')!
 
@@ -213,9 +214,9 @@ export default function Page() {
           <div className="label" style={{ margin: 0 }}>
             告警紀錄 · {host}
           </div>
-          <button type="button" className="btn sm ghost" onClick={() => setAlerts([])}>
+          <ActionButton className="btn sm ghost" onClick={() => setAlerts([])}>
             清空
-          </button>
+          </ActionButton>
         </div>
         <ul className="list">
           {alerts.slice(0, 12).map((a) => (

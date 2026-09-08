@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import type { ProjectMeta } from '../registry'
 import { useEffect, useMemo, useState } from 'react'
 import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('jwt-decoder') ?? {
   slug: 'jwt-decoder',
@@ -82,16 +83,15 @@ export default function Page() {
             <div className="stack">
               <div className="row" style={{ justifyContent: 'space-between' }}>
                 <h3 style={{ margin: 0 }}>Header</h3>
-                <button
-                  type="button"
+                <ActionButton
                   className="btn sm ghost"
                   onClick={async () => {
                     await copyText(JSON.stringify(result.header, null, 2))
                     setCopied('h')
                   }}
-                >
+                  icon="copy">
                   {copied === 'h' ? '已複製' : '複製'}
-                </button>
+                </ActionButton>
               </div>
               <pre className="metric mono" style={{ whiteSpace: 'pre-wrap' }}>
                 {JSON.stringify(result.header, null, 2)}
@@ -100,16 +100,15 @@ export default function Page() {
             <div className="stack">
               <div className="row" style={{ justifyContent: 'space-between' }}>
                 <h3 style={{ margin: 0 }}>Payload</h3>
-                <button
-                  type="button"
+                <ActionButton
                   className="btn sm ghost"
                   onClick={async () => {
                     await copyText(JSON.stringify(result.payload, null, 2))
                     setCopied('p')
                   }}
-                >
+                  icon="copy">
                   {copied === 'p' ? '已複製' : '複製'}
-                </button>
+                </ActionButton>
               </div>
               <pre className="metric mono" style={{ whiteSpace: 'pre-wrap' }}>
                 {JSON.stringify(result.payload, null, 2)}
@@ -124,16 +123,15 @@ export default function Page() {
         )}
         {allJson && (
           <div className="row">
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost"
               onClick={async () => {
                 await copyText(allJson)
                 setCopied('all')
               }}
-            >
+              icon="copy">
               {copied === 'all' ? '已複製' : '複製全部 JSON'}
-            </button>
+            </ActionButton>
             <button type="button" className="btn ghost" onClick={() => downloadText('jwt-decoded.json', allJson, 'application/json')}>
               下載 JSON
             </button>

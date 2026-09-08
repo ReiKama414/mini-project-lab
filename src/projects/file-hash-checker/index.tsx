@@ -4,6 +4,7 @@ import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useEffect, useState } from 'react'
 import { copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('file-hash-checker') ?? {
   slug: 'file-hash-checker',
@@ -111,16 +112,15 @@ export default function Page() {
               {hex}
             </pre>
             <div className="row">
-              <button
-                type="button"
+              <ActionButton
                 className="btn ghost"
                 onClick={async () => {
                   await copyText(hex)
                   setCopied(true)
                 }}
-              >
+                icon="copy">
                 {copied ? '已複製' : '複製雜湊'}
-              </button>
+              </ActionButton>
               <button type="button" className="btn ghost" onClick={() => downloadText('sha256.txt', hex)}>
                 下載
               </button>

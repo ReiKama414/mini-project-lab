@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('unit-converter')!
 
@@ -191,7 +192,7 @@ export default function Page() {
               ? result.toLocaleString(undefined, { maximumFractionDigits: 8 })
               : '—'}
           </div>
-          <button
+          <ActionButton
             className="btn ghost"
             disabled={!Number.isFinite(result)}
             onClick={() =>
@@ -201,7 +202,7 @@ export default function Page() {
             }
           >
             複製結果
-          </button>
+          </ActionButton>
         </div>
         <div className="panel stack">
           <h3>同分類一覽</h3>
@@ -220,8 +221,7 @@ export default function Page() {
                 <strong className="mono">
                   {r.value.toLocaleString(undefined, { maximumFractionDigits: 6 })}
                 </strong>
-                <button
-                  type="button"
+                <ActionButton
                   className="btn ghost sm"
                   onClick={() =>
                     void copyText(
@@ -230,7 +230,7 @@ export default function Page() {
                   }
                 >
                   複製
-                </button>
+                </ActionButton>
               </li>
             ))}
           </ul>

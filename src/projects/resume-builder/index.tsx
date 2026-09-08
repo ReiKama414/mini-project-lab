@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, copyText, uid, limitText, charCount, isNonEmpty, isValidEmail, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('resume-builder')!
 
@@ -204,9 +205,9 @@ export default function Page() {
           <button type="button" className="btn ghost sm" onClick={() => void copyText(toMarkdown())}>
             複製 MD
           </button>
-          <button type="button" className="btn accent sm" onClick={() => downloadText('resume.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
+          <ActionButton className="btn accent sm" onClick={() => downloadText('resume.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
             匯出 Markdown
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => window.print()}>
             列印／另存 PDF
           </button>
@@ -548,9 +549,9 @@ export default function Page() {
       <div className="panel stack no-print" style={{ marginTop: 12 }}>
         <div className="row">
           <div className="label">版本快照／收藏</div>
-          <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => { setHistory([]); setFavId('') }}>
+          <ActionButton className="btn sm ghost" disabled={!history.length} onClick={() => { setHistory([]); setFavId('') }}>
             清空
-          </button>
+          </ActionButton>
         </div>
         {history.length === 0 ? (
           <p className="muted">按「存快照」可保留目前履歷版本，方便還原或標記收藏</p>

@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ip-lookup')!
 
@@ -214,9 +215,9 @@ export default function Page() {
                     {r.value}
                   </span>
                   {r.value !== '—' && (
-                    <button className="btn sm ghost" onClick={() => copyText(r.value)}>
+                    <ActionButton className="btn sm ghost" onClick={() => copyText(r.value)}>
                       複製
-                    </button>
+                    </ActionButton>
                   )}
                 </div>
               </div>
@@ -231,9 +232,9 @@ export default function Page() {
               {localIps.map((ip) => (
                 <li key={ip} className="list-item">
                   <span className="mono">{ip}</span>
-                  <button className="btn sm ghost" onClick={() => copyText(ip)}>
+                  <ActionButton className="btn sm ghost" onClick={() => copyText(ip)}>
                     複製
-                  </button>
+                  </ActionButton>
                   <button className="btn sm teal" onClick={() => { setQuery(ip); lookup(ip) }}>
                     查詢
                   </button>

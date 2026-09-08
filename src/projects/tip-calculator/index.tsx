@@ -318,9 +318,9 @@ export default function Page() {
           <div className="label" style={{ margin: 0 }}>
             計算歷史
           </div>
-          <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
+          <ActionButton className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
             清空
-          </button>
+          </ActionButton>
         </div>
         <ul className="list">
           {history.map((h) => (
@@ -338,9 +338,9 @@ export default function Page() {
                 </div>
               </div>
               <div className="row">
-                <button type="button" className="btn sm ghost" onClick={() => restore(h)}>
+                <ActionButton className="btn sm ghost" onClick={() => restore(h)}>
                   套用
-                </button>
+                </ActionButton>
                 <DeleteButton onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))} label="刪除" />
               </div>
             </li>

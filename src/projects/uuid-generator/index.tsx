@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { v4 as uuidv4, validate as uuidValidate, version as uuidVersion } from 'uuid'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, copyText, downloadText, limitText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('uuid-generator')!
 
@@ -156,9 +157,9 @@ export default function Page() {
             <button type="button" className="btn teal" onClick={() => generate(true)}>
               追加一批
             </button>
-            <button type="button" className="btn ghost" disabled={!display.length} onClick={() => void copyAll()}>
+            <ActionButton className="btn ghost" disabled={!display.length} onClick={() => void copyAll()} icon="copy">
               {copied ? '已複製' : '全部複製'}
-            </button>
+            </ActionButton>
             <button
               type="button"
               className="btn ghost"
@@ -180,9 +181,9 @@ export default function Page() {
                 <span className="mono" style={{ flex: 1, wordBreak: 'break-all' }}>
                   {id}
                 </span>
-                <button type="button" className="btn sm ghost" onClick={() => void copyOne(id)}>
+                <ActionButton className="btn sm ghost" onClick={() => void copyOne(id)} icon="copy">
                   {copiedOne === id ? '已複製' : '複製'}
-                </button>
+                </ActionButton>
               </li>
             ))}
             {!display.length && (
@@ -237,9 +238,9 @@ export default function Page() {
                       </span>
                     )}
                   </div>
-                  <button type="button" className="btn sm ghost" onClick={() => void copyOne(entry.display)}>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyOne(entry.display)}>
                     複製
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
               {!historyDisplay.length && <p className="muted">產生後會自動保存於此（本機）</p>}

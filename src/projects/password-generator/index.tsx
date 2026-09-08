@@ -156,14 +156,13 @@ export default function Page() {
         <div className="row">
           <ActionButton className="btn sm accent" onClick={generate} disabled={!canGenerate}>產生
          </ActionButton>
-          <button
-            type="button"
+          <ActionButton
             className="btn sm ghost"
             disabled={!batchList.length}
             onClick={() => downloadText('passwords.txt', batchList.join('\n'))}
           >
             匯出批次
-          </button>
+          </ActionButton>
         </div>
       }
     >
@@ -265,8 +264,7 @@ export default function Page() {
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <ActionButton className="btn accent" onClick={generate} disabled={!canGenerate}>產生密碼
        </ActionButton>
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost"
               disabled={!pwd}
               onClick={async () => {
@@ -274,9 +272,9 @@ export default function Page() {
                 setCopied(true)
                 setTimeout(() => setCopied(false), 1500)
               }}
-            >
+              icon="copy">
               {copied ? '已複製' : '複製'}
-            </button>
+            </ActionButton>
             <button
               type="button"
               className="btn ghost"
@@ -307,9 +305,9 @@ export default function Page() {
                     {p}
                   </code>
                   <span className="tag">{STRENGTH[strengthScore(p)]}</span>
-                  <button type="button" className="btn ghost sm" onClick={() => void copyText(p)}>
+                  <ActionButton className="btn ghost sm" onClick={() => void copyText(p)}>
                     複製
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>
@@ -369,9 +367,9 @@ export default function Page() {
                   >
                     顯示
                   </button>
-                  <button type="button" className="btn ghost sm" onClick={() => void copyText(h.pwd)}>
+                  <ActionButton className="btn ghost sm" onClick={() => void copyText(h.pwd)}>
                     複製
-                  </button>
+                  </ActionButton>
                   <button
                     type="button"
                     className="btn danger sm"
@@ -385,13 +383,12 @@ export default function Page() {
             {!filteredHistory.length && <p className="muted">尚無紀錄或不符合篩選</p>}
           </ul>
           {!!history.length && (
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost sm"
               onClick={() => downloadText('password-history.txt', history.map((h) => h.pwd).join('\n'))}
             >
               匯出歷史
-            </button>
+            </ActionButton>
           )}
         </div>
       </div>

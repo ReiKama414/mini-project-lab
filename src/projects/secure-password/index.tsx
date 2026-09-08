@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, parseNumber } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('secure-password') ?? {
   slug: 'secure-password',
@@ -76,17 +77,16 @@ export default function Page() {
           >
             產生
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!pwd}
             onClick={async () => {
               await copyText(pwd)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!pwd} onClick={() => setShow((v) => !v)}>
             {show ? '隱藏' : '顯示'}
           </button>

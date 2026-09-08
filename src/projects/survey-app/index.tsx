@@ -108,8 +108,7 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost sm"
             onClick={() =>
               downloadText(
@@ -129,7 +128,7 @@ export default function Page() {
             }
           >
             匯出 JSON
-          </button>
+          </ActionButton>
           <ActionButton className="btn ghost sm" disabled={!responses.length} onClick={exportCsv}>匯出 CSV</ActionButton>
         </div>
       }

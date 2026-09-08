@@ -144,9 +144,9 @@ export default function Page() {
           <button type="button" className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes((s) => s.slice(0, -1))}>
             復原
           </button>
-          <button type="button" className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes([])}>
+          <ActionButton className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes([])}>
             清除
-          </button>
+          </ActionButton>
           <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
      </ActionButton>
         </div>

@@ -79,17 +79,16 @@ export default function Page() {
         <div className="row">
           <ActionButton className="btn accent" onClick={generate}>產生
          </ActionButton>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!list.length}
             onClick={async () => {
               await copyText(list.join('\n'))
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製全部'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"
@@ -105,9 +104,9 @@ export default function Page() {
               <code className="mono" style={{ flex: 1 }}>
                 {id}
               </code>
-              <button type="button" className="btn sm ghost" onClick={() => void copyText(id)}>
+              <ActionButton className="btn sm ghost" onClick={() => void copyText(id)}>
                 複製
-              </button>
+              </ActionButton>
             </li>
           ))}
           {!list.length && <p className="muted">尚未產生</p>}

@@ -148,16 +148,15 @@ export default function Page() {
               {uri}
             </pre>
             <div className="row" style={{ flexWrap: 'wrap' }}>
-              <button
-                type="button"
+              <ActionButton
                 className="btn accent"
                 onClick={async () => {
                   await copyText(uri)
                   setCopied(true)
                 }}
-              >
+                icon="copy">
                 {copied ? '已複製' : '複製 otpauth URI'}
-              </button>
+              </ActionButton>
               <ActionButton className="btn teal" onClick={downloadPng}>下載 QR PNG
   </ActionButton>
               <button type="button" className="btn ghost" onClick={() => downloadText('totp-uri.txt', uri)}>

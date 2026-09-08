@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 import { parseCsv, stringifyCsv } from '../../lib/csv'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('csv-to-tsv') ?? {
   slug: 'csv-to-tsv',
@@ -109,17 +110,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={convert} disabled={!isNonEmpty(input) || busy}>
             轉成 TSV
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!out}
             onClick={async () => {
               await copyText(out)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

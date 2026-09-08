@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('og-preview') ?? {
   slug: 'og-preview',
@@ -162,16 +163,15 @@ export default function Page() {
             >
               {fetching ? '抓取中…' : '從網址抓取 OG'}
             </button>
-            <button
-              type="button"
+            <ActionButton
               className="btn accent"
               onClick={async () => {
                 await copyText(tags)
                 setCopied(true)
               }}
-            >
+              icon="copy">
               {copied ? '已複製' : '複製 OG 標籤'}
-            </button>
+            </ActionButton>
             <button type="button" className="btn ghost" onClick={() => downloadText('og-tags.html', tags, 'text/html')}>
               下載
             </button>

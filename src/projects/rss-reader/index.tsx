@@ -5,6 +5,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn, downloadText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('rss-reader')!
 
@@ -216,14 +217,13 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost sm"
             onClick={() => downloadText('feeds.opml', sourcesToOpml(sources), 'text/x-opml+xml')}
             disabled={!sources.some((s) => s.url.trim())}
           >
             匯出 OPML
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => opmlRef.current?.click()}>
             匯入 OPML
           </button>

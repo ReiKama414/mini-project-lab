@@ -5,6 +5,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('filename-cleaner') ?? {
   slug: 'filename-cleaner',
@@ -90,17 +91,16 @@ export default function Page() {
         <div className="metric mono" style={{ wordBreak: 'break-all' }}>
           {cleaned}
         </div>
-        <button
-          type="button"
+        <ActionButton
           className="btn accent"
           disabled={invalid}
           onClick={async () => {
             await copyText(cleaned)
             setCopied(true)
           }}
-        >
+          icon="copy">
           {copied ? '已複製' : '複製清理後檔名'}
-        </button>
+        </ActionButton>
       </div>
     </ProjectShell>
   )

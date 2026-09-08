@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, parseNumber } from '../../lib/utils'
 import { svgToSafeObjectUrl } from '../../lib/sanitize'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('svg-generator') ?? {
   slug: 'svg-generator',
@@ -51,7 +52,7 @@ export default function Page() {
         <label className="stack"><span className="label">尺寸：{s}</span><input className="field" type="range" min={40} max={320} value={s} onChange={(e) => setSize(clamp(parseNumber(e.target.value, 120), 40, 320))} /></label>
         {previewUrl ? <img src={previewUrl} alt="SVG 預覽" width={s} height={s} /> : null}
         <div className="row">
-          <button type="button" className="btn accent" onClick={async () => { await copyText(svg); setCopied(true) }}>{copied ? '已複製' : '複製 SVG'}</button>
+          <ActionButton className="btn accent" onClick={async () => { await copyText(svg); setCopied(true) }} icon="copy">{copied ? '已複製' : '複製 SVG'}</ActionButton>
           <button type="button" className="btn ghost" onClick={() => downloadText('shape.svg', svg, 'image/svg+xml')}>下載</button>
         </div>
         <pre className="metric mono" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: 12 }}>{svg}</pre>

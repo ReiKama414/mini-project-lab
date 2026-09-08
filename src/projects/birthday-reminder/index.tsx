@@ -4,6 +4,7 @@ import { AddButton } from '../../components/AddButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('birthday-reminder')!
 
@@ -384,13 +385,12 @@ export default function Page() {
                   {p.days === 0 ? '今天！' : `${p.days} 天後`}
                 </span>
                 {within24h && (
-                  <button
-                    type="button"
+                  <ActionButton
                     className={`btn sm ${scheduled[p.id] ? 'teal' : 'ghost'}`}
                     onClick={() => void scheduleReminder(p)}
-                  >
+                    icon="bell">
                     {scheduled[p.id] ? '已排程提醒' : '通知提醒'}
-                  </button>
+                  </ActionButton>
                 )}
                 <button className="btn sm ghost" onClick={() => setPeople(people.filter((x) => x.id !== p.id))}>
                   刪

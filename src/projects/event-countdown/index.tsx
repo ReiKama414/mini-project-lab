@@ -4,6 +4,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('event-countdown')!
 
@@ -251,13 +252,12 @@ export default function Page() {
                     {colorMeta?.label}
                   </span>
                   {within24h && (
-                    <button
-                      type="button"
+                    <ActionButton
                       className={`btn sm ${scheduled[e.id] ? 'teal' : 'ghost'}`}
                       onClick={() => void scheduleReminder(e)}
-                    >
+                      icon="bell">
                       {scheduled[e.id] ? '已排程提醒' : '通知提醒'}
-                    </button>
+                    </ActionButton>
                   )}
                   <button
                     className="btn sm ghost"

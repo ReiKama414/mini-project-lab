@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 import { parseCsv, stringifyCsv } from '../../lib/csv'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('csv-editor') ?? {
   slug: 'csv-editor',
@@ -173,16 +174,15 @@ export default function Page() {
             新增列</AddButton>
           <AddButton type="button"  className="ghost" onClick={addCol}>
             新增欄</AddButton>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             onClick={async () => {
               await copyText(csv)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn teal" onClick={() => downloadText(fileName, `\uFEFF${csv}`, 'text/csv')}>
             下載
           </button>

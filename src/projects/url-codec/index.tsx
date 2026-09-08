@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, copyText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('url-codec')!
 
@@ -137,16 +138,15 @@ export default function Page() {
           <button type="button" className="btn teal" onClick={decode} disabled={!isNonEmpty(encoded || raw)}>
             Decode
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost sm"
             onClick={async () => {
               await copyText(encoded || raw)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製結果'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => void copyText(raw)}>
             複製原文
           </button>
@@ -195,9 +195,9 @@ export default function Page() {
                 <span className="mono" style={{ flex: 1, wordBreak: 'break-all' }}>
                   {r.decoded}
                 </span>
-                <button type="button" className="btn sm ghost" onClick={() => void copyText(r.decoded)}>
+                <ActionButton className="btn sm ghost" onClick={() => void copyText(r.decoded)}>
                   複製
-                </button>
+                </ActionButton>
               </li>
             ))}
           </ul>

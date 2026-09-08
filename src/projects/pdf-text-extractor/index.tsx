@@ -88,9 +88,9 @@ export default function Page() {
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" disabled={!text || busy} onClick={() => void copyText(text)}>
+          <ActionButton className="btn sm ghost" disabled={!text || busy} onClick={() => void copyText(text)}>
             複製
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn sm accent"

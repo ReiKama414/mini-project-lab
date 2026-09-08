@@ -481,9 +481,9 @@ export default function Page() {
             >
               複製全部
             </button>
-            <button type="button" className="btn sm danger" disabled={!submissions.length} onClick={() => setSubmissions([])}>
+            <ActionButton className="btn sm danger" disabled={!submissions.length} onClick={() => setSubmissions([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           {submissions.length === 0 ? (
             <div className="list-item stack">

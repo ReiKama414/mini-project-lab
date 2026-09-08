@@ -241,9 +241,9 @@ export default function Page() {
         <div className="panel stack">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0 }}>對局歷史</h3>
-            <button type="button" className="btn sm ghost" disabled={!matches.length} onClick={() => setMatches([])}>
+            <ActionButton className="btn sm ghost" disabled={!matches.length} onClick={() => setMatches([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {(['全部', 'X', 'O', 'draw'] as const).map((f) => (

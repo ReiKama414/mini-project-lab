@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { dump as yamlDump } from 'js-yaml'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('json-to-yaml') ?? {
   slug: 'json-to-yaml',
@@ -96,17 +97,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={convert} disabled={!isNonEmpty(input) || busy}>
             轉成 YAML
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!out}
             onClick={async () => {
               await copyText(out)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" disabled={!out} onClick={() => downloadText('data.yaml', out, 'application/yaml')}>
             下載
           </button>

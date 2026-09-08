@@ -245,9 +245,9 @@ export default function Page() {
           <div className="row">
             <ActionButton className="btn accent" onClick={generate} disabled={error === '請輸入有效數字'}>產生
          </ActionButton>
-            <button className="btn ghost" disabled={!results.length} onClick={() => void copyResults()}>
+            <ActionButton className="btn ghost" disabled={!results.length} onClick={() => void copyResults()} icon="copy">
               {copied ? '已複製' : '複製'}
-            </button>
+            </ActionButton>
             <button
               className="btn ghost"
               disabled={!results.length}
@@ -282,9 +282,9 @@ export default function Page() {
                 <button className="btn ghost sm" onClick={() => applyRange(h)}>
                   套用範圍
                 </button>
-                <button className="btn ghost sm" onClick={() => void copyText(h.line)}>
+                <ActionButton className="btn ghost sm" onClick={() => void copyText(h.line)}>
                   複製
-                </button>
+                </ActionButton>
               </li>
             ))}
             {!history.length && <p className="muted">尚無紀錄</p>}

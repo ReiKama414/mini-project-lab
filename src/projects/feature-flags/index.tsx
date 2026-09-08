@@ -296,9 +296,9 @@ export default function Page() {
             <div className="label" style={{ margin: 0 }}>
               稽核紀錄
             </div>
-            <button type="button" className="btn sm ghost" onClick={() => setAudit([])}>
+            <ActionButton className="btn sm ghost" onClick={() => setAudit([])}>
               清空
-            </button>
+            </ActionButton>
           </div>
           <ul className="list">
             {audit.map((a) => (

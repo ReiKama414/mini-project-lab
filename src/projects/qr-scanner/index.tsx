@@ -483,9 +483,9 @@ export default function Page() {
                       {d.value}
                     </span>
                   </div>
-                  <button className="btn sm ghost" onClick={() => copyText(d.value)}>
+                  <ActionButton className="btn sm ghost" onClick={() => copyText(d.value)}>
                     複製
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>
@@ -512,14 +512,14 @@ export default function Page() {
 
           <div className="row">
             <span className="label">歷史紀錄</span>
-            <button
+            <ActionButton
               className="btn sm ghost"
               style={{ marginLeft: 'auto' }}
               onClick={() => setHistory([])}
               disabled={!history.length}
             >
               清空
-            </button>
+            </ActionButton>
           </div>
           <ul className="list">
             {history.map((h) => (
@@ -539,9 +539,9 @@ export default function Page() {
                 <button className="btn sm accent" onClick={() => setPayload(h.text)}>
                   載入
                 </button>
-                <button className="btn sm ghost" onClick={() => copyText(h.text)}>
+                <ActionButton className="btn sm ghost" onClick={() => copyText(h.text)}>
                   複製
-                </button>
+                </ActionButton>
               </li>
             ))}
             {!history.length && <p className="muted">尚無歷史</p>}

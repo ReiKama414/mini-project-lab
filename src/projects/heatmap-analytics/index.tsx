@@ -92,9 +92,9 @@ export default function Page() {
     </ActionButton>
           <ActionButton className="btn sm ghost" onClick={clearPageDevice}>清空此頁/裝置
   </ActionButton>
-          <button type="button" className="btn sm danger" onClick={() => setClicks([])}>
+          <ActionButton className="btn sm danger" onClick={() => setClicks([])}>
             清空全部
-          </button>
+          </ActionButton>
         </div>
       }
     >

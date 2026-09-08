@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, isNonEmpty, isValidHttpUrl, limitText, normalizeHttpUrl } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('tracking-url-cleaner') ?? {
   slug: 'tracking-url-cleaner',
@@ -85,17 +86,16 @@ export default function Page() {
           <button type="button" className="btn accent" onClick={clean}>
             清理
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!out}
             onClick={async () => {
               await copyText(out)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
         </div>
         {error && <p className="field-error">{error}</p>}
         {!!removed.length && <p className="field-hint">已移除：{removed.join(', ')}</p>}

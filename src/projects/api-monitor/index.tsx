@@ -5,6 +5,7 @@ import { DeleteButton } from '../../components/DeleteButton'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('api-monitor')!
 
@@ -284,9 +285,9 @@ export default function Page() {
           <div className="label" style={{ margin: 0 }}>
             探測歷史表
           </div>
-          <button type="button" className="btn sm ghost" onClick={() => setTable([])}>
+          <ActionButton className="btn sm ghost" onClick={() => setTable([])}>
             清空
-          </button>
+          </ActionButton>
         </div>
         <div style={{ overflow: 'auto', maxHeight: 280 }}>
           <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>

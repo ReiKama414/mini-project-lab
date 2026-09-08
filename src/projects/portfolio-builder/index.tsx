@@ -85,9 +85,9 @@ ${projects.map((p) => `<article style="margin-bottom:16px"><h3>${p.title}</h3><p
           <button type="button" className="btn ghost sm" onClick={() => void copyText(toMarkdown())}>
             複製 MD
           </button>
-          <button type="button" className="btn ghost sm" onClick={() => downloadText('portfolio.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
+          <ActionButton className="btn ghost sm" onClick={() => downloadText('portfolio.md', toMarkdown(), 'text/markdown;charset=utf-8')}>
             匯出 Markdown
-          </button>
+          </ActionButton>
           <ActionButton className="btn accent sm" onClick={exportHtml}>匯出 HTML
    </ActionButton>
           <button type="button" className="btn ghost sm" onClick={() => window.print()}>

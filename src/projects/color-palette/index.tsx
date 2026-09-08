@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, hexToRgb, rgbToHex, rgbToHsl, clamp } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('color-palette') ?? {
   slug: 'color-palette',
@@ -91,17 +92,16 @@ export default function Page() {
           ))}
         </div>
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn accent"
             disabled={!shades.length}
             onClick={async () => {
               await copyText(exportCss)
               setCopied('all')
             }}
-          >
+            icon="copy">
             {copied === 'all' ? '已複製' : '複製 CSS 變數'}
-          </button>
+          </ActionButton>
           <button
             type="button"
             className="btn ghost"

@@ -7,6 +7,7 @@ import JSZip from 'jszip'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, formatBytes, parseNumber, limitText } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('batch-rename') ?? {
   slug: 'batch-rename',
@@ -190,17 +191,16 @@ export default function Page() {
             <button type="button" className="btn accent" disabled={!rows.length || busy} onClick={() => void downloadZip()}>
               {busy ? '打包中…' : '以新檔名打包 ZIP'}
             </button>
-            <button
-              type="button"
+            <ActionButton
               className="btn ghost"
               disabled={!rows.length}
               onClick={async () => {
                 await copyText(rows.map((r) => r.to).join('\n'))
                 setCopied(true)
               }}
-            >
+              icon="copy">
               {copied ? '已複製' : '複製新檔名'}
-            </button>
+            </ActionButton>
             <button
               type="button"
               className="btn ghost"

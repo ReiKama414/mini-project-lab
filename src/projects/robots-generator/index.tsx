@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, isNonEmpty, isValidHttpUrl, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('robots-generator') ?? {
   slug: 'robots-generator',
@@ -68,16 +69,15 @@ export default function Page() {
           {!sitemapOk && <p className="field-error">Sitemap 網址無效</p>}
         </label>
         <div className="row">
-          <button
-            type="button"
+          <ActionButton
             className="btn accent"
             onClick={async () => {
               await copyText(text)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
           <button type="button" className="btn ghost" onClick={() => downloadText('robots.txt', text)}>
             下載
           </button>

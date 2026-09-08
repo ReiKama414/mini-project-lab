@@ -4,6 +4,7 @@ import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, isNonEmpty, limitText } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta: ProjectMeta = getProject('jwt-generator') ?? {
   slug: 'jwt-generator',
@@ -144,17 +145,16 @@ export default function Page() {
           <button type="button" className="btn accent" disabled={busy} onClick={() => void generate()}>
             {busy ? '產生中…' : '產生 HS256 JWT'}
           </button>
-          <button
-            type="button"
+          <ActionButton
             className="btn ghost"
             disabled={!token}
             onClick={async () => {
               await copyText(token)
               setCopied(true)
             }}
-          >
+            icon="copy">
             {copied ? '已複製' : '複製'}
-          </button>
+          </ActionButton>
         </div>
         {error && <p className="field-error">{error}</p>}
         {token && (

@@ -3,6 +3,7 @@ import { ProjectShell } from '../../components/ProjectShell'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
 
 const meta = getProject('ai-caption')!
 
@@ -148,9 +149,9 @@ export default function Page() {
                   {c.text}
                 </pre>
                 <div className="row">
-                  <button type="button" className="btn sm ghost" onClick={() => void copyText(c.text)}>
+                  <ActionButton className="btn sm ghost" onClick={() => void copyText(c.text)}>
                     複製
-                  </button>
+                  </ActionButton>
                   <button
                     type="button"
                     className="btn sm teal"
@@ -183,9 +184,9 @@ export default function Page() {
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {f.text.split('\n')[0]}
                 </span>
-                <button type="button" className="btn ghost sm" onClick={() => void copyText(f.text)}>
+                <ActionButton className="btn ghost sm" onClick={() => void copyText(f.text)}>
                   複製
-                </button>
+                </ActionButton>
                 <button
                   type="button"
                   className="btn ghost sm"
