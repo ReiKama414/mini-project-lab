@@ -76,20 +76,73 @@ function bandRanges(standard: Standard) {
   })
 }
 
-function setClamped(
-  raw: string,
-  min: number,
-  max: number,
-  set: (n: number) => void,
-  setErr: (msg: string) => void,
-) {
-  const n = parseNumber(raw)
-  if (!Number.isFinite(n)) {
-    setErr('請輸入有效數字')
-    return
-  }
-  setErr('')
-  set(clamp(n, min, max))
+function inRange(n: number, min: number, max: number) {
+  return Number.isFinite(n) && n >= min && n <= max
+}
+
+/** 編輯中允許清空／中間值；失焦後再夾限。避免「刪不掉、打不出 58」的 UX。 */
+function BmiNumberField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  hint,
+  onCommit,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  step?: number | string
+  hint?: string
+  onCommit: (n: number) => void
+}) {
+  const [text, setText] = useState<string | null>(null)
+  const [invalid, setInvalid] = useState(false)
+  const display = text ?? String(value)
+
+  return (
+    <label className="stack bmi-field">
+      <span className="label">{label}</span>
+      <input
+        className={`field${invalid ? ' is-invalid' : ''}`}
+        type="number"
+        inputMode="decimal"
+        min={min}
+        max={max}
+        step={step}
+        value={display}
+        onChange={(e) => {
+          const raw = e.target.value
+          setText(raw)
+          setInvalid(false)
+          if (!raw.trim()) return
+          const n = parseNumber(raw)
+          if (Number.isFinite(n)) onCommit(n)
+        }}
+        onBlur={() => {
+          const raw = text
+          setText(null)
+          const n = parseNumber(raw ?? String(value))
+          if (!Number.isFinite(n)) {
+            setInvalid(true)
+            onCommit(clamp(value, min, max))
+            return
+          }
+          const next = clamp(n, min, max)
+          setInvalid(n < min || n > max)
+          onCommit(next)
+        }}
+      />
+      {hint ? <p className="field-hint">{hint}</p> : null}
+      {invalid ? (
+        <p className="field-error">
+          請輸入 {min}–{max} 之間的數字
+        </p>
+      ) : null}
+    </label>
+  )
 }
 
 function cmToFtIn(cm: number) {
@@ -155,7 +208,6 @@ export default function Page() {
   const [waistCm, setWaistCm] = useLocalStorage('lab:bmi:waistCm', 80)
   const [waistIn, setWaistIn] = useLocalStorage('lab:bmi:waistIn', 31)
   const [history, setHistory] = useLocalStorage<Hist[]>('lab:bmi:history', [])
-  const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
 
   const metric = useMemo(() => {
@@ -332,7 +384,17 @@ export default function Page() {
   }, [bmi, cat, waistRisk, metric.waistCm, sex, waistCutoff])
 
 
-  const canSave = Number.isFinite(bmi) && bmi > 0 && !error
+  const inputsValid =
+    unit === 'metric'
+      ? inRange(cm, CM_MIN, CM_MAX) &&
+        inRange(kg, KG_MIN, KG_MAX) &&
+        inRange(waistCm, WAIST_CM_MIN, WAIST_CM_MAX)
+      : inRange(ft, FT_MIN, FT_MAX) &&
+        inRange(inch, IN_MIN, IN_MAX) &&
+        inRange(lb, LB_MIN, LB_MAX) &&
+        inRange(waistIn, 16, 80)
+
+  const canSave = Number.isFinite(bmi) && bmi > 0 && inputsValid
 
   const bmiSegments = useMemo(() => {
     const ranges = bandRanges(standard)
@@ -369,7 +431,6 @@ export default function Page() {
       setWaistCm(clamp(Math.round(waistIn * 2.54 * 10) / 10, WAIST_CM_MIN, WAIST_CM_MAX))
     }
     setUnit(next)
-    setError('')
   }
 
   function save() {
@@ -475,7 +536,7 @@ export default function Page() {
     <ProjectShell meta={meta}>
       <div className="bmi-calc">
         <div className="bmi-main">
-          <section className="panel stack bmi-panel">
+          <section className="panel bmi-panel">
             <div className="bmi-toolbar compact">
               <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
                 <button
@@ -492,6 +553,7 @@ export default function Page() {
                 >
                   英制
                 </button>
+                <span className="toolbar-sep" aria-hidden="true" />
                 <button
                   type="button"
                   className={`btn sm ${standard === 'tw' ? 'accent' : 'ghost'}`}
@@ -511,65 +573,35 @@ export default function Page() {
 
             <h3 className="bmi-panel-title">輸入數值</h3>
             {unit === 'metric' ? (
-              <div className="bmi-fields">
-                <label className="stack bmi-field">
-                  <span className="label">身高 (cm)</span>
-                  <input
-                    className={`field${error ? ' is-invalid' : ''}`}
-                    type="number"
-                    min={CM_MIN}
-                    max={CM_MAX}
-                    value={cm}
-                    onChange={(e) => setClamped(e.target.value, CM_MIN, CM_MAX, setCm, setError)}
-                  />
-                </label>
-                <label className="stack bmi-field">
-                  <span className="label">體重 (kg)</span>
-                  <input
-                    className={`field${error ? ' is-invalid' : ''}`}
-                    type="number"
-                    min={KG_MIN}
-                    max={KG_MAX}
-                    value={kg}
-                    onChange={(e) => setClamped(e.target.value, KG_MIN, KG_MAX, setKg, setError)}
-                  />
-                </label>
+              <div className="bmi-fields" key="metric-hw">
+                <BmiNumberField
+                  label="身高 (cm)"
+                  value={cm}
+                  min={CM_MIN}
+                  max={CM_MAX}
+                  onCommit={setCm}
+                />
+                <BmiNumberField
+                  label="體重 (kg)"
+                  value={kg}
+                  min={KG_MIN}
+                  max={KG_MAX}
+                  step={0.1}
+                  onCommit={setKg}
+                />
               </div>
             ) : (
-              <div className="bmi-fields bmi-fields-3">
-                <label className="stack bmi-field">
-                  <span className="label">呎</span>
-                  <input
-                    className={`field${error ? ' is-invalid' : ''}`}
-                    type="number"
-                    min={FT_MIN}
-                    max={FT_MAX}
-                    value={ft}
-                    onChange={(e) => setClamped(e.target.value, FT_MIN, FT_MAX, setFt, setError)}
-                  />
-                </label>
-                <label className="stack bmi-field">
-                  <span className="label">吋</span>
-                  <input
-                    className={`field${error ? ' is-invalid' : ''}`}
-                    type="number"
-                    min={IN_MIN}
-                    max={IN_MAX}
-                    value={inch}
-                    onChange={(e) => setClamped(e.target.value, IN_MIN, IN_MAX, setInch, setError)}
-                  />
-                </label>
-                <label className="stack bmi-field">
-                  <span className="label">磅</span>
-                  <input
-                    className={`field${error ? ' is-invalid' : ''}`}
-                    type="number"
-                    min={LB_MIN}
-                    max={LB_MAX}
-                    value={lb}
-                    onChange={(e) => setClamped(e.target.value, LB_MIN, LB_MAX, setLb, setError)}
-                  />
-                </label>
+              <div className="bmi-fields bmi-fields-3" key="imperial-hw">
+                <BmiNumberField label="呎" value={ft} min={FT_MIN} max={FT_MAX} onCommit={setFt} />
+                <BmiNumberField label="吋" value={inch} min={IN_MIN} max={IN_MAX} onCommit={setInch} />
+                <BmiNumberField
+                  label="磅"
+                  value={lb}
+                  min={LB_MIN}
+                  max={LB_MAX}
+                  step={0.1}
+                  onCommit={setLb}
+                />
               </div>
             )}
 
@@ -593,38 +625,31 @@ export default function Page() {
                   </button>
                 </div>
               </label>
-              <label className="stack bmi-field">
-                <span className="label">腰圍 {unit === 'metric' ? '(cm)' : '(in)'}</span>
-                {unit === 'metric' ? (
-                  <input
-                    className={`field${error ? ' is-invalid' : ''}`}
-                    type="number"
-                    min={WAIST_CM_MIN}
-                    max={WAIST_CM_MAX}
-                    step={0.1}
-                    value={waistCm}
-                    onChange={(e) =>
-                      setClamped(e.target.value, WAIST_CM_MIN, WAIST_CM_MAX, setWaistCm, setError)
-                    }
-                  />
-                ) : (
-                  <input
-                    className={`field${error ? ' is-invalid' : ''}`}
-                    type="number"
-                    min={16}
-                    max={80}
-                    step={0.1}
-                    value={waistIn}
-                    onChange={(e) => setClamped(e.target.value, 16, 80, setWaistIn, setError)}
-                  />
-                )}
-                <p className="field-hint">
-                  切點：男 ≥{WAIST_CUTOFF.male}、女 ≥{WAIST_CUTOFF.female} cm
-                </p>
-              </label>
+              {unit === 'metric' ? (
+                <BmiNumberField
+                  key="waist-cm"
+                  label="腰圍 (cm)"
+                  value={waistCm}
+                  min={WAIST_CM_MIN}
+                  max={WAIST_CM_MAX}
+                  step={0.1}
+                  hint={`切點：男 ≥${WAIST_CUTOFF.male}、女 ≥${WAIST_CUTOFF.female} cm`}
+                  onCommit={setWaistCm}
+                />
+              ) : (
+                <BmiNumberField
+                  key="waist-in"
+                  label="腰圍 (in)"
+                  value={waistIn}
+                  min={16}
+                  max={80}
+                  step={0.1}
+                  hint={`切點：男 ≥${WAIST_CUTOFF.male}、女 ≥${WAIST_CUTOFF.female} cm`}
+                  onCommit={setWaistIn}
+                />
+              )}
             </div>
-            {error && <p className="field-error">{error}</p>}
-            <div className="row" style={{ flexWrap: 'wrap' }}>
+            <div className="row bmi-main-actions" style={{ flexWrap: 'wrap' }}>
               <button type="button" className="btn accent" onClick={save} disabled={!canSave}>
                 儲存本次紀錄
               </button>
@@ -634,7 +659,7 @@ export default function Page() {
             </div>
           </section>
 
-          <section className="panel stack bmi-panel bmi-panel-result">
+          <section className="panel bmi-panel bmi-panel-result">
             <div className="bmi-result">
               <div className="metric bmi-result-num">{bmi ? bmi.toFixed(1) : '—'}</div>
               <span className="tag" style={{ background: cat.color, color: '#fff' }} aria-live="polite">

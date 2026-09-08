@@ -1,15 +1,19 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { DeleteButton } from '../../components/DeleteButton'
+import { IconReset, IconTarget } from '../../components/icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, copyText, downloadText, limitText, charCount, parseNumber, uid } from '../../lib/utils'
+import { clamp, copyText, downloadText, limitText, parseNumber, uid } from '../../lib/utils'
 
 const meta = getProject('currency-converter')!
 
 const AMOUNT_MIN = 0
 const AMOUNT_MAX = 1_000_000_000_000
 const FILTER_MAX = 40
+const CODE_FILTER_MAX = 24
 
+/** 離線／API 全掛時的備援（約略參考值，非即時） */
 const FALLBACK: Record<string, number> = {
   USD: 1,
   TWD: 31.5,
@@ -22,6 +26,13 @@ const FALLBACK: Record<string, number> = {
   AUD: 1.52,
   CAD: 1.36,
   SGD: 1.34,
+  THB: 35.5,
+  MYR: 4.7,
+  PHP: 58,
+  VND: 25400,
+  IDR: 16200,
+  CHF: 0.88,
+  NZD: 1.68,
 }
 
 const LABELS: Record<string, string> = {
@@ -36,7 +47,46 @@ const LABELS: Record<string, string> = {
   AUD: '澳幣',
   CAD: '加幣',
   SGD: '新加坡幣',
+  THB: '泰銖',
+  MYR: '馬來西亞令吉',
+  PHP: '菲律賓披索',
+  VND: '越南盾',
+  IDR: '印尼盾',
+  CHF: '瑞士法郎',
+  NZD: '紐西蘭幣',
+  INR: '印度盧比',
+  MOP: '澳門幣',
 }
+
+const POPULAR = [
+  'TWD',
+  'USD',
+  'EUR',
+  'JPY',
+  'CNY',
+  'HKD',
+  'GBP',
+  'KRW',
+  'SGD',
+  'AUD',
+  'CAD',
+  'THB',
+  'MYR',
+  'PHP',
+  'CHF',
+  'NZD',
+]
+
+const PAIR_PRESETS: { label: string; from: string; to: string; amount?: number }[] = [
+  { label: 'TWD → USD', from: 'TWD', to: 'USD', amount: 1000 },
+  { label: 'USD → TWD', from: 'USD', to: 'TWD', amount: 100 },
+  { label: 'TWD → JPY', from: 'TWD', to: 'JPY', amount: 3000 },
+  { label: 'EUR → TWD', from: 'EUR', to: 'TWD', amount: 50 },
+  { label: 'TWD → CNY', from: 'TWD', to: 'CNY', amount: 1000 },
+  { label: 'USD → KRW', from: 'USD', to: 'KRW', amount: 50 },
+]
+
+const AMOUNT_CHIPS = [100, 500, 1000, 3000, 10000]
 
 type Pair = { from: string; to: string }
 type HistoryItem = {
@@ -48,14 +98,60 @@ type HistoryItem = {
   result: number
   rate: number
 }
+type RateSource = 'open.er-api' | 'frankfurter' | 'fallback' | 'cache'
 
-const PAIR_PRESETS: { label: string; from: string; to: string; amount?: number }[] = [
-  { label: 'TWD → USD', from: 'TWD', to: 'USD', amount: 1000 },
-  { label: 'USD → TWD', from: 'USD', to: 'TWD', amount: 100 },
-  { label: 'TWD → JPY', from: 'TWD', to: 'JPY', amount: 3000 },
-  { label: 'EUR → TWD', from: 'EUR', to: 'TWD', amount: 50 },
-  { label: 'USD → KRW', from: 'USD', to: 'KRW', amount: 50 },
-]
+type CachedRates = {
+  rates: Record<string, number>
+  asOf: string
+  source: RateSource
+  fetchedAt: number
+}
+
+function labelOf(code: string) {
+  return LABELS[code] ? `${code} · ${LABELS[code]}` : code
+}
+
+function mergeRates(base: Record<string, number>) {
+  const next: Record<string, number> = { USD: 1, ...base }
+  for (const [k, v] of Object.entries(FALLBACK)) {
+    if (next[k] == null) next[k] = v
+  }
+  return next
+}
+
+async function fetchOpenErApi(): Promise<CachedRates> {
+  const res = await fetch('https://open.er-api.com/v6/latest/USD')
+  if (!res.ok) throw new Error(`open.er-api HTTP ${res.status}`)
+  const data = (await res.json()) as {
+    result?: string
+    rates?: Record<string, number>
+    time_last_update_utc?: string
+    time_last_update_unix?: number
+  }
+  if (data.result !== 'success' || !data.rates) throw new Error('open.er-api 回傳異常')
+  const asOf = data.time_last_update_utc
+    ? `更新 ${new Date(data.time_last_update_utc).toLocaleString('zh-TW')}`
+    : '即時匯率'
+  return {
+    rates: mergeRates(data.rates),
+    asOf,
+    source: 'open.er-api',
+    fetchedAt: Date.now(),
+  }
+}
+
+async function fetchFrankfurter(): Promise<CachedRates> {
+  const res = await fetch('https://api.frankfurter.dev/v1/latest?base=USD')
+  if (!res.ok) throw new Error(`Frankfurter HTTP ${res.status}`)
+  const data = (await res.json()) as { date?: string; rates?: Record<string, number> }
+  if (!data.rates) throw new Error('Frankfurter 回傳異常')
+  return {
+    rates: mergeRates(data.rates),
+    asOf: `備援匯率 · ${data.date ?? '—'}`,
+    source: 'frankfurter',
+    fetchedAt: Date.now(),
+  }
+}
 
 export default function Page() {
   const [amount, setAmount] = useLocalStorage('lab:currency-converter:amount', 1000)
@@ -66,51 +162,113 @@ export default function Page() {
     { from: 'USD', to: 'TWD' },
   ])
   const [history, setHistory] = useLocalStorage<HistoryItem[]>('lab:currency-converter:history', [])
-  const [watch, setWatch] = useLocalStorage<string[]>('lab:currency-converter:watch', ['USD', 'EUR', 'JPY', 'HKD'])
-  const [rates, setRates] = useState(FALLBACK)
-  const [asOf, setAsOf] = useState('示範匯率')
+  const [watch, setWatch] = useLocalStorage<string[]>('lab:currency-converter:watch', [
+    'USD',
+    'EUR',
+    'JPY',
+    'HKD',
+    'CNY',
+  ])
+  const [cached, setCached] = useLocalStorage<CachedRates | null>('lab:currency-converter:cache', null)
+
+  const [rates, setRates] = useState(() => cached?.rates ?? FALLBACK)
+  const [asOf, setAsOf] = useState(() => cached?.asOf ?? '示範匯率')
+  const [source, setSource] = useState<RateSource>(() => cached?.source ?? 'fallback')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [histFilter, setHistFilter] = useState('')
-  const [amountError, setAmountError] = useState('')
-  const codes = useMemo(() => Object.keys(rates).sort(), [rates])
+  const [codeFilter, setCodeFilter] = useState('')
+  const [amountDraft, setAmountDraft] = useState<string | null>(null)
+  const [amountInvalid, setAmountInvalid] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const codes = useMemo(() => {
+    const keys = Object.keys(rates)
+    const pop = POPULAR.filter((c) => keys.includes(c))
+    const rest = keys.filter((c) => !pop.includes(c)).sort()
+    return [...pop, ...rest]
+  }, [rates])
+
+  const filteredCodes = useMemo(() => {
+    const q = codeFilter.trim().toUpperCase()
+    if (!q) return codes
+    return codes.filter((c) => {
+      const label = LABELS[c] ?? ''
+      return c.includes(q) || label.includes(codeFilter.trim())
+    })
+  }, [codes, codeFilter])
+
+  const applyRates = useCallback(
+    (payload: CachedRates, persist: boolean) => {
+      setRates(payload.rates)
+      setAsOf(payload.asOf)
+      setSource(payload.source)
+      if (persist) setCached(payload)
+      setFrom((prev) => (payload.rates[prev] != null ? prev : 'TWD' in payload.rates ? 'TWD' : 'USD'))
+      setTo((prev) => (payload.rates[prev] != null ? prev : 'USD' in payload.rates ? 'USD' : Object.keys(payload.rates)[0] ?? 'USD'))
+    },
+    [setCached, setFrom, setTo],
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
+    const errors: string[] = []
     try {
-      const res = await fetch('https://api.frankfurter.app/latest?from=USD')
-      if (!res.ok) throw new Error('無法取得匯率')
-      const data = (await res.json()) as { date: string; rates: Record<string, number> }
-      const next: Record<string, number> = { USD: 1, ...data.rates }
-      for (const k of Object.keys(FALLBACK)) {
-        if (next[k] == null) next[k] = FALLBACK[k]!
+      try {
+        const primary = await fetchOpenErApi()
+        applyRates(primary, true)
+        return
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : 'open.er-api 失敗')
       }
-      setRates(next)
-      setAsOf(`即時 ${data.date} · 資料來源 Frankfurter`)
-    } catch (e) {
-      setRates(FALLBACK)
-      setAsOf('示範匯率 · 資料來源內建 fallback')
-      setError(e instanceof Error ? e.message : '載入失敗，已改用示範匯率')
+      try {
+        const secondary = await fetchFrankfurter()
+        applyRates(secondary, true)
+        setError(`主來源失敗（${errors.join('；')}），已改用 Frankfurter 備援`)
+        return
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : 'Frankfurter 失敗')
+      }
+      if (cached?.rates) {
+        applyRates(
+          {
+            ...cached,
+            asOf: `${cached.asOf}（快取）`,
+            source: 'cache',
+          },
+          false,
+        )
+        setError(`線上來源皆失敗，使用上次快取。${errors.join('；')}`)
+        return
+      }
+      applyRates(
+        {
+          rates: FALLBACK,
+          asOf: '示範匯率（離線）',
+          source: 'fallback',
+          fetchedAt: Date.now(),
+        },
+        false,
+      )
+      setError(`無法取得即時匯率：${errors.join('；')}`)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyRates, cached])
 
   useEffect(() => {
     void load()
-  }, [load])
+    // 僅掛載時抓一次；手動「重新抓匯率」再更新
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const result = useMemo(() => {
     const fr = rates[from]
     const tr = rates[to]
     if (fr == null || tr == null) return 0
-    const usd = amount / fr
-    return usd * tr
+    return (amount / fr) * tr
   }, [amount, from, to, rates])
-
-  const amountOk = Number.isFinite(amount) && amount >= AMOUNT_MIN && amount <= AMOUNT_MAX && !amountError
-  const canSave = amountOk && Number.isFinite(result)
 
   const rateOne = useMemo(() => {
     const fr = rates[from]
@@ -119,7 +277,11 @@ export default function Page() {
     return (1 / fr) * tr
   }, [from, to, rates])
 
-  const rateText = `1 ${from} = ${rateOne.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${to}`
+  const rateInverse = useMemo(() => (rateOne ? 1 / rateOne : 0), [rateOne])
+
+  const amountOk =
+    Number.isFinite(amount) && amount >= AMOUNT_MIN && amount <= AMOUNT_MAX && !amountInvalid
+  const canSave = amountOk && Number.isFinite(result)
 
   const filteredHistory = useMemo(() => {
     const q = histFilter.trim().toLowerCase()
@@ -139,6 +301,18 @@ export default function Page() {
       }))
   }, [watch, rates, from, amount])
 
+  function commitAmount(raw: string) {
+    const n = parseNumber(raw)
+    if (!Number.isFinite(n)) {
+      setAmountInvalid(true)
+      setAmount(clamp(amount, AMOUNT_MIN, AMOUNT_MAX))
+      return
+    }
+    const next = clamp(n, AMOUNT_MIN, AMOUNT_MAX)
+    setAmountInvalid(n < AMOUNT_MIN || n > AMOUNT_MAX)
+    setAmount(next)
+  }
+
   function saveHistory() {
     if (!canSave) return
     setHistory((h) =>
@@ -153,18 +327,8 @@ export default function Page() {
           rate: rateOne,
         },
         ...h,
-      ].slice(0, 30),
+      ].slice(0, 40),
     )
-  }
-
-  function onAmountChange(raw: string) {
-    const n = parseNumber(raw)
-    if (!Number.isFinite(n)) {
-      setAmountError('請輸入有效數字')
-      return
-    }
-    setAmountError('')
-    setAmount(clamp(n, AMOUNT_MIN, AMOUNT_MAX))
   }
 
   function toggleFavorite() {
@@ -172,252 +336,422 @@ export default function Page() {
     if (exists) {
       setFavorites((xs) => xs.filter((f) => !(f.from === from && f.to === to)))
     } else {
-      setFavorites((xs) => [{ from, to }, ...xs].slice(0, 12))
+      setFavorites((xs) => [{ from, to }, ...xs].slice(0, 16))
     }
+  }
+
+  function removeFavorite(pair: Pair) {
+    setFavorites((xs) => xs.filter((f) => !(f.from === pair.from && f.to === pair.to)))
   }
 
   function isFav(a: string, b: string) {
     return favorites.some((f) => f.from === a && f.to === b)
   }
 
-  function exportHistory() {
-    const lines = [
-      '時間,金額,從,到,結果,匯率',
-      ...history.map((h) =>
-        [new Date(h.at).toISOString(), h.amount, h.from, h.to, h.result.toFixed(4), h.rate.toFixed(6)].join(','),
-      ),
-    ]
-    downloadText('fx-history.csv', lines.join('\n'), 'text/csv;charset=utf-8')
+  async function copyResult() {
+    await copyText(
+      `${amount.toLocaleString()} ${from} = ${result.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${to}\n1 ${from} = ${rateOne.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${to}`,
+    )
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
+
+  function exportHistory(kind: string) {
+    if (!history.length || !kind) return
+    if (kind === 'csv') {
+      const lines = [
+        '時間,金額,從,到,結果,匯率',
+        ...history.map((h) =>
+          [new Date(h.at).toISOString(), h.amount, h.from, h.to, h.result.toFixed(4), h.rate.toFixed(6)].join(','),
+        ),
+      ]
+      downloadText('fx-history.csv', `\uFEFF${lines.join('\n')}`, 'text/csv;charset=utf-8')
+      return
+    }
+    if (kind === 'txt') {
+      const text = history
+        .map(
+          (h) =>
+            `${new Date(h.at).toLocaleString('zh-TW')} · ${h.amount} ${h.from} → ${h.result.toFixed(4)} ${h.to}（匯率 ${h.rate.toFixed(6)}）`,
+        )
+        .join('\n')
+      downloadText('fx-history.txt', text, 'text/plain;charset=utf-8')
+      return
+    }
+    if (kind === 'copy') {
+      void copyText(
+        history
+          .map((h) => `${h.amount} ${h.from} = ${h.result.toFixed(4)} ${h.to}`)
+          .join('\n'),
+      )
+    }
+  }
+
+  const sourceTag =
+    source === 'open.er-api'
+      ? '即時'
+      : source === 'frankfurter'
+        ? '備援'
+        : source === 'cache'
+          ? '快取'
+          : '示範'
+
+  const rounded = useMemo(() => {
+    // 依常見慣例：JPY/KRW/VND/IDR 無小數，其餘最多 2 位顯示（完整仍可複製）
+    const zeroDec = new Set(['JPY', 'KRW', 'VND', 'IDR', 'CLP', 'ISK'])
+    const digits = zeroDec.has(to) ? 0 : 2
+    const factor = 10 ** digits
+    return {
+      digits,
+      display: (Math.round(result * factor) / factor).toLocaleString(undefined, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      }),
+    }
+  }, [result, to])
 
   return (
     <ProjectShell
       meta={meta}
       actions={
-        <div className="row">
-          <button type="button" className="btn ghost sm" onClick={() => void load()} disabled={loading}>
-            {loading ? '更新中…' : '重新抓匯率'}
-          </button>
-          <button type="button" className="btn ghost sm" onClick={saveHistory} disabled={!canSave}>
-            存入歷史
-          </button>
-        </div>
+        <button type="button" className="btn ghost sm" onClick={() => void load()} disabled={loading}>
+          <IconReset size={15} strokeWidth={2.25} />
+          {loading ? '更新中…' : '重新抓匯率'}
+        </button>
       }
     >
-      <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        <span className="metric">{asOf}</span>
-        <span className="tag">幣別 {codes.length}</span>
-        <span className="tag">歷史 {history.length}</span>
-        <span className="tag">收藏 {favorites.length}</span>
-        {error && <span className="tag" style={{ background: 'var(--rose-soft)', color: 'var(--rose)' }}>{error}</span>}
-      </div>
-      <p className="muted" style={{ marginTop: -4, marginBottom: 12, fontSize: 13 }}>
-        匯率僅供參考，不構成投資、外匯或其他財務建議。實際交易請以銀行／券商報價為準。
-      </p>
-
-      <div className="grid-2">
-        <div className="panel stack">
-          <div>
-            <div className="label">常用兌換</div>
-            <div className="row" style={{ flexWrap: 'wrap' }}>
-              {PAIR_PRESETS.map((p) => (
-                <button
-                  key={p.label}
-                  type="button"
-                  className="btn sm ghost"
-                  onClick={() => {
-                    setFrom(p.from)
-                    setTo(p.to)
-                    if (p.amount != null) setAmount(p.amount)
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+      <div className="fx-calc">
+        <section className="panel fx-status">
+          <p className="fx-status-meta">{asOf}</p>
+          <div className="fx-status-tags">
+            <span className="tag">{sourceTag}</span>
+            <span className="tag">{codes.length} 幣</span>
+            {error ? null : <span className="muted" style={{ fontSize: 12 }}>僅供參考</span>}
           </div>
+          {error && <p className="field-error fx-status-error">{error}</p>}
+        </section>
 
-          {!!favorites.length && (
-            <div>
-              <div className="label">收藏幣對</div>
-              <div className="row" style={{ flexWrap: 'wrap' }}>
-                {favorites.map((f) => (
+        <div className="fx-main">
+          <section className="panel fx-converter">
+            <h3 className="fx-panel-title">換算</h3>
+
+            <div className="fx-amount-block">
+              <label className="fx-field">
+                <span className="label">金額</span>
+                <input
+                  className={`field${amountInvalid ? ' is-invalid' : ''}`}
+                  type="number"
+                  inputMode="decimal"
+                  min={AMOUNT_MIN}
+                  max={AMOUNT_MAX}
+                  value={amountDraft ?? String(amount)}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    setAmountDraft(raw)
+                    setAmountInvalid(false)
+                    if (!raw.trim()) return
+                    const n = parseNumber(raw)
+                    if (Number.isFinite(n)) setAmount(n)
+                  }}
+                  onBlur={() => {
+                    const raw = amountDraft
+                    setAmountDraft(null)
+                    commitAmount(raw ?? String(amount))
+                  }}
+                />
+                {amountInvalid && (
+                  <p className="field-error">
+                    請輸入 {AMOUNT_MIN}–{AMOUNT_MAX.toLocaleString()} 之間的數字
+                  </p>
+                )}
+              </label>
+              <div className="fx-chips">
+                {AMOUNT_CHIPS.map((n) => (
                   <button
-                    key={`${f.from}-${f.to}`}
+                    key={n}
                     type="button"
-                    className={`btn sm ${from === f.from && to === f.to ? 'accent' : 'ghost'}`}
+                    className={`btn sm ${amount === n ? 'accent' : 'ghost'}`}
                     onClick={() => {
-                      setFrom(f.from)
-                      setTo(f.to)
+                      setAmountDraft(null)
+                      setAmountInvalid(false)
+                      setAmount(n)
                     }}
                   >
-                    {f.from}→{f.to}
+                    {n.toLocaleString()}
                   </button>
                 ))}
               </div>
             </div>
-          )}
 
-          <label className="stack">
-            <span className="label">金額</span>
-            <input
-              className={`field${amountError ? ' is-invalid' : ''}`}
-              type="number"
-              min={AMOUNT_MIN}
-              max={AMOUNT_MAX}
-              value={amount}
-              onChange={(e) => onAmountChange(e.target.value)}
-            />
-            {amountError && <p className="field-error">{amountError}</p>}
-            <p className="field-hint">
-              {AMOUNT_MIN}–{AMOUNT_MAX.toLocaleString()}
-            </p>
-          </label>
-
-          <div className="grid-2">
-            <label className="stack">
-              <span className="label">從</span>
-              <select className="field" value={from} onChange={(e) => setFrom(e.target.value)}>
-                {codes.map((c) => (
-                  <option key={c} value={c}>
-                    {c} {LABELS[c] ? `· ${LABELS[c]}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="stack">
-              <span className="label">到</span>
-              <select className="field" value={to} onChange={(e) => setTo(e.target.value)}>
-                {codes.map((c) => (
-                  <option key={c} value={c}>
-                    {c} {LABELS[c] ? `· ${LABELS[c]}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn ghost sm"
-              onClick={() => {
-                setFrom(to)
-                setTo(from)
-              }}
-            >
-              ⇄ 交換
-            </button>
-            <button type="button" className={`btn sm ${isFav(from, to) ? 'accent' : 'ghost'}`} onClick={toggleFavorite}>
-              {isFav(from, to) ? '已收藏' : '收藏此幣對'}
-            </button>
-            <span className="muted mono">{rateText}</span>
-          </div>
-          <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-            目前匯率來源：{asOf.includes('Frankfurter') ? 'Frankfurter' : '內建 fallback'}
-          </p>
-
-          <div className="metric">
-            <div className="muted">換算結果</div>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>
-              {result.toLocaleString(undefined, { maximumFractionDigits: 4 })} {to}
+            <div className="fx-pair">
+              <label className="fx-field">
+                <span className="label">從</span>
+                <select className="field" value={from} onChange={(e) => setFrom(e.target.value)}>
+                  {(filteredCodes.includes(from) ? filteredCodes : [from, ...filteredCodes]).map((c) => (
+                    <option key={c} value={c}>
+                      {labelOf(c)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="btn ghost fx-swap"
+                aria-label="交換幣別"
+                title="交換幣別"
+                onClick={() => {
+                  setFrom(to)
+                  setTo(from)
+                }}
+              >
+                ⇄
+              </button>
+              <label className="fx-field">
+                <span className="label">到</span>
+                <select className="field" value={to} onChange={(e) => setTo(e.target.value)}>
+                  {(filteredCodes.includes(to) ? filteredCodes : [to, ...filteredCodes]).map((c) => (
+                    <option key={c} value={c}>
+                      {labelOf(c)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-          </div>
 
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => void copyText(`${amount} ${from} = ${result.toFixed(4)} ${to}`)}
-            >
-              複製結果
-            </button>
-            <button type="button" className="btn teal" onClick={saveHistory} disabled={!canSave}>
-              存入歷史
-            </button>
-          </div>
+            <div className="fx-filter-row">
+              <label className="fx-field">
+                <span className="label">篩選幣別</span>
+                <input
+                  className="field"
+                  placeholder="TWD、日圓…"
+                  value={codeFilter}
+                  maxLength={CODE_FILTER_MAX}
+                  onChange={(e) => setCodeFilter(limitText(e.target.value, CODE_FILTER_MAX))}
+                />
+              </label>
+              <span className="fx-filter-count">
+                {filteredCodes.length}/{codes.length}
+              </span>
+            </div>
 
-          <div>
-            <div className="label">對照表基準：{from}（可加入監看幣）</div>
-            <div className="row" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
-              {['USD', 'EUR', 'JPY', 'GBP', 'CNY', 'HKD', 'KRW', 'SGD', 'AUD', 'CAD', 'TWD']
-                .filter((c) => codes.includes(c))
-                .map((c) => (
+            <div className="fx-result">
+              <div className="muted">換算結果</div>
+              <div className="fx-result-num">
+                {rounded.display} <span className="fx-result-code">{to}</span>
+              </div>
+              <p className="muted mono fx-rate-lines">
+                精確值 {result.toLocaleString(undefined, { maximumFractionDigits: 6 })} {to}
+                <br />
+                1 {from} = {rateOne.toLocaleString(undefined, { maximumFractionDigits: 6 })} {to}
+                <br />
+                1 {to} = {rateInverse.toLocaleString(undefined, { maximumFractionDigits: 6 })} {from}
+              </p>
+            </div>
+
+            <div className="fx-actions">
+              <button type="button" className="btn accent" onClick={() => void copyResult()} disabled={!canSave}>
+                {copied ? '已複製' : '複製結果'}
+              </button>
+              <button type="button" className="btn teal" onClick={saveHistory} disabled={!canSave}>
+                存入歷史
+              </button>
+              <button
+                type="button"
+                className={`btn ghost ${isFav(from, to) ? 'accent' : ''}`}
+                onClick={toggleFavorite}
+              >
+                {isFav(from, to) ? '取消收藏' : '收藏此幣對'}
+              </button>
+            </div>
+          </section>
+
+          <div className="fx-side">
+            <section className="panel fx-presets">
+              <h3 className="fx-panel-title" style={{ marginBottom: '0.55rem' }}>
+                常用兌換
+              </h3>
+              <div className="fx-presets-chips">
+                {PAIR_PRESETS.map((p) => (
                   <button
-                    key={c}
+                    key={p.label}
                     type="button"
-                    className={`btn sm ${watch.includes(c) ? 'accent' : 'ghost'}`}
-                    onClick={() =>
-                      setWatch((xs) => (xs.includes(c) ? xs.filter((x) => x !== c) : [...xs, c].slice(0, 10)))
-                    }
+                    className={`btn sm ${from === p.from && to === p.to ? 'accent' : 'ghost'}`}
+                    onClick={() => {
+                      setFrom(p.from)
+                      setTo(p.to)
+                      if (p.amount != null) {
+                        setAmountDraft(null)
+                        setAmountInvalid(false)
+                        setAmount(p.amount)
+                      }
+                    }}
                   >
-                    {c}
+                    {p.label}
                   </button>
                 ))}
+              </div>
+            </section>
+
+            <section className="panel fx-favs">
+              <div className="fx-panel-head">
+                <h3 className="fx-panel-title">收藏幣對</h3>
+                {!!favorites.length && (
+                  <DeleteButton
+                    label="清空全部收藏"
+                    title="一鍵刪除全部收藏"
+                    onClick={() => {
+                      if (!confirm(`確定刪除全部 ${favorites.length} 組收藏？`)) return
+                      setFavorites([])
+                    }}
+                  />
+                )}
+              </div>
+              {!favorites.length ? (
+                <p className="muted fx-empty">尚未收藏</p>
+              ) : (
+                <ul className="list fx-fav-list">
+                  {favorites.map((f) => {
+                    const fr = rates[f.from]
+                    const tr = rates[f.to]
+                    const rate = fr && tr ? (1 / fr) * tr : 0
+                    return (
+                      <li key={`${f.from}-${f.to}`} className="list-item">
+                        <button
+                          type="button"
+                          className="fx-fav-apply"
+                          onClick={() => {
+                            setFrom(f.from)
+                            setTo(f.to)
+                          }}
+                        >
+                          <strong>
+                            {f.from} → {f.to}
+                          </strong>
+                          <span className="muted mono" style={{ fontSize: 12 }}>
+                            1 {f.from} ≈ {rate.toLocaleString(undefined, { maximumFractionDigits: 4 })} {f.to}
+                          </span>
+                        </button>
+                        <DeleteButton
+                          label={`刪除 ${f.from}→${f.to}`}
+                          onClick={() => removeFavorite(f)}
+                        />
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+          </div>
+        </div>
+
+        <div className="fx-bottom">
+          <section className="panel">
+            <h3 className="fx-panel-title">監看對照 · 基準 {from}</h3>
+            <div className="fx-watch-picks">
+              {POPULAR.filter((c) => codes.includes(c)).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`btn sm ${watch.includes(c) ? 'accent' : 'ghost'}`}
+                  onClick={() =>
+                    setWatch((xs) => (xs.includes(c) ? xs.filter((x) => x !== c) : [...xs, c].slice(0, 10)))
+                  }
+                >
+                  {c}
+                </button>
+              ))}
             </div>
-            <ul className="list">
+            <ul className="list fx-watch-list">
               {watchRows.map((r) => (
                 <li key={r.code} className="list-item">
-                  <span>
-                    <strong>{r.code}</strong> {LABELS[r.code] || ''}
-                  </span>
-                  <span className="mono">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong>
+                      {r.code} {LABELS[r.code] || ''}
+                    </strong>
+                    <div className="muted mono" style={{ fontSize: 12 }}>
+                      1 {from} = {r.rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} {r.code}
+                    </div>
+                  </div>
+                  <span className="mono" style={{ fontWeight: 600 }}>
                     {r.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                   </span>
                   <button
                     type="button"
-                    className="btn sm ghost"
+                    className="btn sm ghost fx-icon-btn"
+                    aria-label={`設 ${r.code} 為目標`}
+                    title={`設為目標：${r.code}`}
                     onClick={() => setTo(r.code)}
                   >
-                    設為目標
+                    <IconTarget size={16} strokeWidth={2} />
                   </button>
+                  <DeleteButton
+                    label={`移除監看 ${r.code}`}
+                    onClick={() => setWatch((xs) => xs.filter((x) => x !== r.code))}
+                  />
                 </li>
               ))}
-              {!watchRows.length && <p className="muted">選擇監看幣別以顯示對照表</p>}
+              {!watchRows.length && <p className="muted fx-empty">點上方幣別加入監看</p>}
             </ul>
-          </div>
-        </div>
+          </section>
 
-        <div className="panel stack">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0 }}>換算歷史</h3>
-            <div className="row">
-              <button type="button" className="btn sm ghost" disabled={!history.length} onClick={exportHistory}>
-                匯出
-              </button>
-              <button type="button" className="btn sm ghost" disabled={!history.length} onClick={() => setHistory([])}>
-                清空
-              </button>
+          <section className="panel">
+            <div className="fx-panel-head">
+              <h3 className="fx-panel-title">換算歷史</h3>
+              {!!history.length && (
+                <div className="fx-hist-actions">
+                  <select
+                    className="field"
+                    defaultValue=""
+                    aria-label="匯出歷史"
+                    onChange={(e) => {
+                      const kind = e.target.value
+                      e.target.value = ''
+                      exportHistory(kind)
+                    }}
+                  >
+                    <option value="" disabled>
+                      匯出…
+                    </option>
+                    <option value="csv">下載 CSV</option>
+                    <option value="txt">下載 TXT</option>
+                    <option value="copy">複製文字</option>
+                  </select>
+                  <DeleteButton
+                    label="清空全部歷史"
+                    title="一鍵刪除全部歷史"
+                    onClick={() => {
+                      if (!confirm(`確定刪除全部 ${history.length} 筆歷史？`)) return
+                      setHistory([])
+                    }}
+                  />
+                </div>
+              )}
             </div>
-          </div>
-          <input
-            className="field"
-            placeholder="篩選歷史…"
-            value={histFilter}
-            maxLength={FILTER_MAX}
-            onChange={(e) => setHistFilter(limitText(e.target.value, FILTER_MAX))}
-          />
-          <div className="field-meta">
-            <span className="field-hint">篩選字串</span>
-            <span>
-              {charCount(histFilter)} / {FILTER_MAX}
-            </span>
-          </div>
-          <ul className="list">
-            {filteredHistory.map((h) => (
-              <li key={h.id} className="list-item stack">
-                <strong>
-                  {h.amount.toLocaleString()} {h.from} → {h.result.toLocaleString(undefined, { maximumFractionDigits: 4 })}{' '}
-                  {h.to}
-                </strong>
-                <span className="muted mono" style={{ fontSize: 12 }}>
-                  {new Date(h.at).toLocaleString('zh-TW')} · 1 {h.from} = {h.rate.toFixed(6)} {h.to}
-                </span>
-                <div className="row">
+            <input
+              className="field"
+              placeholder="篩選歷史…"
+              value={histFilter}
+              maxLength={FILTER_MAX}
+              onChange={(e) => setHistFilter(limitText(e.target.value, FILTER_MAX))}
+            />
+            <ul className="list fx-hist-list">
+              {filteredHistory.map((h) => (
+                <li key={h.id} className="list-item">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong>
+                      {h.amount.toLocaleString()} {h.from} →{' '}
+                      {h.result.toLocaleString(undefined, { maximumFractionDigits: 4 })} {h.to}
+                    </strong>
+                    <div className="muted mono" style={{ fontSize: 12 }}>
+                      {new Date(h.at).toLocaleString('zh-TW')} · 1 {h.from} = {h.rate.toFixed(6)} {h.to}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     className="btn sm ghost"
                     onClick={() => {
+                      setAmountDraft(null)
+                      setAmountInvalid(false)
                       setAmount(h.amount)
                       setFrom(h.from)
                       setTo(h.to)
@@ -425,25 +759,15 @@ export default function Page() {
                   >
                     套用
                   </button>
-                  <button
-                    type="button"
-                    className="btn sm ghost"
-                    onClick={() => void copyText(`${h.amount} ${h.from} = ${h.result.toFixed(4)} ${h.to}`)}
-                  >
-                    複製
-                  </button>
-                  <button
-                    type="button"
-                    className="btn sm danger"
+                  <DeleteButton
+                    label="刪除此筆歷史"
                     onClick={() => setHistory((xs) => xs.filter((x) => x.id !== h.id))}
-                  >
-                    刪
-                  </button>
-                </div>
-              </li>
-            ))}
-            {!filteredHistory.length && <p className="muted">尚無歷史，按「存入歷史」保留這次換算</p>}
-          </ul>
+                  />
+                </li>
+              ))}
+              {!filteredHistory.length && <p className="muted fx-empty">尚無歷史</p>}
+            </ul>
+          </section>
         </div>
       </div>
     </ProjectShell>

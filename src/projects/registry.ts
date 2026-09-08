@@ -16,7 +16,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'countdown', title: '倒數計時器', description: '可同時管理多組倒數，結束提醒與紀錄。', tier: 'quick', effort: '幾小時～1 天', tags: ['timer'] },
   { slug: 'stopwatch', title: '秒錶', description: '精確計時、單圈統計與匯出。', tier: 'quick', effort: '幾小時～1 天', tags: ['timer'] },
   { slug: 'bmi-calculator', title: 'BMI Calculator', description: 'BMI／腰圍風險指標，依衛福部或 WHO 切點判讀。', tier: 'quick', effort: '幾小時～1 天', tags: ['health'] },
-  { slug: 'currency-converter', title: '貨幣轉換器', description: '即時匯率換算（Open Frankfurter）＋離線備援。', tier: 'quick', effort: '幾小時～1 天', tags: ['finance'] },
+  { slug: 'currency-converter', title: '貨幣轉換器', description: '即時匯率換算，支援收藏、監看與歷史。', tier: 'quick', effort: '幾小時～1 天', tags: ['finance'] },
   { slug: 'unit-converter', title: '單位轉換器', description: '長度／重量／溫度／容量／資料量轉換。', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'age-calculator', title: '年齡計算器', description: '國曆歲數、農曆對照、生肖星座與下次生日倒數。', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'tip-calculator', title: 'Tip Calculator', description: '小費、分帳與每人應付金額。', tier: 'quick', effort: '幾小時～1 天', tags: ['finance'] },

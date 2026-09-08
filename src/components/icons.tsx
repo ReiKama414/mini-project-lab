@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Search,
   SkipForward,
+  Target,
   Trash2,
   Turtle,
   X,
@@ -73,6 +74,10 @@ export function IconPause(props: LucideProps) {
 
 export function IconReset(props: LucideProps) {
   return <RotateCcw {...defaultProps} {...props} />
+}
+
+export function IconTarget(props: LucideProps) {
+  return <Target {...defaultProps} {...props} />
 }
 
 export function IconTrash(props: LucideProps) {
