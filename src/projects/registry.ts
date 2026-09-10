@@ -28,7 +28,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'random-number', title: 'Random Number Generator', description: '範圍亂數、統計與不重複取樣', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'color-converter', title: '色碼轉換器', description: '色碼轉換、對比色階與收藏色票', tier: 'quick', effort: '幾小時～1 天', tags: ['design'] },
   { slug: 'hex-rgb-hsl', title: 'HEX / RGB / HSL', description: '雙向轉換、色階和諧與 WCAG 對比', tier: 'quick', effort: '幾小時～1 天', tags: ['design'] },
-  { slug: 'markdown-previewer', title: 'Markdown Previewer', description: 'Marked 即時預覽（可下載 HTML）', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'markdown-previewer', title: 'Markdown 預覽', description: '即時預覽、目錄統計與匯出 HTML', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
   { slug: 'json-formatter', title: 'JSON Formatter', description: '格式化、壓縮與驗證 JSON', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
   { slug: 'json-to-csv', title: 'JSON → CSV Converter', description: '物件陣列轉 CSV 並下載', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
   { slug: 'base64', title: 'Base64 Encoder / Decoder', description: '文字與 Base64 互轉', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },

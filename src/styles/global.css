@@ -698,7 +698,7 @@ input[type='file'].field {
   align-items: center;
 }
 
-/* 列內有字數提示時改頂對齊，避免按鈕相對輸入框「浮起來」 */
+/* åå§æå­æ¸æç¤ºææ¹é å°é½ï¼é¿åæéç¸å°è¼¸å¥æ¡ãæµ®èµ·ä¾ã */
 .row:has(.field-meta),
 .row:has(.field-wrap) {
   align-items: flex-start;
@@ -715,7 +715,7 @@ input[type='file'].field {
   margin-top: 0;
 }
 
-/* 工具列：字數列不參與對齊基準；按鈕高度對齊輸入框 */
+/* å·¥å·åï¼å­æ¸åä¸åèå°é½åºæºï¼æéé«åº¦å°é½è¼¸å¥æ¡ */
 .row:has(.field-meta) > .btn,
 .row:has(.field-wrap) > .btn,
 .row:has(.field-meta) > .btn.sm,
@@ -781,7 +781,7 @@ input[type='file'].field {
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
-/* 同一列的控制項高度對齊 */
+/* åä¸åçæ§å¶é é«åº¦å°é½ */
 .row > .field,
 .row > select.field,
 .row > input.field,
@@ -845,7 +845,7 @@ textarea.field {
   font-size: 0.9rem;
 }
 
-/* —— Select —— */
+/* ââ Select ââ */
 select.field,
 select {
   appearance: none;
@@ -855,7 +855,7 @@ select {
   background-position: right 0.75rem center;
   background-size: 1rem 1rem;
   background-repeat: no-repeat;
-  /* 右側箭頭區 + 中文標籤（如「高優先」）不可被裁切 */
+  /* å³å´ç®­é ­å + ä¸­ææ¨ç±¤ï¼å¦ãé«åªåãï¼ä¸å¯è¢«è£å */
   padding-right: 2.4rem;
   min-width: 7.75rem;
   max-width: 100%;
@@ -885,7 +885,7 @@ select option {
   color: var(--ink);
 }
 
-/* —— Checkbox —— */
+/* ââ Checkbox ââ */
 input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
@@ -951,7 +951,7 @@ input[type="checkbox"]:disabled {
   color: var(--ink);
 }
 
-/* —— Range / slider —— */
+/* ââ Range / slider ââ */
 input[type="range"] {
   appearance: none;
   -webkit-appearance: none;
@@ -1039,7 +1039,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   box-shadow: 0 0 0 3px var(--accent-soft), 0 2px 8px rgba(240, 115, 74, 0.35);
 }
 
-/* —— Date / time —— */
+/* ââ Date / time ââ */
 input[type="date"].field,
 input[type="time"].field,
 input[type="datetime-local"].field {
@@ -1296,7 +1296,7 @@ button[data-tooltip]:not([data-tooltip='']):disabled:hover::after {
   color: var(--ink-muted);
 }
 
-/* —— Todo list —— */
+/* ââ Todo list ââ */
 .todo-page {
   gap: var(--space-3);
 }
@@ -1765,7 +1765,7 @@ button[data-tooltip]:not([data-tooltip='']):disabled:hover::after {
   border-radius: inherit;
 }
 
-/* —— BMI Calculator —— */
+/* ââ BMI Calculator ââ */
 .bmi-calc {
   display: flex;
   flex-direction: column;
@@ -2077,7 +2077,7 @@ button[data-tooltip]:not([data-tooltip='']):disabled:hover::after {
   }
 }
 
-/* —— Currency Converter —— */
+/* ââ Currency Converter ââ */
 .fx-calc {
   display: flex;
   flex-direction: column;
@@ -2485,7 +2485,7 @@ select.field.export-select-field {
   }
 }
 
-/* —— Pomodoro —— */
+/* ââ Pomodoro ââ */
 .pomo {
   --pomo: var(--accent);
   --pomo-soft: color-mix(in srgb, var(--accent) 16%, #fff);
@@ -2834,7 +2834,7 @@ select.field.export-select-field {
   }
 }
 
-/* —— Countdown —— */
+/* ââ Countdown ââ */
 .cd {
   --cd: var(--accent);
   --cd-soft: color-mix(in srgb, var(--accent) 16%, #fff);
@@ -3241,7 +3241,7 @@ select.field.export-select-field {
   }
 }
 
-/* —— Stopwatch —— */
+/* ââ Stopwatch ââ */
 .sw {
   --sw: var(--accent);
   --sw-soft: color-mix(in srgb, var(--accent) 16%, #fff);
@@ -3796,7 +3796,7 @@ select.field.export-select-field {
   color: var(--ink-muted);
 }
 
-/* —— Unit Converter —— */
+/* ââ Unit Converter ââ */
 .uc-calc {
   display: flex;
   flex-direction: column;
@@ -4176,7 +4176,7 @@ select.field.export-select-field {
   }
 }
 
-/* —— Age Calculator —— */
+/* ââ Age Calculator ââ */
 .age-calc {
   display: flex;
   flex-direction: column;
@@ -4555,7 +4555,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── Tip Calculator ── */
+/* ââ Tip Calculator ââ */
 .tip-calc {
   display: flex;
   flex-direction: column;
@@ -4916,7 +4916,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── Password Generator ── */
+/* ââ Password Generator ââ */
 .pw-calc {
   display: flex;
   flex-direction: column;
@@ -5320,7 +5320,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── QR Generator ── */
+/* ââ QR Generator ââ */
 .qr-calc {
   display: flex;
   flex-direction: column;
@@ -5589,7 +5589,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── UUID Generator ── */
+/* ââ UUID Generator ââ */
 .uuid-calc {
   display: flex;
   flex-direction: column;
@@ -5713,7 +5713,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── Lorem Ipsum ── */
+/* ââ Lorem Ipsum ââ */
 .lorem-calc {
   display: flex;
   flex-direction: column;
@@ -5817,7 +5817,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── Random Name ── */
+/* ââ Random Name ââ */
 .rn-calc {
   display: flex;
   flex-direction: column;
@@ -5944,7 +5944,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── Random Number ── */
+/* ââ Random Number ââ */
 .rnd-calc {
   display: flex;
   flex-direction: column;
@@ -6102,7 +6102,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── Color Converter ── */
+/* ââ Color Converter ââ */
 .cc-calc {
   display: flex;
   flex-direction: column;
@@ -6393,7 +6393,7 @@ select.field.export-select-field {
   }
 }
 
-/* ── HEX / RGB / HSL ── */
+/* ââ HEX / RGB / HSL ââ */
 .hrh-calc {
   display: flex;
   flex-direction: column;
@@ -6745,3 +6745,286 @@ select.field.export-select-field {
   }
 }
 
+
+/* ¢w¢w Markdown Previewer ¢w¢w */
+.mdp-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.mdp-shell-actions,
+.mdp-view-toggle,
+.mdp-options {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mdp-toolbar,
+.mdp-editor,
+.mdp-preview-panel,
+.mdp-toc,
+.mdp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.mdp-calc > .panel,
+.mdp-main > .panel,
+.mdp-bottom > .panel,
+.mdp-calc > .panel + .panel,
+.mdp-main > .panel + .panel,
+.mdp-bottom > .panel + .panel {
+  margin: 0;
+  min-width: 0;
+}
+
+.mdp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.86rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mdp-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: stretch;
+  min-height: min(70vh, 720px);
+}
+
+.mdp-main.mdp-view-edit,
+.mdp-main.mdp-view-preview {
+  grid-template-columns: 1fr;
+}
+
+.mdp-editor,
+.mdp-preview-panel {
+  min-height: 0;
+  height: 100%;
+}
+
+.mdp-textarea {
+  flex: 1;
+  min-height: 28rem;
+  resize: vertical;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.mdp-insert {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mdp-insert .pw-chips {
+  gap: 0.3rem;
+}
+
+.mdp-preview-panel {
+  position: sticky;
+  top: 0.75rem;
+  max-height: min(70vh, 720px);
+  overflow: auto;
+  align-self: start;
+}
+
+.mdp-main.mdp-view-preview .mdp-preview-panel {
+  position: static;
+  max-height: none;
+}
+
+.mdp-html-source {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  max-height: min(60vh, 640px);
+}
+
+.mdp-prose {
+  line-height: 1.65;
+  min-height: 12rem;
+}
+
+.mdp-prose > *:first-child {
+  margin-top: 0;
+}
+
+.mdp-prose > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdp-prose h1,
+.mdp-prose h2,
+.mdp-prose h3,
+.mdp-prose h4,
+.mdp-prose h5,
+.mdp-prose h6 {
+  line-height: 1.25;
+  margin: 1.25em 0 0.5em;
+  scroll-margin-top: 0.75rem;
+}
+
+.mdp-prose h1 { font-size: 1.7rem; }
+.mdp-prose h2 { font-size: 1.35rem; border-bottom: 1px solid color-mix(in srgb, var(--line) 85%, transparent); padding-bottom: 0.25rem; }
+.mdp-prose h3 { font-size: 1.15rem; }
+
+.mdp-prose p,
+.mdp-prose ul,
+.mdp-prose ol,
+.mdp-prose blockquote,
+.mdp-prose pre,
+.mdp-prose table {
+  margin: 0.75em 0;
+}
+
+.mdp-prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mdp-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.mdp-prose pre {
+  overflow: auto;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.mdp-prose pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.84rem;
+}
+
+.mdp-prose blockquote {
+  margin-left: 0;
+  padding: 0.15rem 0 0.15rem 0.85rem;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
+}
+
+.mdp-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  overflow: auto;
+  display: block;
+}
+
+.mdp-prose th,
+.mdp-prose td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+.mdp-prose th {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  font-weight: 650;
+}
+
+.mdp-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.mdp-prose hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 1.4em 0;
+}
+
+.mdp-prose li + li {
+  margin-top: 0.2em;
+}
+
+.mdp-empty {
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+  margin: 0 !important;
+}
+
+.mdp-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.mdp-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 18rem;
+  overflow: auto;
+}
+
+.mdp-toc-link {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.mdp-toc-link:hover {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.mdp-toc-link .muted {
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+  .mdp-main {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .mdp-preview-panel {
+    position: static;
+    max-height: none;
+  }
+
+  .mdp-textarea {
+    min-height: 18rem;
+  }
+
+  .mdp-bottom {
+    grid-template-columns: 1fr;
+  }
+}
