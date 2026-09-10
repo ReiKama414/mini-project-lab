@@ -23,7 +23,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'password-generator', title: '隨機密碼產生器', description: '字元集、通行片語與成分配方產生', tier: 'quick', effort: '幾小時～1 天', tags: ['security'] },
   { slug: 'qr-generator', title: 'QR Code Generator', description: '風格 QR、中心圖與容錯預覽', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'uuid-generator', title: 'UUID Generator', description: '多版本 UUID、格式與結構解析', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
-  { slug: 'lorem-ipsum', title: 'Lorem Ipsum Generator', description: '產生佔位段落文字', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'lorem-ipsum', title: 'Lorem Ipsum Generator', description: '多文風佔位文與統計預覽', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
   { slug: 'random-name', title: 'Random Name Generator', description: '隨機產生中英人名、公司、產品、username', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'random-number', title: 'Random Number Generator', description: '指定範圍產生亂數', tier: 'quick', effort: '幾小時～1 天', tags: ['utility'] },
   { slug: 'color-converter', title: '色碼轉換器', description: 'HEX／RGB／HSL 轉換、對比與色階', tier: 'quick', effort: '幾小時～1 天', tags: ['design'] },
