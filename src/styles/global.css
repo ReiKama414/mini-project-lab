@@ -6393,3 +6393,355 @@ select.field.export-select-field {
   }
 }
 
+/* ── HEX / RGB / HSL ── */
+.hrh-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.hrh-shell-actions {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.hrh-settings,
+.hrh-contrast,
+.hrh-recent,
+.hrh-info,
+.hrh-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.hrh-calc > .panel,
+.hrh-main > .panel,
+.hrh-side > .panel,
+.hrh-calc > .panel + .panel,
+.hrh-main > .panel + .panel,
+.hrh-side > .panel + .panel {
+  margin: 0;
+  min-width: 0;
+}
+
+.hrh-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 0.85rem;
+  align-items: stretch;
+}
+
+.hrh-settings {
+  height: 100%;
+  justify-content: flex-start;
+}
+
+.hrh-side {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: stretch;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hrh-side > .panel {
+  height: 100%;
+  min-height: 0;
+  justify-content: flex-start;
+}
+
+.hrh-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hrh-picker-stage {
+  position: relative;
+  display: block;
+  min-height: 9.5rem;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, #fff 35%, transparent),
+    0 10px 28px color-mix(in srgb, var(--ink) 10%, transparent);
+  cursor: pointer;
+}
+
+.hrh-picker-fill {
+  position: absolute;
+  inset: 0;
+  transition: background 0.15s ease;
+}
+
+.hrh-picker-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+
+.hrh-picker-meta {
+  position: absolute;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.85rem;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  pointer-events: none;
+  text-shadow: 0 1px 2px color-mix(in srgb, #000 22%, transparent);
+}
+
+.hrh-picker-hex {
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.hrh-picker-hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.88;
+}
+
+.hrh-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.hrh-preset {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 25%, transparent);
+}
+
+.hrh-preset.is-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.hrh-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.hrh-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.hrh-slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.82rem;
+}
+
+.hrh-slider input[type='range'] {
+  appearance: none;
+  height: 0.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  outline: none;
+  cursor: pointer;
+}
+
+.hrh-slider input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 20%, transparent);
+  cursor: pointer;
+}
+
+.hrh-slider input[type='range']::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 20%, transparent);
+  cursor: pointer;
+}
+
+.hrh-formats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hrh-format-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--line) 80%, transparent);
+}
+
+.hrh-format-row:last-child {
+  border-bottom: 0;
+}
+
+.hrh-format-row .mono {
+  font-size: 0.86rem;
+  word-break: break-all;
+}
+
+.hrh-contrast-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.hrh-contrast-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+}
+
+.hrh-contrast-card strong {
+  font-size: 1.2rem;
+}
+
+.hrh-sample {
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.hrh-shade-bar {
+  display: flex;
+  gap: 0;
+  height: 3rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.hrh-shade {
+  flex: 1;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hrh-shade.is-current {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.hrh-harmony {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.hrh-harmony-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-height: 3.1rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.hrh-harmony-swatch .mono {
+  font-size: 0.78rem;
+  opacity: 0.92;
+}
+
+.hrh-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.hrh-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.hrh-recent-swatch {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.35rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .hrh-main {
+    grid-template-columns: 1fr;
+  }
+
+  .hrh-settings {
+    height: auto;
+  }
+
+  .hrh-side {
+    grid-template-rows: auto auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .hrh-contrast-grid,
+  .hrh-harmony {
+    grid-template-columns: 1fr;
+  }
+
+  .hrh-format-row {
+    grid-template-columns: 4rem minmax(0, 1fr) auto;
+  }
+}
+
