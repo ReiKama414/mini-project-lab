@@ -1,10 +1,10 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { FileDrop } from '../../components/FileDrop'
+import { ImageWorkbench, ImageUrlPreview } from '../../components/ImageWorkbench'
 import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
-import { loadImageFromFile, canvasFromImage, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { downloadBlob, imageBaseName } from '../../lib/imageCanvas'
+import { useImageCanvasSource } from '../../lib/useImageSource'
 
 const fallback: ProjectMeta = {
   slug: 'image-converter',
@@ -31,13 +31,9 @@ function canvasForFormat(src: HTMLCanvasElement, fmt: Fmt) {
 }
 
 export default function Page() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const { srcRef, fileName, fileSize, width, height, error, setError, hasImage, onFile } = useImageCanvasSource()
   const previewRef = useRef('')
-  const [fileName, setFileName] = useState('')
-  const [fileSize, setFileSize] = useState(0)
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [hasImage, setHasImage] = useState(false)
   const [fmt, setFmt] = useLocalStorage<Fmt>('lab:image-converter:fmt', 'image/png')
   const [quality, setQuality] = useLocalStorage('lab:image-converter:q', 0.9)
   const [previewUrl, setPreviewUrl] = useState('')
@@ -62,7 +58,7 @@ export default function Page() {
   }
 
   async function refreshPreview() {
-    const src = canvasRef.current
+    const src = srcRef.current
     if (!src) return
     setBusy(true)
     try {
@@ -79,23 +75,8 @@ export default function Page() {
     }
   }
 
-  async function onFile(file: File | null) {
-    if (!file) return
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`)
-      return
-    }
-    try {
-      setError('')
-      const img = await loadImageFromFile(file)
-      canvasRef.current = canvasFromImage(img).canvas
-      setFileName(file.name)
-      setFileSize(file.size)
-      setHasImage(true)
-    } catch {
-      setError('無法讀取圖片')
-      setHasImage(false)
-    }
+  async function handleFile(file: File | null) {
+    if (await onFile(file)) void refreshPreview()
   }
 
   useEffect(() => {
@@ -104,7 +85,7 @@ export default function Page() {
   }, [fmt, quality, hasImage])
 
   async function download() {
-    const src = canvasRef.current
+    const src = srcRef.current
     if (!src || !hasImage) return
     setBusy(true)
     setError('')
@@ -112,7 +93,7 @@ export default function Page() {
       const blob = await encodeBlob(src)
       if (!blob) throw new Error('fail')
       const ext = fmt === 'image/png' ? 'png' : fmt === 'image/webp' ? 'webp' : 'jpg'
-      downloadBlob(blob, `${fileName.replace(/\.[^.]+$/, '') || 'image'}.${ext}`)
+      downloadBlob(blob, `${imageBaseName(fileName)}.${ext}`)
     } catch {
       setError('無法匯出（此瀏覽器可能不支援所選格式）')
     } finally {
@@ -120,42 +101,46 @@ export default function Page() {
     }
   }
 
+  const fmtLabel = fmt === 'image/png' ? 'PNG' : fmt === 'image/webp' ? 'WebP' : 'JPG'
+
   return (
-    <ProjectShell
+    <ImageWorkbench
       meta={meta}
-      actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage || busy} onClick={() => void download()}>
-          {busy ? '處理中…' : '下載'}
-        </button>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        經 Canvas 重編碼；動畫 GIF 只會輸出第一幀，JPEG 會以白底填透明本機處理，不會上傳
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            disabled={busy}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
-          />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {formatBytes(fileSize)}
-              {outSize ? ` → ${formatBytes(outSize)}` : ''}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
+      hint="經 Canvas 重編碼；動畫 GIF 只會輸出第一幀，JPEG 會以白底填透明。僅本機處理，不會上傳。"
+      fileName={fileName}
+      fileSize={fileSize}
+      width={width}
+      height={height}
+      error={error}
+      hasImage={hasImage}
+      busy={busy}
+      onFile={(f) => void handleFile(f)}
+      onDownload={() => void download()}
+      downloadLabel="下載"
+      preview={<ImageUrlPreview url={previewUrl} />}
+      infoExtra={[
+        { label: '原始檔案', value: fileSize ? formatBytes(fileSize) : '—' },
+        { label: '輸出檔案', value: outSize ? formatBytes(outSize) : '—' },
+        { label: '格式', value: fmtLabel },
+        { label: '品質', value: fmt === 'image/png' ? '無損' : `${Math.round(quality * 100)}%` },
+      ]}
+      controls={
+        <>
           <div className="label">輸出格式</div>
           <div className="row">
-            {([['image/png', 'PNG'], ['image/jpeg', 'JPG'], ['image/webp', 'WebP']] as [Fmt, string][]).map(([id, label]) => (
-              <button key={id} type="button" className={`btn sm ${fmt === id ? 'accent' : 'ghost'}`} disabled={busy} onClick={() => setFmt(id)}>
-                {label}
-              </button>
-            ))}
+            {([['image/png', 'PNG'], ['image/jpeg', 'JPG'], ['image/webp', 'WebP']] as [Fmt, string][]).map(
+              ([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`btn sm ${fmt === id ? 'accent' : 'ghost'}`}
+                  disabled={busy}
+                  onClick={() => setFmt(id)}
+                >
+                  {label}
+                </button>
+              ),
+            )}
           </div>
           {fmt !== 'image/png' && (
             <label className="stack">
@@ -170,22 +155,8 @@ export default function Page() {
               />
             </label>
           )}
-          {busy && <p className="field-hint">處理中…</p>}
-          <button type="button" className="btn accent" disabled={!hasImage || busy} onClick={() => void download()}>
-            下載
-          </button>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          {previewUrl ? (
-            <img src={previewUrl} alt="preview" style={{ maxWidth: '100%', borderRadius: 12, border: '1px solid var(--line)' }} />
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </>
+      }
+    />
   )
 }

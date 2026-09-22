@@ -464,79 +464,77 @@ export default function Page() {
             </div>
           </section>
 
-          <div className="cg-side">
-            <section className="panel cg-preview">
-              <h3 className="pw-panel-title">預覽</h3>
+          <section className="panel cg-preview">
+            <h3 className="pw-panel-title">預覽</h3>
 
-              <div className="cg-expr-block">
-                <div className="muted">Cron 表達式（分 時 日 月 週）</div>
-                <div className="row cg-expr-row">
-                  <code className="mono cg-expr">{expr}</code>
+            <div className="cg-expr-block">
+              <div className="muted">Cron 表達式（分 時 日 月 週）</div>
+              <div className="row cg-expr-row">
+                <code className="mono cg-expr">{expr}</code>
+                <ActionButton
+                  className="btn sm accent"
+                  disabled={hasError}
+                  onClick={() => void copyVal(expr, 'expr')}
+                  icon="copy"
+                  iconOnly
+                  tooltip={copied === 'expr' ? '已複製' : '複製'}
+                />
+              </div>
+            </div>
+
+            <div className="cg-human">
+              <div className="muted">說明</div>
+              <p className="cg-human-text">{human}</p>
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                <ActionButton
+                  className="btn sm ghost"
+                  disabled={hasError}
+                  onClick={() => void copyVal(human, 'human')}
+                  icon="copy"
+                >
+                  {copied === 'human' ? '已複製' : '複製說明'}
+                </ActionButton>
+                <ActionButton
+                  className="btn sm ghost"
+                  disabled={hasError}
+                  onClick={() => void copyVal(crontabLine, 'line')}
+                  icon="copy"
+                >
+                  {copied === 'line' ? '已複製' : 'crontab 行'}
+                </ActionButton>
+              </div>
+            </div>
+
+            <div className="label">接下來約 {NEXT_COUNT} 次（本機時區）</div>
+            <ul className="cg-runs">
+              {upcoming.map((d, i) => (
+                <li key={d.getTime()}>
+                  <span className="tag">#{i + 1}</span>
+                  <code className="mono">{d.toLocaleString('zh-TW', { hour12: false })}</code>
+                  <span className="muted">週{DOW_NAMES[d.getDay()]}</span>
                   <ActionButton
-                    className="btn sm accent"
-                    disabled={hasError}
-                    onClick={() => void copyVal(expr, 'expr')}
+                    className="btn sm ghost"
+                    onClick={() => void copyVal(d.toISOString(), `run-${i}`)}
                     icon="copy"
                     iconOnly
-                    tooltip={copied === 'expr' ? '已複製' : '複製'}
+                    tooltip="複製 ISO"
                   />
-                </div>
-              </div>
-
-              <div className="cg-human">
-                <div className="muted">說明</div>
-                <p className="cg-human-text">{human}</p>
-                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                  <ActionButton
-                    className="btn sm ghost"
-                    disabled={hasError}
-                    onClick={() => void copyVal(human, 'human')}
-                    icon="copy"
-                  >
-                    {copied === 'human' ? '已複製' : '複製說明'}
-                  </ActionButton>
-                  <ActionButton
-                    className="btn sm ghost"
-                    disabled={hasError}
-                    onClick={() => void copyVal(crontabLine, 'line')}
-                    icon="copy"
-                  >
-                    {copied === 'line' ? '已複製' : 'crontab 行'}
-                  </ActionButton>
-                </div>
-              </div>
-
-              <div className="label">接下來約 {NEXT_COUNT} 次（本機時區）</div>
-              <ul className="cg-runs">
-                {upcoming.map((d, i) => (
-                  <li key={d.getTime()}>
-                    <span className="tag">#{i + 1}</span>
-                    <code className="mono">{d.toLocaleString('zh-TW', { hour12: false })}</code>
-                    <span className="muted">週{DOW_NAMES[d.getDay()]}</span>
-                    <ActionButton
-                      className="btn sm ghost"
-                      onClick={() => void copyVal(d.toISOString(), `run-${i}`)}
-                      icon="copy"
-                      iconOnly
-                      tooltip="複製 ISO"
-                    />
-                  </li>
-                ))}
-                {!upcoming.length && (
-                  <li className="muted" style={{ listStyle: 'none' }}>
-                    {hasError
-                      ? '欄位語法有誤，修正後即可預覽'
-                      : '無法在一年內找到符合時間，請檢查表達式'}
-                  </li>
-                )}
-              </ul>
-              {gapHint != null && (
-                <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                  前兩次間隔約 {gapHint} 分鐘
-                </p>
+                </li>
+              ))}
+              {!upcoming.length && (
+                <li className="muted" style={{ listStyle: 'none' }}>
+                  {hasError
+                    ? '欄位語法有誤，修正後即可預覽'
+                    : '無法在一年內找到符合時間，請檢查表達式'}
+                </li>
               )}
-            </section>
-          </div>
+            </ul>
+            {gapHint != null && (
+              <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                前兩次間隔約 {gapHint} 分鐘
+              </p>
+            )}
+          </section>
         </div>
 
         <section className="panel cg-info">

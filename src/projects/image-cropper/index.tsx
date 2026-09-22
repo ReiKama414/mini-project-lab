@@ -1,10 +1,9 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { FileDrop } from '../../components/FileDrop'
+import { ImageWorkbench } from '../../components/ImageWorkbench'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { clamp, formatBytes } from '../../lib/utils'
-import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
-import { ActionButton } from '../../components/ActionButton'
+import { clamp } from '../../lib/utils'
+import { downloadCanvas, imageBaseName } from '../../lib/imageCanvas'
+import { useImageFile } from '../../lib/useImageSource'
 
 const fallback: ProjectMeta = {
   slug: 'image-cropper',
@@ -18,14 +17,9 @@ const meta = getProject('image-cropper') ?? fallback
 
 export default function Page() {
   const viewRef = useRef<HTMLCanvasElement>(null)
-  const imgRef = useRef<HTMLImageElement | null>(null)
   const drag = useRef<{ mx: number; my: number; cx: number; cy: number } | null>(null)
-  const [fileName, setFileName] = useState('')
-  const [fileSize, setFileSize] = useState(0)
-  const [error, setError] = useState('')
-  const [hasImage, setHasImage] = useState(false)
+  const { imgRef, fileName, fileSize, width, height, error, hasImage, onFile } = useImageFile()
   const [crop, setCrop] = useState({ x: 0, y: 0, w: 100, h: 100 })
-  const [dims, setDims] = useState({ w: 0, h: 0 })
 
   const redraw = useCallback(() => {
     const img = imgRef.current
@@ -43,7 +37,7 @@ export default function Page() {
     ctx.strokeStyle = '#2a9d8f'
     ctx.lineWidth = Math.max(2, Math.round(c.width / 400))
     ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1)
-  }, [crop])
+  }, [crop, imgRef])
 
   useEffect(() => {
     if (hasImage) redraw()
@@ -82,32 +76,18 @@ export default function Page() {
     drag.current = null
   }
 
-  async function onFile(file: File | null) {
-    if (!file) return
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`)
-      return
-    }
-    try {
-      setError('')
-      const img = await loadImageFromFile(file)
-      imgRef.current = img
-      const w = Math.round(img.naturalWidth * 0.7)
-      const h = Math.round(img.naturalHeight * 0.7)
-      setDims({ w: img.naturalWidth, h: img.naturalHeight })
-      setCrop({
-        x: Math.round((img.naturalWidth - w) / 2),
-        y: Math.round((img.naturalHeight - h) / 2),
-        w,
-        h,
-      })
-      setFileName(file.name)
-      setFileSize(file.size)
-      setHasImage(true)
-    } catch {
-      setError('無法讀取圖片')
-      setHasImage(false)
-    }
+  async function handleFile(file: File | null) {
+    if (!(await onFile(file))) return
+    const img = imgRef.current
+    if (!img) return
+    const w = Math.round(img.naturalWidth * 0.7)
+    const h = Math.round(img.naturalHeight * 0.7)
+    setCrop({
+      x: Math.round((img.naturalWidth - w) / 2),
+      y: Math.round((img.naturalHeight - h) / 2),
+      w,
+      h,
+    })
   }
 
   function download() {
@@ -117,119 +97,107 @@ export default function Page() {
     out.width = Math.max(1, Math.round(crop.w))
     out.height = Math.max(1, Math.round(crop.h))
     out.getContext('2d')!.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, out.width, out.height)
-    downloadCanvas(out, `${fileName.replace(/\.[^.]+$/, '') || 'image'}-crop.png`)
+    downloadCanvas(out, `${imageBaseName(fileName)}-crop.png`)
   }
 
   return (
-    <ProjectShell
+    <ImageWorkbench
       meta={meta}
-      actions={
-        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載裁切
-       </ActionButton>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        拖曳裁切框（支援觸控），或用滑桿調整位置與大小無法還原僅本機處理，不會上傳
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
-          />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {formatBytes(fileSize)}
-              {dims.w ? ` · ${dims.w}×${dims.h}` : ''}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
-          {hasImage && dims.w > 0 && (
-            <>
-              <label className="stack">
-                <span className="label">X {crop.x}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(0, dims.w - crop.w)}
-                  value={crop.x}
-                  onChange={(e) => setCrop((c) => ({ ...c, x: clamp(Number(e.target.value), 0, dims.w - c.w) }))}
-                />
-              </label>
-              <label className="stack">
-                <span className="label">Y {crop.y}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(0, dims.h - crop.h)}
-                  value={crop.y}
-                  onChange={(e) => setCrop((c) => ({ ...c, y: clamp(Number(e.target.value), 0, dims.h - c.h) }))}
-                />
-              </label>
-              <label className="stack">
-                <span className="label">寬 {crop.w}</span>
-                <input
-                  type="range"
-                  min={20}
-                  max={dims.w}
-                  value={crop.w}
-                  onChange={(e) =>
-                    setCrop((c) => {
-                      const w = clamp(Number(e.target.value), 20, dims.w)
-                      return { ...c, w, x: clamp(c.x, 0, dims.w - w) }
-                    })
-                  }
-                />
-              </label>
-              <label className="stack">
-                <span className="label">高 {crop.h}</span>
-                <input
-                  type="range"
-                  min={20}
-                  max={dims.h}
-                  value={crop.h}
-                  onChange={(e) =>
-                    setCrop((c) => {
-                      const h = clamp(Number(e.target.value), 20, dims.h)
-                      return { ...c, h, y: clamp(c.y, 0, dims.h - h) }
-                    })
-                  }
-                />
-              </label>
-            </>
-          )}
-          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
-         </ActionButton>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽（可拖曳）</div>
-          {hasImage ? (
+      hint="拖曳裁切框（支援觸控），或用滑桿調整位置與大小。無法還原；僅本機處理，不會上傳。"
+      fileName={fileName}
+      fileSize={fileSize}
+      width={width}
+      height={height}
+      outWidth={crop.w}
+      outHeight={crop.h}
+      error={error}
+      hasImage={hasImage}
+      onFile={(f) => void handleFile(f)}
+      onDownload={download}
+      downloadLabel="下載裁切"
+      infoExtra={[
+        {
+          label: '裁切區域',
+          value: hasImage ? `${crop.x}, ${crop.y} · ${crop.w}×${crop.h}` : '—',
+        },
+      ]}
+      preview={
+        hasImage ? (
+          <div className="iw-canvas-wrap">
             <canvas
               ref={viewRef}
-              style={{
-                display: 'block',
-                width: '100%',
-                height: 'auto',
-                borderRadius: 12,
-                border: '1px solid var(--line)',
-                cursor: 'grab',
-                touchAction: 'none',
-              }}
+              className="iw-canvas"
+              style={{ cursor: 'grab', touchAction: 'none' }}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
             />
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+          </div>
+        ) : (
+          <div className="iw-empty">上傳後預覽</div>
+        )
+      }
+      controls={
+        hasImage && width > 0 ? (
+          <>
+            <label className="stack">
+              <span className="label">X {crop.x}</span>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, width - crop.w)}
+                value={crop.x}
+                onChange={(e) => setCrop((c) => ({ ...c, x: clamp(Number(e.target.value), 0, width - c.w) }))}
+              />
+            </label>
+            <label className="stack">
+              <span className="label">Y {crop.y}</span>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, height - crop.h)}
+                value={crop.y}
+                onChange={(e) => setCrop((c) => ({ ...c, y: clamp(Number(e.target.value), 0, height - c.h) }))}
+              />
+            </label>
+            <label className="stack">
+              <span className="label">寬 {crop.w}</span>
+              <input
+                type="range"
+                min={20}
+                max={width}
+                value={crop.w}
+                onChange={(e) =>
+                  setCrop((c) => {
+                    const w = clamp(Number(e.target.value), 20, width)
+                    return { ...c, w, x: clamp(c.x, 0, width - w) }
+                  })
+                }
+              />
+            </label>
+            <label className="stack">
+              <span className="label">高 {crop.h}</span>
+              <input
+                type="range"
+                min={20}
+                max={height}
+                value={crop.h}
+                onChange={(e) =>
+                  setCrop((c) => {
+                    const h = clamp(Number(e.target.value), 20, height)
+                    return { ...c, h, y: clamp(c.y, 0, height - h) }
+                  })
+                }
+              />
+            </label>
+          </>
+        ) : (
+          <p className="muted" style={{ margin: 0 }}>
+            上傳圖片後可調整裁切框
+          </p>
+        )
+      }
+    />
   )
 }

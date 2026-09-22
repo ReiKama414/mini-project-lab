@@ -1,11 +1,10 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { FileDrop } from '../../components/FileDrop'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { ImageWorkbench, ImageCanvasPreview } from '../../components/ImageWorkbench'
+import { useCallback, useEffect, useRef } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, formatBytes } from '../../lib/utils'
-import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
-import { ActionButton } from '../../components/ActionButton'
+import { clamp } from '../../lib/utils'
+import { downloadCanvas, imageBaseName } from '../../lib/imageCanvas'
+import { useImageFile } from '../../lib/useImageSource'
 
 const fallback: ProjectMeta = {
   slug: 'image-rotator',
@@ -17,21 +16,32 @@ const fallback: ProjectMeta = {
 }
 const meta = getProject('image-rotator') ?? fallback
 
+function rotatedSize(w: number, h: number, deg: number) {
+  const rad = (deg * Math.PI) / 180
+  const cos = Math.abs(Math.cos(rad))
+  const sin = Math.abs(Math.sin(rad))
+  return {
+    outWidth: Math.max(1, Math.round(w * cos + h * sin)),
+    outHeight: Math.max(1, Math.round(w * sin + h * cos)),
+  }
+}
+
 export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imgRef = useRef<HTMLImageElement | null>(null)
-  const [fileName, setFileName] = useState('')
-  const [fileSize, setFileSize] = useState(0)
-  const [error, setError] = useState('')
-  const [hasImage, setHasImage] = useState(false)
+  const { imgRef, fileName, fileSize, width, height, error, hasImage, onFile } = useImageFile()
   const [angle, setAngle] = useLocalStorage('lab:image-rotator:angle', 0)
+
+  const deg = clamp(angle, -180, 180)
+  const { outWidth, outHeight } = hasImage
+    ? rotatedSize(width, height, deg)
+    : { outWidth: 0, outHeight: 0 }
 
   const redraw = useCallback(() => {
     const img = imgRef.current
     const out = canvasRef.current
     if (!img || !out) return
-    const deg = clamp(angle, -180, 180)
-    const rad = (deg * Math.PI) / 180
+    const a = clamp(angle, -180, 180)
+    const rad = (a * Math.PI) / 180
     const w = img.naturalWidth
     const h = img.naturalHeight
     const cos = Math.abs(Math.cos(rad))
@@ -43,100 +53,63 @@ export default function Page() {
     ctx.translate(out.width / 2, out.height / 2)
     ctx.rotate(rad)
     ctx.drawImage(img, -w / 2, -h / 2)
-  }, [angle])
+  }, [angle, imgRef])
 
   useEffect(() => {
     if (hasImage) redraw()
   }, [redraw, hasImage])
 
-  async function onFile(file: File | null) {
-    if (!file) return
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`)
-      return
-    }
-    try {
-      setError('')
-      imgRef.current = await loadImageFromFile(file)
-      setFileName(file.name)
-      setFileSize(file.size)
-      setHasImage(true)
-    } catch {
-      setError('無法讀取圖片')
-      setHasImage(false)
-    }
-  }
-
   function download() {
     if (!canvasRef.current || !hasImage) return
     redraw()
-    downloadCanvas(canvasRef.current, `${fileName.replace(/\.[^.]+$/, '') || 'image'}-rotate.png`)
+    downloadCanvas(canvasRef.current, `${imageBaseName(fileName)}-rotate.png`)
   }
 
   return (
-    <ProjectShell
+    <ImageWorkbench
       meta={meta}
-      actions={
-        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
-     </ActionButton>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        任意角度旋轉，畫布會擴展以容納內容僅本機處理，不會上傳
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
-          />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {formatBytes(fileSize)}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
+      hint="任意角度旋轉，畫布會擴展以容納內容。僅本機處理。"
+      fileName={fileName}
+      fileSize={fileSize}
+      width={width}
+      height={height}
+      outWidth={outWidth}
+      outHeight={outHeight}
+      error={error}
+      hasImage={hasImage}
+      onFile={(file) => void onFile(file)}
+      onDownload={download}
+      controls={
+        <>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {[90, 180, -90].map((d) => (
-              <button key={d} type="button" className="btn sm ghost" onClick={() => setAngle(clamp(angle + d, -180, 180))}>
+              <button
+                key={d}
+                type="button"
+                className="btn sm ghost"
+                onClick={() => setAngle(clamp(angle + d, -180, 180))}
+              >
                 {d > 0 ? `+${d}°` : `${d}°`}
               </button>
             ))}
-            <ActionButton className="btn sm ghost" onClick={() => setAngle(0)}>
+            <button type="button" className="btn sm ghost" onClick={() => setAngle(0)}>
               重置
-            </ActionButton>
+            </button>
           </div>
           <label className="stack">
             <span className="label">角度 {angle}°</span>
-            <input type="range" min={-180} max={180} value={angle} onChange={(e) => setAngle(clamp(Number(e.target.value), -180, 180))} />
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              value={angle}
+              onChange={(e) => setAngle(clamp(Number(e.target.value), -180, 180))}
+            />
           </label>
-          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
-         </ActionButton>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          {hasImage ? (
-            <div
-              style={{
-                border: '1px solid var(--line)',
-                borderRadius: 12,
-                overflow: 'auto',
-                maxHeight: 560,
-                background: 'repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 50% / 16px 16px',
-              }}
-            >
-              <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
-            </div>
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </>
+      }
+      preview={<ImageCanvasPreview canvasRef={canvasRef} hasImage={hasImage} />}
+      infoExtra={[{ label: '角度', value: `${deg}°` }]}
+    />
   )
 }

@@ -1,10 +1,10 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { FileDrop } from '../../components/FileDrop'
+import { ImageWorkbench, ImageCanvasPreview } from '../../components/ImageWorkbench'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, formatBytes } from '../../lib/utils'
-import { loadImageFromFile, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
+import { clamp } from '../../lib/utils'
+import { downloadBlob, imageBaseName } from '../../lib/imageCanvas'
+import { useImageFile } from '../../lib/useImageSource'
 
 const fallback: ProjectMeta = {
   slug: 'image-resizer',
@@ -21,12 +21,9 @@ type Mode = 'exact' | 'maxSide'
 
 export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imgRef = useRef<HTMLImageElement | null>(null)
-  const [fileName, setFileName] = useState('')
-  const [fileSize, setFileSize] = useState(0)
-  const [error, setError] = useState('')
+  const { imgRef, fileName, fileSize, width: srcW, height: srcH, error, setError, hasImage, onFile } =
+    useImageFile()
   const [busy, setBusy] = useState(false)
-  const [hasImage, setHasImage] = useState(false)
   const [width, setWidth] = useState(800)
   const [height, setHeight] = useState(600)
   const [maxSide, setMaxSide] = useLocalStorage('lab:image-resizer:max', 1920)
@@ -34,7 +31,6 @@ export default function Page() {
   const [keepRatio, setKeepRatio] = useLocalStorage('lab:image-resizer:ratio', true)
   const [fmt, setFmt] = useLocalStorage<Fmt>('lab:image-resizer:fmt', 'image/png')
   const [quality, setQuality] = useLocalStorage('lab:image-resizer:q', 0.92)
-  const [orig, setOrig] = useState({ w: 0, h: 0 })
 
   const targetSize = useCallback(() => {
     const img = imgRef.current
@@ -48,7 +44,7 @@ export default function Page() {
       }
     }
     return { w: clamp(width, 1, 8000), h: clamp(height, 1, 8000) }
-  }, [mode, maxSide, width, height])
+  }, [mode, maxSide, width, height, imgRef])
 
   const redraw = useCallback(() => {
     const img = imgRef.current
@@ -65,44 +61,30 @@ export default function Page() {
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(img, 0, 0, w, h)
-  }, [targetSize, fmt])
+  }, [targetSize, fmt, imgRef])
 
   useEffect(() => {
     if (hasImage) redraw()
   }, [redraw, hasImage])
 
-  async function onFile(file: File | null) {
-    if (!file) return
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`)
-      return
-    }
-    try {
-      setError('')
-      const img = await loadImageFromFile(file)
-      imgRef.current = img
-      setOrig({ w: img.naturalWidth, h: img.naturalHeight })
-      setWidth(img.naturalWidth)
-      setHeight(img.naturalHeight)
-      setFileName(file.name)
-      setFileSize(file.size)
-      setHasImage(true)
-    } catch {
-      setError('無法讀取圖片')
-      setHasImage(false)
-    }
+  async function handleFile(file: File | null) {
+    if (!(await onFile(file))) return
+    const img = imgRef.current
+    if (!img) return
+    setWidth(img.naturalWidth)
+    setHeight(img.naturalHeight)
   }
 
   function setW(v: number) {
     const w = clamp(v, 1, 8000)
     setWidth(w)
-    if (keepRatio && orig.w) setHeight(Math.max(1, Math.round((w * orig.h) / orig.w)))
+    if (keepRatio && srcW) setHeight(Math.max(1, Math.round((w * srcH) / srcW)))
   }
 
   function setH(v: number) {
     const h = clamp(v, 1, 8000)
     setHeight(h)
-    if (keepRatio && orig.h) setWidth(Math.max(1, Math.round((h * orig.w) / orig.h)))
+    if (keepRatio && srcH) setWidth(Math.max(1, Math.round((h * srcW) / srcH)))
   }
 
   async function download() {
@@ -115,7 +97,7 @@ export default function Page() {
       const blob = await new Promise<Blob | null>((res) => canvasRef.current!.toBlob(res, fmt, q))
       if (!blob) throw new Error('匯出失敗')
       const ext = fmt === 'image/png' ? 'png' : fmt === 'image/webp' ? 'webp' : 'jpg'
-      downloadBlob(blob, `${fileName.replace(/\.[^.]+$/, '') || 'image'}-resized.${ext}`)
+      downloadBlob(blob, `${imageBaseName(fileName)}-resized.${ext}`)
     } catch {
       setError('無法匯出（此瀏覽器可能不支援所選格式）')
     } finally {
@@ -124,39 +106,46 @@ export default function Page() {
   }
 
   const preview = targetSize()
+  const fmtLabel = fmt === 'image/png' ? 'PNG' : fmt === 'image/webp' ? 'WebP' : 'JPG'
 
   return (
-    <ProjectShell
+    <ImageWorkbench
       meta={meta}
-      actions={
-        <button type="button" className="btn sm accent" disabled={!hasImage || busy} onClick={() => void download()}>
-          {busy ? '處理中…' : '下載'}
-        </button>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        單邊上限 8000px；JPEG 以白底填補透明僅本機處理，不會上傳
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
-          />
-          {orig.w > 0 && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {formatBytes(fileSize)} · 原始 {orig.w} × {orig.h}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
+      hint="單邊上限 8000px；JPEG 以白底填補透明。僅本機處理，不會上傳。"
+      fileName={fileName}
+      fileSize={fileSize}
+      width={srcW}
+      height={srcH}
+      outWidth={preview.w}
+      outHeight={preview.h}
+      error={error}
+      hasImage={hasImage}
+      busy={busy}
+      onFile={(f) => void handleFile(f)}
+      onDownload={() => void download()}
+      downloadLabel="下載"
+      preview={<ImageCanvasPreview canvasRef={canvasRef} hasImage={hasImage} />}
+      infoExtra={[
+        { label: '模式', value: mode === 'exact' ? '寬高' : '最長邊' },
+        { label: '鎖定比例', value: keepRatio ? '是' : '否' },
+        { label: '格式', value: fmtLabel },
+        { label: '品質', value: fmt === 'image/png' ? '無損' : `${Math.round(quality * 100)}%` },
+      ]}
+      controls={
+        <>
           <div className="row">
-            <button type="button" className={`btn sm ${mode === 'exact' ? 'accent' : 'ghost'}`} onClick={() => setMode('exact')}>
+            <button
+              type="button"
+              className={`btn sm ${mode === 'exact' ? 'accent' : 'ghost'}`}
+              onClick={() => setMode('exact')}
+            >
               寬高
             </button>
-            <button type="button" className={`btn sm ${mode === 'maxSide' ? 'accent' : 'ghost'}`} onClick={() => setMode('maxSide')}>
+            <button
+              type="button"
+              className={`btn sm ${mode === 'maxSide' ? 'accent' : 'ghost'}`}
+              onClick={() => setMode('maxSide')}
+            >
               最長邊
             </button>
           </div>
@@ -169,11 +158,25 @@ export default function Page() {
               <div className="grid-2">
                 <label className="stack">
                   <span className="label">寬度</span>
-                  <input className="field" type="number" min={1} max={8000} value={width} onChange={(e) => setW(Number(e.target.value) || 1)} />
+                  <input
+                    className="field"
+                    type="number"
+                    min={1}
+                    max={8000}
+                    value={width}
+                    onChange={(e) => setW(Number(e.target.value) || 1)}
+                  />
                 </label>
                 <label className="stack">
                   <span className="label">高度</span>
-                  <input className="field" type="number" min={1} max={8000} value={height} onChange={(e) => setH(Number(e.target.value) || 1)} />
+                  <input
+                    className="field"
+                    type="number"
+                    min={1}
+                    max={8000}
+                    value={height}
+                    onChange={(e) => setH(Number(e.target.value) || 1)}
+                  />
                 </label>
               </div>
               <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -182,10 +185,10 @@ export default function Page() {
                     key={p}
                     type="button"
                     className="btn sm ghost"
-                    disabled={!orig.w}
+                    disabled={!srcW}
                     onClick={() => {
-                      setW(Math.max(1, Math.round((orig.w * p) / 100)))
-                      if (!keepRatio) setHeight(Math.max(1, Math.round((orig.h * p) / 100)))
+                      setW(Math.max(1, Math.round((srcW * p) / 100)))
+                      if (!keepRatio) setHeight(Math.max(1, Math.round((srcH * p) / 100)))
                     }}
                   >
                     {p}%
@@ -196,16 +199,30 @@ export default function Page() {
           ) : (
             <label className="stack">
               <span className="label">最長邊 {maxSide}px</span>
-              <input type="range" min={100} max={8000} step={10} value={maxSide} onChange={(e) => setMaxSide(clamp(Number(e.target.value), 100, 8000))} />
+              <input
+                type="range"
+                min={100}
+                max={8000}
+                step={10}
+                value={maxSide}
+                onChange={(e) => setMaxSide(clamp(Number(e.target.value), 100, 8000))}
+              />
             </label>
           )}
           <div className="label">輸出格式</div>
           <div className="row">
-            {([['image/png', 'PNG'], ['image/jpeg', 'JPG'], ['image/webp', 'WebP']] as [Fmt, string][]).map(([id, label]) => (
-              <button key={id} type="button" className={`btn sm ${fmt === id ? 'accent' : 'ghost'}`} onClick={() => setFmt(id)}>
-                {label}
-              </button>
-            ))}
+            {([['image/png', 'PNG'], ['image/jpeg', 'JPG'], ['image/webp', 'WebP']] as [Fmt, string][]).map(
+              ([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`btn sm ${fmt === id ? 'accent' : 'ghost'}`}
+                  onClick={() => setFmt(id)}
+                >
+                  {label}
+                </button>
+              ),
+            )}
           </div>
           {fmt !== 'image/png' && (
             <label className="stack">
@@ -219,26 +236,8 @@ export default function Page() {
               />
             </label>
           )}
-          {busy && <p className="field-hint">處理中…</p>}
-          <button type="button" className="btn accent" disabled={!hasImage || busy} onClick={() => void download()}>
-            下載
-          </button>
-        </div>
-        <div className="panel stack">
-          <div className="label">
-            預覽（{preview.w} × {preview.h}）
-          </div>
-          {hasImage ? (
-            <div style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'auto', maxHeight: 560 }}>
-              <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
-            </div>
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </>
+      }
+    />
   )
 }

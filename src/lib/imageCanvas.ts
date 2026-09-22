@@ -91,5 +91,31 @@ export function clampByte(n: number) {
   return Math.max(0, Math.min(255, Math.round(n)))
 }
 
+export function imageBaseName(fileName: string, fallback = 'image') {
+  return fileName.replace(/\.[^.]+$/, '') || fallback
+}
+
+function gcd(a: number, b: number): number {
+  let x = Math.abs(Math.round(a))
+  let y = Math.abs(Math.round(b))
+  while (y) {
+    const t = y
+    y = x % y
+    x = t
+  }
+  return x || 1
+}
+
+export function aspectRatioLabel(w: number, h: number) {
+  if (!w || !h) return '—'
+  const g = gcd(w, h)
+  return `${Math.round(w / g)}:${Math.round(h / g)}`
+}
+
+export function megapixels(w: number, h: number) {
+  if (!w || !h) return 0
+  return (w * h) / 1_000_000
+}
+
 export const IMAGE_ACCEPT = 'image/*,image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif'
 export const IMAGE_MAX_BYTES = 12 * 1024 * 1024

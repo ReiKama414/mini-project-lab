@@ -1,29 +1,16 @@
-import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { FileDrop } from '../../components/FileDrop'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { getProject } from '../registry'
+import { ImageWorkbench, ImageCanvasPreview } from '../../components/ImageWorkbench'
+import { useCallback, useEffect, useRef } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, formatBytes } from '../../lib/utils'
-import { loadImageFromFile, canvasFromImage, downloadCanvas, mapPixels, clampByte, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
-import { ActionButton } from '../../components/ActionButton'
+import { clamp } from '../../lib/utils'
+import { downloadCanvas, mapPixels, clampByte, imageBaseName } from '../../lib/imageCanvas'
+import { useImageCanvasSource } from '../../lib/useImageSource'
 
-const fallback: ProjectMeta = {
-  slug: 'image-brightness',
-  title: '圖片亮度調整',
-  description: '調整圖片亮度並下載 PNG',
-  tier: 'feature',
-  effort: '1～3 天',
-  tags: ['utility'],
-}
-const meta = getProject('image-brightness') ?? fallback
+const meta = getProject('image-brightness')!
 
 export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const srcRef = useRef<HTMLCanvasElement | null>(null)
-  const [fileName, setFileName] = useState('')
-  const [fileSize, setFileSize] = useState(0)
-  const [error, setError] = useState('')
-  const [hasImage, setHasImage] = useState(false)
+  const { srcRef, fileName, fileSize, width, height, error, hasImage, onFile } = useImageCanvasSource()
   const [amount, setAmount] = useLocalStorage('lab:image-brightness:amount', 0)
 
   const redraw = useCallback(() => {
@@ -35,82 +22,45 @@ export default function Page() {
     out.getContext('2d')!.drawImage(src, 0, 0)
     const v = clamp(amount, -100, 100)
     mapPixels(out, (r, g, b, a) => [clampByte(r + v), clampByte(g + v), clampByte(b + v), a])
-  }, [amount])
+  }, [amount, srcRef])
 
   useEffect(() => {
     if (hasImage) redraw()
   }, [redraw, hasImage])
 
-  async function onFile(file: File | null) {
-    if (!file) return
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`)
-      return
-    }
-    try {
-      setError('')
-      srcRef.current = canvasFromImage(await loadImageFromFile(file)).canvas
-      setFileName(file.name)
-      setFileSize(file.size)
-      setHasImage(true)
-    } catch {
-      setError('無法讀取圖片')
-      setHasImage(false)
-    }
-  }
-
   function download() {
     if (!canvasRef.current || !hasImage) return
     redraw()
-    downloadCanvas(canvasRef.current, `${fileName.replace(/\.[^.]+$/, '') || 'image'}-brightness.png`)
+    downloadCanvas(canvasRef.current, `${imageBaseName(fileName)}-brightness.png`)
   }
 
   return (
-    <ProjectShell
+    <ImageWorkbench
       meta={meta}
-      actions={
-        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
-     </ActionButton>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        以像素偏移調整亮度，非 HDR大圖可能較慢僅本機處理，不會上傳
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
+      hint="以像素偏移調整亮度，非 HDR；大圖可能較慢。僅本機處理，不會上傳。"
+      fileName={fileName}
+      fileSize={fileSize}
+      width={width}
+      height={height}
+      error={error}
+      hasImage={hasImage}
+      onFile={onFile}
+      onDownload={download}
+      downloadLabel="下載 PNG"
+      infoExtra={[{ label: '亮度', value: String(amount) }]}
+      controls={
+        <label className="stack">
+          <span className="label">亮度 {amount}</span>
+          <input
+            type="range"
+            min={-100}
+            max={100}
+            value={amount}
+            onChange={(e) => setAmount(clamp(Number(e.target.value), -100, 100))}
           />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {formatBytes(fileSize)}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
-          <label className="stack">
-            <span className="label">亮度 {amount}</span>
-            <input type="range" min={-100} max={100} value={amount} onChange={(e) => setAmount(clamp(Number(e.target.value), -100, 100))} />
-          </label>
-          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
-         </ActionButton>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          {hasImage ? (
-            <div style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'auto', maxHeight: 560 }}>
-              <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
-            </div>
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </label>
+      }
+      preview={<ImageCanvasPreview canvasRef={canvasRef} hasImage={hasImage} />}
+    />
   )
 }

@@ -1,11 +1,10 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { FileDrop } from '../../components/FileDrop'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { ImageWorkbench, ImageCanvasPreview } from '../../components/ImageWorkbench'
+import { useCallback, useEffect, useRef } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { clamp, formatBytes } from '../../lib/utils'
-import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
-import { ActionButton } from '../../components/ActionButton'
+import { clamp } from '../../lib/utils'
+import { downloadCanvas, imageBaseName } from '../../lib/imageCanvas'
+import { useImageFile } from '../../lib/useImageSource'
 
 const fallback: ProjectMeta = {
   slug: 'image-border',
@@ -19,82 +18,62 @@ const meta = getProject('image-border') ?? fallback
 
 export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imgRef = useRef<HTMLImageElement | null>(null)
-  const [fileName, setFileName] = useState('')
-  const [fileSize, setFileSize] = useState(0)
-  const [error, setError] = useState('')
-  const [hasImage, setHasImage] = useState(false)
-  const [width, setWidth] = useLocalStorage('lab:image-border:width', 24)
+  const { imgRef, fileName, fileSize, width, height, error, hasImage, onFile } = useImageFile()
+  const [borderWidth, setBorderWidth] = useLocalStorage('lab:image-border:width', 24)
   const [color, setColor] = useLocalStorage('lab:image-border:color', '#1a2e28')
+
+  const b = clamp(borderWidth, 0, 200)
+  const outWidth = hasImage ? width + b * 2 : 0
+  const outHeight = hasImage ? height + b * 2 : 0
 
   const redraw = useCallback(() => {
     const img = imgRef.current
     const out = canvasRef.current
     if (!img || !out) return
-    const b = clamp(width, 0, 200)
-    out.width = img.naturalWidth + b * 2
-    out.height = img.naturalHeight + b * 2
+    const pad = clamp(borderWidth, 0, 200)
+    out.width = img.naturalWidth + pad * 2
+    out.height = img.naturalHeight + pad * 2
     const ctx = out.getContext('2d')!
     ctx.fillStyle = color
     ctx.fillRect(0, 0, out.width, out.height)
-    ctx.drawImage(img, b, b)
-  }, [width, color])
+    ctx.drawImage(img, pad, pad)
+  }, [borderWidth, color, imgRef])
 
   useEffect(() => {
     if (hasImage) redraw()
   }, [redraw, hasImage])
 
-  async function onFile(file: File | null) {
-    if (!file) return
-    if (file.size > IMAGE_MAX_BYTES) {
-      setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`)
-      return
-    }
-    try {
-      setError('')
-      imgRef.current = await loadImageFromFile(file)
-      setFileName(file.name)
-      setFileSize(file.size)
-      setHasImage(true)
-    } catch {
-      setError('無法讀取圖片')
-      setHasImage(false)
-    }
-  }
-
   function download() {
     if (!canvasRef.current || !hasImage) return
     redraw()
-    downloadCanvas(canvasRef.current, `${fileName.replace(/\.[^.]+$/, '') || 'image'}-border.png`)
+    downloadCanvas(canvasRef.current, `${imageBaseName(fileName)}-border.png`)
   }
 
   return (
-    <ProjectShell
+    <ImageWorkbench
       meta={meta}
-      actions={
-        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
-     </ActionButton>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>依厚度擴展畫布並填色，不保留 EXIF僅本機處理，不會上傳</p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
-          />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {formatBytes(fileSize)}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
+      hint="依厚度擴展畫布並填色，不保留 EXIF。僅本機處理。"
+      fileName={fileName}
+      fileSize={fileSize}
+      width={width}
+      height={height}
+      outWidth={outWidth}
+      outHeight={outHeight}
+      error={error}
+      hasImage={hasImage}
+      onFile={(file) => void onFile(file)}
+      onDownload={download}
+      controls={
+        <>
           <label className="stack">
-            <span className="label">邊框厚度 {width}px</span>
-            <input type="range" min={0} max={200} value={width} onChange={(e) => setWidth(clamp(Number(e.target.value), 0, 200))} />
+            <span className="label">邊框厚度 {borderWidth}px</span>
+            <input
+              type="range"
+              min={0}
+              max={200}
+              value={borderWidth}
+              onChange={(e) => setBorderWidth(clamp(Number(e.target.value), 0, 200))}
+            />
           </label>
           <label className="stack">
             <span className="label">邊框顏色</span>
@@ -111,22 +90,13 @@ export default function Page() {
               />
             </div>
           </label>
-          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
-         </ActionButton>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          {hasImage ? (
-            <div style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'auto', maxHeight: 560 }}>
-              <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
-            </div>
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </>
+      }
+      preview={<ImageCanvasPreview canvasRef={canvasRef} hasImage={hasImage} />}
+      infoExtra={[
+        { label: '邊框厚度', value: `${b}px` },
+        { label: '邊框顏色', value: <span className="mono">{color}</span> },
+      ]}
+    />
   )
 }
