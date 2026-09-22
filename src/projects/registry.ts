@@ -29,12 +29,12 @@ export const projects: ProjectMeta[] = [
   { slug: 'color-converter', title: '色碼轉換器', description: '色碼轉換、對比色階與收藏色票', tier: 'quick', effort: '幾小時～1 天', tags: ['design'] },
   { slug: 'hex-rgb-hsl', title: 'HEX / RGB / HSL', description: '雙向轉換、色階和諧與 WCAG 對比', tier: 'quick', effort: '幾小時～1 天', tags: ['design'] },
   { slug: 'markdown-previewer', title: 'Markdown 預覽', description: '即時預覽、目錄統計與匯出 HTML', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
-  { slug: 'json-formatter', title: 'JSON Formatter', description: '格式化、壓縮與驗證 JSON', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
-  { slug: 'json-to-csv', title: 'JSON → CSV Converter', description: '物件陣列轉 CSV 並下載', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
-  { slug: 'base64', title: 'Base64 Encoder / Decoder', description: '文字與 Base64 互轉', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
-  { slug: 'url-codec', title: 'URL Encoder / Decoder', description: 'URL encode／decode 工具', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
-  { slug: 'timestamp', title: 'Timestamp Converter', description: 'Unix 時間戳與日期互轉', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
-  { slug: 'cron-generator', title: 'Cron Expression Generator', description: '組裝／預覽 cron 表達式', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'json-formatter', title: 'JSON Formatter', description: '格式化、壓縮、驗證與結構統計', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'json-to-csv', title: 'JSON → CSV', description: '物件陣列轉 CSV、預覽與欄位統計', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'base64', title: 'Base64', description: '文字／檔案與 Base64 互轉、Data URL', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'url-codec', title: 'URL Encode / Decode', description: '三種模式互轉、URL 拆解與參數檢視', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'timestamp', title: 'Timestamp', description: 'Unix 時間戳互轉、多格式與批次', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
+  { slug: 'cron-generator', title: 'Cron 產生器', description: '組裝 cron、說明與下次執行預覽', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
   { slug: 'regex-tester', title: 'Regex Tester', description: '即時測試正規表達式匹配', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
 
   // ── 功能型 ──
