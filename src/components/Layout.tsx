@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { projects } from '../projects/registry'
 import { useLocalStorage } from '../lib/storage'
-import { IconGithub, IconMenu, IconSearch, IconSidebarClose, IconSidebarOpen } from './icons'
+import { IconClose, IconGithub, IconMenu, IconSearch, IconSidebarClose, IconSidebarOpen } from './icons'
 
 export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -71,9 +71,26 @@ export function Layout() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && query) {
+                e.preventDefault()
+                setQuery('')
+              }
+            }}
             placeholder={`搜尋名稱、標籤…（${matchCount}）`}
             aria-label="搜尋專案"
           />
+          {query.trim() ? (
+            <button
+              type="button"
+              className="topbar-search-clear"
+              aria-label="清除搜尋"
+              title="清除搜尋"
+              onClick={() => setQuery('')}
+            >
+              <IconClose size={14} strokeWidth={2.4} />
+            </button>
+          ) : null}
         </div>
       </header>
 
