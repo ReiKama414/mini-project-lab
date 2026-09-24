@@ -1,22 +1,41 @@
-import { getProject } from '../registry'
+import { getProject, type ProjectMeta } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
-import type { ProjectMeta } from '../registry'
+import { FileDrop } from '../../components/FileDrop'
+import { ActionButton } from '../../components/ActionButton'
 import { useState } from 'react'
 import * as prettier from 'prettier/standalone'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, copyText, downloadText, isNonEmpty, limitText } from '../../lib/utils'
-import { ActionButton } from '../../components/ActionButton'
+import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 
-const meta: ProjectMeta = getProject('graphql-formatter') ?? {
+const fallback: ProjectMeta = {
   slug: 'graphql-formatter',
   title: 'GraphQL Formatter',
-  description: '以 Prettier 格式化／壓縮 GraphQL',
+  description: 'Prettier 本機美化／壓縮 GraphQL（外掛不可用時簡易縮排）',
   tier: 'quick',
   effort: '幾小時～1 天',
   tags: ['dev'],
 }
+const meta = getProject('graphql-formatter') ?? fallback
 
 const MAX = 200_000
+const FILE_MAX = 8 * 1024 * 1024
+type ViewMode = 'split' | 'edit' | 'out'
+type Mode = 'pretty' | 'minify' | null
+
+const SAMPLES = [
+  {
+    label: 'Query',
+    body: `query{user(id:"1"){name email posts{title}}}`,
+  },
+  {
+    label: 'Mutation',
+    body: `mutation CreatePost($title:String!){createPost(title:$title){id title}}`,
+  },
+  {
+    label: 'Fragment',
+    body: `query{user(id:"1"){...UserFields}} fragment UserFields on User{id name email}`,
+  },
+]
 
 /** Fallback indent heuristic when prettier/plugins/graphql is unavailable. */
 function formatHeuristic(input: string, minify: boolean) {
@@ -46,24 +65,36 @@ function loadGraphqlPlugin() {
   return graphqlPluginPromise
 }
 
+function lineCount(text: string) {
+  if (!text) return 0
+  return text.split('\n').length
+}
+
 export default function Page() {
   const [input, setInput] = useLocalStorage(
     'lab:graphql-formatter:input',
     'query{user(id:"1"){name email posts{title}}}',
   )
+  const [view, setView] = useLocalStorage<ViewMode>('lab:graphql-formatter:view', 'split')
   const [out, setOut] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [mode, setMode] = useState<Mode>(null)
+  const [hint, setHint] = useState('')
+  const [copied, setCopied] = useState<string | null>(null)
   const [usingHeuristic, setUsingHeuristic] = useState(false)
 
   async function run(minify: boolean) {
     if (!isNonEmpty(input)) {
-      setError('請輸入內容')
+      setError('請輸入 GraphQL')
+      setOut('')
+      setMode(null)
+      setUsingHeuristic(false)
       return
     }
     setBusy(true)
     setError('')
+    setHint('')
     try {
       let plugin: unknown | null = null
       try {
@@ -85,74 +116,243 @@ export default function Page() {
         setOut(formatHeuristic(input, minify))
         setUsingHeuristic(true)
       }
-      setCopied(false)
+      setMode(minify ? 'minify' : 'pretty')
+      setCopied(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '格式化失敗（語法可能無效）')
       setOut('')
+      setMode(null)
       setUsingHeuristic(false)
     } finally {
       setBusy(false)
     }
   }
 
+  async function copyVal(val: string, key: string) {
+    await copyText(val)
+    setCopied(key)
+    window.setTimeout(() => setCopied(null), 1400)
+  }
+
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          優先使用 Prettier（graphql parser）於瀏覽器本機格式化；若外掛無法載入則改用簡易縮排（可能無法驗證語法）
-        </p>
-        <label className="stack">
-          <span className="label">GraphQL</span>
-          <textarea
-            className={`field mono${!isNonEmpty(input) ? ' is-invalid' : ''}`}
-            rows={10}
-            value={input}
-            maxLength={MAX}
-            onChange={(e) => setInput(limitText(e.target.value, MAX))}
-          />
-          <div className="field-meta">
-            <span>
-              {charCount(input).toLocaleString()} / {MAX.toLocaleString()}
-            </span>
-          </div>
-        </label>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="btn accent" disabled={!isNonEmpty(input) || busy} onClick={() => void run(false)}>
-            {busy ? '處理中…' : '格式化'}
-          </button>
-          <button type="button" className="btn teal" disabled={!isNonEmpty(input) || busy} onClick={() => void run(true)}>
-            壓縮
-          </button>
-          <ActionButton
-            className="btn ghost"
-            disabled={!out}
-            onClick={async () => {
-              await copyText(out)
-              setCopied(true)
-            }}
-            icon="copy">
-            {copied ? '已複製' : '複製'}
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row xc-shell-actions">
+          <ActionButton className="btn sm ghost" disabled={!out} onClick={() => void copyVal(out, 'out')} icon="copy">
+            {copied === 'out' ? '已複製' : '複製'}
           </ActionButton>
-          <button
-            type="button"
-            className="btn ghost"
+          <ActionButton
+            className="btn sm accent"
             disabled={!out}
             onClick={() => downloadText('formatted.graphql', out, 'application/graphql')}
+            icon="download"
           >
-            下載
-          </button>
+            下載 GraphQL
+          </ActionButton>
         </div>
-        {usingHeuristic && out && (
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            目前為簡易縮排模式（非完整 GraphQL 語法檢查）
-          </p>
-        )}
-        {error && <p className="field-error">{error}</p>}
-        {out && (
-          <pre className="metric mono" style={{ whiteSpace: 'pre-wrap', maxHeight: 360, overflow: 'auto' }}>
-            {out}
-          </pre>
-        )}
+      }
+    >
+      <div className="xc-calc">
+        <div className="panel xc-toolbar">
+          <div className="pw-panel-head">
+            <h3 className="pw-panel-title">工具</h3>
+            <div className="row xc-view-toggle">
+              {(
+                [
+                  ['split', '並排'],
+                  ['edit', '輸入'],
+                  ['out', '輸出'],
+                ] as const
+              ).map(([id, label]) => (
+                <button key={id} type="button" className={`btn sm ${view === id ? 'accent' : 'ghost'}`} onClick={() => setView(id)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="pw-stats">
+            <span className="tag">{charCount(input).toLocaleString()} 字</span>
+            <span className="tag">{lineCount(input).toLocaleString()} 行</span>
+            {out && <span className="tag">{formatBytes(new Blob([out]).size)}</span>}
+            {mode === 'pretty' && <span className="tag">已美化</span>}
+            {mode === 'minify' && <span className="tag">已壓縮</span>}
+            {usingHeuristic && out && <span className="tag xc-tag-warn">簡易縮排</span>}
+            {error && <span className="tag xc-tag-warn">格式化失敗</span>}
+            {busy && <span className="tag">處理中…</span>}
+          </div>
+          <div className="pw-block">
+            <div className="label">範例</div>
+            <div className="pw-chips">
+              {SAMPLES.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className="btn sm ghost"
+                  onClick={() => {
+                    setInput(s.body)
+                    setOut('')
+                    setError('')
+                    setMode(null)
+                    setUsingHeuristic(false)
+                    setHint(`已套用「${s.label}」`)
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="row xc-options">
+            <ActionButton className="btn sm accent" disabled={!isNonEmpty(input) || busy} onClick={() => void run(false)}>
+              {busy ? '處理中…' : '格式化'}
+            </ActionButton>
+            <ActionButton className="btn sm teal" disabled={!isNonEmpty(input) || busy} onClick={() => void run(true)}>
+              壓縮
+            </ActionButton>
+          </div>
+        </div>
+
+        <div className={`xc-main xc-view-${view}`}>
+          {(view === 'split' || view === 'edit') && (
+            <section className="panel xc-editor">
+              <div className="pw-panel-head">
+                <h3 className="pw-panel-title">GraphQL 輸入</h3>
+                <ActionButton
+                  className="btn sm ghost"
+                  icon="trash"
+                  disabled={!input}
+                  onClick={() => {
+                    setInput('')
+                    setOut('')
+                    setError('')
+                    setMode(null)
+                    setUsingHeuristic(false)
+                    setHint('')
+                  }}
+                >
+                  清除
+                </ActionButton>
+              </div>
+              {error && <p className="field-error">{error}</p>}
+              {hint && !error && <p className="field-hint">{hint}</p>}
+              {usingHeuristic && out && !error && (
+                <p className="field-hint">目前為簡易縮排模式（非完整 GraphQL 語法檢查）</p>
+              )}
+              <FileDrop
+                accept=".graphql,.gql,application/graphql,.txt"
+                maxBytes={FILE_MAX}
+                disabled={busy}
+                label="拖放 GraphQL"
+                hint={`上限 ${formatBytes(FILE_MAX)}`}
+                onFiles={(files) => {
+                  void (async () => {
+                    const f = files[0]
+                    if (!f) return
+                    setBusy(true)
+                    try {
+                      setInput(limitText(await f.text(), MAX))
+                      setOut('')
+                      setError('')
+                      setMode(null)
+                      setUsingHeuristic(false)
+                      setHint(`已載入「${f.name}」`)
+                    } catch {
+                      setHint('')
+                    } finally {
+                      setBusy(false)
+                    }
+                  })()
+                }}
+              />
+              <textarea
+                className={`field mono xc-textarea${!isNonEmpty(input) ? ' is-invalid' : ''}${error ? ' is-invalid' : ''}`}
+                value={input}
+                maxLength={MAX}
+                disabled={busy}
+                spellCheck={false}
+                onChange={(e) => {
+                  setInput(limitText(e.target.value, MAX))
+                  setError('')
+                  setHint('')
+                }}
+                aria-label="GraphQL"
+              />
+              <div className="field-meta">
+                <span>Prettier graphql（或簡易縮排）</span>
+                <span>
+                  {charCount(input).toLocaleString()} / {MAX.toLocaleString()}
+                </span>
+              </div>
+            </section>
+          )}
+
+          {(view === 'split' || view === 'out') && (
+            <section className="panel xc-out">
+              <div className="pw-panel-head">
+                <h3 className="pw-panel-title">輸出</h3>
+                <div className="row" style={{ gap: 6 }}>
+                  <ActionButton
+                    className="btn sm ghost"
+                    disabled={!out}
+                    icon="copy"
+                    iconOnly
+                    tooltip={copied === 'out' ? '已複製' : '複製'}
+                    onClick={() => void copyVal(out, 'out')}
+                  />
+                  <ActionButton
+                    className="btn sm ghost"
+                    disabled={!out}
+                    icon="download"
+                    iconOnly
+                    tooltip="下載"
+                    onClick={() => downloadText('formatted.graphql', out, 'application/graphql')}
+                  />
+                </div>
+              </div>
+              {out ? (
+                <>
+                  <pre className="xc-pre mono">{out}</pre>
+                  <div className="field-meta">
+                    <span>
+                      {charCount(out).toLocaleString()} 字 · {lineCount(out).toLocaleString()} 行
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="muted" style={{ margin: 0 }}>
+                  按「格式化」或「壓縮」後顯示結果
+                </p>
+              )}
+            </section>
+          )}
+        </div>
+
+        <section className="panel xc-info">
+          <h3 className="pw-panel-title">更多資訊</h3>
+          <ul className="pw-info-list">
+            <li>
+              <span className="muted">引擎</span>
+              <strong>優先 Prettier graphql plugin；載入失敗則改用簡易括號縮排</strong>
+            </li>
+            <li>
+              <span className="muted">壓縮</span>
+              <strong>合併空白與標點周圍空白；非完整 GraphQL minify</strong>
+            </li>
+            <li>
+              <span className="muted">上限</span>
+              <strong>文字約 {MAX.toLocaleString()} 字元；檔案約 {formatBytes(FILE_MAX)}</strong>
+            </li>
+            <li>
+              <span className="muted">隱私</span>
+              <strong>本機處理，不上傳伺服器</strong>
+            </li>
+            <li>
+              <span className="muted">限制</span>
+              <strong>簡易模式不驗證語法；schema SDL 複雜片段可能需 Prettier 外掛</strong>
+            </li>
+          </ul>
+        </section>
       </div>
     </ProjectShell>
   )
