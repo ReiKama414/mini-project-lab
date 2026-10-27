@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { tiers, type ProjectMeta } from '../projects/registry'
 import { IconArrowLeft } from './icons'
+import { LabTrustNotice } from './LabTrustNotice'
 
 export function ProjectShell({
   meta,
@@ -31,6 +32,7 @@ export function ProjectShell({
         {actions ? <div className="project-shell-actions">{actions}</div> : null}
       </div>
       {children}
+      {meta.tier !== 'feature' ? <LabTrustNotice /> : null}
     </div>
   )
 }

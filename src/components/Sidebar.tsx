@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { projects, tiers, type Tier } from '../projects/registry'
 import { IconGrid, IconSidebarClose } from './icons'
@@ -36,41 +36,33 @@ export function Sidebar({
 
   const location = useLocation()
   const asideRef = useRef<HTMLElement>(null)
-  const prevPath = useRef<string | null>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const aside = asideRef.current
     if (!aside || (collapsed && !open)) return
 
-    const isReload = prevPath.current === null
-    const pathChanged = prevPath.current !== location.pathname
-    prevPath.current = location.pathname
+    const projectMatch = location.pathname.match(/^\/p\/([^/]+)/)
+    const slug = projectMatch?.[1]
+    const active = slug
+      ? aside.querySelector<HTMLElement>(`[data-nav-slug="${slug}"]`)
+      : location.pathname === '/'
+        ? aside.querySelector<HTMLElement>('[data-nav-home]')
+        : aside.querySelector<HTMLElement>('.nav-link.active')
 
-    requestAnimationFrame(() => {
-      // 重整或直接開連結：側欄從頂部開始，避免整條清單被捲到最底
-      if (isReload) {
-        aside.scrollTop = 0
-        return
-      }
+    if (!active) {
+      aside.scrollTop = 0
+      return
+    }
 
-      if (!pathChanged) return
-
-      const active = aside.querySelector<HTMLElement>('.nav-link.active')
-      if (!active) return
-
-      const top = aside.scrollTop
-      const viewH = aside.clientHeight
-      const linkTop = active.offsetTop
-      const linkH = active.offsetHeight
-      const pad = 12
-      const above = linkTop < top + pad
-      const below = linkTop + linkH > top + viewH - pad
-      if (!above && !below) return
-
-      const target = linkTop - viewH / 2 + linkH / 2
-      aside.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
-    })
-  }, [location.pathname, collapsed, open])
+    const asideRect = aside.getBoundingClientRect()
+    const linkRect = active.getBoundingClientRect()
+    const linkTop = linkRect.top - asideRect.top + aside.scrollTop
+    const linkH = linkRect.height
+    const viewH = aside.clientHeight
+    const maxScroll = Math.max(0, aside.scrollHeight - viewH)
+    const centered = linkTop - viewH / 2 + linkH / 2
+    aside.scrollTop = Math.min(maxScroll, Math.max(0, centered))
+  }, [location.pathname, collapsed, open, q])
 
   return (
     <aside
@@ -93,6 +85,7 @@ export function Sidebar({
 
       <NavLink
         to="/"
+        data-nav-home
         className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
         onClick={onNavigate}
       >
@@ -116,6 +109,7 @@ export function Sidebar({
               <NavLink
                 key={p.slug}
                 to={`/p/${p.slug}`}
+                data-nav-slug={p.slug}
                 className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                 onClick={onNavigate}
                 title={p.title}

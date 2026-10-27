@@ -181,12 +181,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/url-shortener</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/qr-scanner</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -313,66 +307,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-chat-ui</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-email</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-meeting</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-rewriter</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-resume-review</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-pdf-qa</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-caption</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-tweet</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-study-planner</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ai-flashcard-gen</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/finance-dashboard</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -392,12 +326,6 @@
   </url>
   <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/rss-reader</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/newsletter-reader</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -457,19 +385,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/anonymous-feedback</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/screenshot-html</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/website-screenshot</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -482,12 +398,6 @@
   </url>
   <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/api-monitor</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/webhook-tester</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -511,12 +421,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/github-contrib</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/readme-generator</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -529,18 +433,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/docker-dashboard</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/server-monitor</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/log-viewer</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -548,42 +440,6 @@
   </url>
   <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/feature-flags</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/simple-analytics</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/heatmap-analytics</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/ab-testing</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/passwordless-login</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/oauth-playground</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/realtime-chat</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -602,12 +458,6 @@
   </url>
   <url>
     <loc>https://mini-project-lab-wheat.vercel.app/p/code-editor</loc>
-    <lastmod>2026-10-27</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://mini-project-lab-wheat.vercel.app/p/saas-boilerplate</loc>
     <lastmod>2026-10-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>

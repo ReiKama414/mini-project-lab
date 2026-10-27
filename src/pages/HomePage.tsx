@@ -212,6 +212,27 @@ export function HomePage() {
         </div>
       )}
 
+      <section id="lab-trust" className="panel home-trust-panel" aria-label="保存與安全">
+        <h2 className="home-data-title">保存與安全</h2>
+        <p className="muted home-data-desc">
+          本站工具多為前端示範，資料多在瀏覽器本機，沒有固定「保存 N 天」的伺服器政策。
+        </p>
+        <ul className="pw-info-list" style={{ marginTop: 12 }}>
+          <li>
+            <span className="muted">保存期限</span>
+            <strong>直到你清除網站資料、換裝置或換瀏覽器</strong>
+          </li>
+          <li>
+            <span className="muted">惡意利用</span>
+            <strong>無對外托管服務；勿輸入真實密碼或機敏資料</strong>
+          </li>
+          <li>
+            <span className="muted">日常應用</span>
+            <strong>各頁「更多資訊」含完整 FAQ；實用小工具頁底有簡短摘要</strong>
+          </li>
+        </ul>
+      </section>
+
       <section className="panel home-data-panel" aria-label="本機資料">
         <div className="home-data-row">
           <div>
