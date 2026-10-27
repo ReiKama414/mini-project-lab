@@ -1,7 +1,10 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
-import { useEffect, useRef, useState } from 'react'
+import { FtMetric, FtMetricGrid, FtSection, FtToolHero, FtToolRoot } from '../../components/FeatureToolUI'
+import { FtAsidePreview, FtCanvasAside, ftImageLocalFaq } from '../../components/FtImageToolUI'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes, limitText, charCount, isNonEmpty } from '../../lib/utils'
 import {
@@ -25,6 +28,8 @@ const meta = getProject('batch-watermark') ?? fallback
 
 const TEXT_MAX = 80
 const MAX_FILES = 30
+
+const TEXT_PRESETS = ['© 我的品牌', '僅供預覽', 'Draft', '內部使用']
 
 function applyWatermark(
   canvas: HTMLCanvasElement,
@@ -55,6 +60,7 @@ function applyWatermark(
 
 export default function Page() {
   const previewRef = useRef<HTMLCanvasElement>(null)
+  const [previewDims, setPreviewDims] = useState({ w: 0, h: 0 })
   const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -73,6 +79,7 @@ export default function Page() {
           out.width = 0
           out.height = 0
         }
+        setPreviewDims({ w: 0, h: 0 })
         return
       }
       try {
@@ -95,6 +102,7 @@ export default function Page() {
         )
         out.width = canvas.width
         out.height = canvas.height
+        setPreviewDims({ w: canvas.width, h: canvas.height })
         out.getContext('2d')!.drawImage(canvas, 0, 0)
       } catch {
         /* preview optional */
@@ -141,25 +149,16 @@ export default function Page() {
     }
   }
 
+  const totalSize = useMemo(() => files.reduce((n, f) => n + f.size, 0), [files])
+  const canRun = files.length > 0 && isNonEmpty(text) && !busy
+  const showPreview = Boolean(files[0] && isNonEmpty(text))
+
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <button
-          type="button"
-          className="btn sm accent"
-          disabled={!files.length || !isNonEmpty(text) || busy}
-          onClick={() => void processZip()}
-        >
-          {busy ? '處理中…' : '下載 ZIP'}
-        </button>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        一次最多 {MAX_FILES} 張，全部在瀏覽器本機處理預覽以第一張為準
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
+      variant="stacked"
+      toolbar={
+        <>
           <FileDrop
             accept={IMAGE_ACCEPT}
             multiple
@@ -167,17 +166,74 @@ export default function Page() {
             maxBytes={IMAGE_MAX_BYTES}
             disabled={busy}
             label="拖放多張圖片到此，或點擊選擇"
-            hint={`最多 ${MAX_FILES} 張 · 單張 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            hint={`最多 ${MAX_FILES} 張 · 單張 ${formatBytes(IMAGE_MAX_BYTES)} · 僅本機處理`}
             onFiles={onFiles}
           />
-          {files.length > 0 && (
-            <p className="muted" style={{ margin: 0 }}>
-              已選 {files.length} 張 · {formatBytes(files.reduce((n, f) => n + f.size, 0))}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
+          <div className="ft-samples">
+            <span className="muted">文字範例：</span>
+            {TEXT_PRESETS.map((p) => (
+              <button key={p} type="button" className="btn sm ghost" onClick={() => setText(limitText(p, TEXT_MAX))}>
+                {p}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      actions={
+        <ActionButton
+          className="btn sm accent"
+          disabled={!canRun}
+          onClick={() => void processZip()}
+          icon="download"
+        >
+          {busy ? '處理中…' : '下載 ZIP'}
+        </ActionButton>
+      }
+      infoItems={[
+        { label: '批次上限', value: `${MAX_FILES} 張` },
+        { label: '單檔上限', value: formatBytes(IMAGE_MAX_BYTES) },
+        { label: '預覽', value: '以第一張即時預覽' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        ftImageLocalFaq(`ZIP 打包在瀏覽器完成；單張 ≤ ${formatBytes(IMAGE_MAX_BYTES)}，總量過大可能記憶體不足。`),
+      ]}
+      aside={
+        <FtAsidePreview
+          title="即時預覽（第一張）"
+          tag={showPreview && previewDims.w ? <span className="tag mono">{previewDims.w}×{previewDims.h}</span> : null}
+        >
+          <FtCanvasAside
+            canvasRef={previewRef}
+            hasImage={showPreview}
+            empty="選圖並輸入浮水印文字後預覽"
+          />
+        </FtAsidePreview>
+      }
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="💧"
+          title={files.length ? `已選 ${files.length} 張` : '尚未選擇圖片'}
+          subtitle={
+            files.length
+              ? `總大小 ${formatBytes(totalSize)}${files[0] ? ` · 預覽：${files[0].name}` : ''}`
+              : `最多 ${MAX_FILES} 張 · 單張 ${formatBytes(IMAGE_MAX_BYTES)}`
+          }
+          meta={isNonEmpty(text) ? `浮水印：${limitText(text.trim(), TEXT_MAX)}` : '請輸入浮水印文字'}
+          badge={busy ? <span className="tag">處理中</span> : canRun ? <span className="tag">可打包</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="張數" value={files.length || '—'} />
+          <FtMetric label="總大小" value={files.length ? formatBytes(totalSize) : '—'} mono />
+          <FtMetric label="預覽尺寸" value={previewDims.w ? `${previewDims.w} × ${previewDims.h}` : '—'} mono />
+          <FtMetric label="輸出" value="PNG · ZIP" />
+        </FtMetricGrid>
+        {error && <p className="field-error">{error}</p>}
+
+        <FtSection title="浮水印文字">
           <div className="field-wrap">
-            <label className="label">浮水印文字</label>
+            <label className="label">文字內容</label>
             <input
               className={`field${!isNonEmpty(text) ? ' is-invalid' : ''}`}
               value={text}
@@ -191,6 +247,9 @@ export default function Page() {
               </span>
             </div>
           </div>
+        </FtSection>
+
+        <FtSection title="樣式">
           <div className="grid-2">
             <label className="stack">
               <span className="label">透明度 {opacity}%</span>
@@ -227,44 +286,27 @@ export default function Page() {
               <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
             </label>
           </div>
-          <ul className="stack" style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
-            {files.map((f) => (
-              <li key={f.name + f.size}>
-                {f.name} · {formatBytes(f.size)}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            className="btn accent"
-            disabled={!files.length || !isNonEmpty(text) || busy}
-            onClick={() => void processZip()}
-          >
-            {busy ? '處理中…' : '套用並下載 ZIP'}
-          </button>
-        </div>
-        <div className="panel stack">
-          <div className="label">即時預覽（第一張）</div>
-          {files[0] && isNonEmpty(text) ? (
-            <div style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'auto', maxHeight: 560 }}>
-              <canvas ref={previewRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
-            </div>
-          ) : (
-            <div
-              className="muted"
-              style={{
-                minHeight: 240,
-                display: 'grid',
-                placeItems: 'center',
-                border: '1px dashed var(--line)',
-                borderRadius: 12,
-              }}
-            >
-              選圖並輸入文字後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </FtSection>
+
+        {files.length > 0 && (
+          <FtSection title="檔案列表" hint="依此順序打包">
+            <ul className="ft-ui-list">
+              {files.map((f) => (
+                <li key={f.name + f.size} className="ft-ui-list-item">
+                  <span className="mono" style={{ fontSize: 13, flex: 1, minWidth: 0, wordBreak: 'break-all' }}>
+                    {f.name}
+                  </span>
+                  <span className="tag">{formatBytes(f.size)}</span>
+                </li>
+              ))}
+            </ul>
+          </FtSection>
+        )}
+
+        <ActionButton className="btn accent" disabled={!canRun} onClick={() => void processZip()} icon="download">
+          {busy ? '處理中…' : '套用並下載 ZIP'}
+        </ActionButton>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

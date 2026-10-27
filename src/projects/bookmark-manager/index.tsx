@@ -1,5 +1,5 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { AddButton } from '../../components/AddButton'
 import { ActionButton } from '../../components/ActionButton'
 import { DeleteButton } from '../../components/DeleteButton'
@@ -15,6 +15,15 @@ import {
   normalizeHttpUrl,
   uid,
 } from '../../lib/utils'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtRowItem,
+  FtRowList,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('bookmark-manager')!
 
@@ -34,6 +43,11 @@ const MAX_TITLE = 80
 const MAX_URL = 2048
 const MAX_TAGS = 120
 const MAX_SEARCH = 80
+
+const BOOKMARK_SAMPLES = [
+  { title: 'MDN', url: 'https://developer.mozilla.org', folder: '學習' },
+  { title: 'React', url: 'https://react.dev', folder: '工作' },
+]
 
 function faviconUrl(url: string) {
   try {
@@ -355,8 +369,14 @@ export default function Page() {
     }
   }
 
+  function applySample(s: (typeof BOOKMARK_SAMPLES)[0]) {
+    setTitle(s.title)
+    setUrl(s.url)
+    setFolder(s.folder)
+  }
+
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
         <div className="row">
@@ -394,9 +414,105 @@ export default function Page() {
           />
         </div>
       }
+      toolbar={
+        <>
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            {FOLDERS.map((f) => (
+              <button
+                type="button"
+                key={f}
+                className={`btn sm ${filterFolder === f ? 'accent' : 'ghost'}`}
+                onClick={() => setFilterFolder(f)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          <div className="field-wrap">
+            <input
+              className="field"
+              style={{ width: '100%' }}
+              placeholder="搜尋標題 / URL / 標籤…"
+              value={q}
+              maxLength={MAX_SEARCH}
+              onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))}
+            />
+            <div className="field-meta">
+              <span />
+              <span>
+                {charCount(q)} / {MAX_SEARCH}
+              </span>
+            </div>
+          </div>
+          {allTags.length > 0 && (
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`btn sm ${!filterTag ? 'teal' : 'ghost'}`}
+                onClick={() => setFilterTag('')}
+              >
+                全部標籤
+              </button>
+              {allTags.map((t) => (
+                <button
+                  type="button"
+                  key={t}
+                  className={`btn sm ${filterTag === t ? 'teal' : 'ghost'}`}
+                  onClick={() => setFilterTag(filterTag === t ? '' : t)}
+                >
+                  #{t}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="ft-samples">
+            <span className="muted">快速填入：</span>
+            {BOOKMARK_SAMPLES.map((s) => (
+              <button key={s.url} type="button" className="btn sm ghost" onClick={() => applySample(s)}>
+                {s.title}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存', value: `本機 localStorage，最多 ${MAX_ITEMS} 筆` },
+        { label: '匯入', value: 'JSON / Netscape bookmarks.html（合併）' },
+        { label: '資料夾', value: FOLDERS.filter((f) => f !== '全部').join('、') },
+        { label: 'Favicon', value: 'Google s2 服務（需連線）' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: '匯入會覆蓋嗎',
+          body: '匯入採合併：相同 id 或相同 URL 會更新，其餘追加；無效檔案不會清空現有資料。',
+        },
+        {
+          title: '標籤格式',
+          body: '新增時以逗號或空白分隔，最多 20 個標籤。',
+        },
+      ]}
     >
-      <div className="panel stack">
-        {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🔖"
+          title={`${items.length} 則書籤`}
+          subtitle={
+            editing
+              ? '編輯模式'
+              : filterFolder !== '全部' || filterTag || q.trim()
+                ? `篩選中 · 顯示 ${visible.length} 則`
+                : `資料夾與標籤管理 · 上限 ${MAX_ITEMS}`
+          }
+          badge={importMsg ? <span className="tag">{importMsg}</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="總數" value={`${items.length} / ${MAX_ITEMS}`} />
+          <FtMetric label="顯示中" value={visible.length} />
+          <FtMetric label="資料夾" value={filterFolder} />
+          <FtMetric label="標籤數" value={allTags.length} />
+        </FtMetricGrid>
+        <FtSection title={editing ? '編輯書籤' : '新增書籤'}>
         <div className="grid-2">
           <div className="stack" style={{ gap: 0 }}>
             <input
@@ -475,60 +591,14 @@ export default function Page() {
           )}
         </div>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆書籤，請先刪除再新增</p>}
+        </FtSection>
 
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          {FOLDERS.map((f) => (
-            <button type="button"
-              key={f}
-              className={`btn sm ${filterFolder === f ? 'accent' : 'ghost'}`}
-              onClick={() => setFilterFolder(f)}
-            >
-              {f}
-            </button>
-          ))}
-          <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
-            <input
-              className="field"
-              style={{ width: '100%' }}
-              placeholder="搜尋標題 / URL / 標籤…"
-              value={q}
-              maxLength={MAX_SEARCH}
-              onChange={(e) => setQ(limitText(e.target.value, MAX_SEARCH))}
-            />
-            <div className="field-meta">
-              <span />
-              <span>
-                {charCount(q)} / {MAX_SEARCH}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {allTags.length > 0 && (
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button"
-              className={`btn sm ${!filterTag ? 'teal' : 'ghost'}`}
-              onClick={() => setFilterTag('')}
-            >
-              全部標籤
-            </button>
-            {allTags.map((t) => (
-              <button type="button"
-                key={t}
-                className={`btn sm ${filterTag === t ? 'teal' : 'ghost'}`}
-                onClick={() => setFilterTag(filterTag === t ? '' : t)}
-              >
-                #{t}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <ul className="list">
+        <FtSection title="書籤列表">
+        <FtRowList>
           {visible.map((b) => {
             const icon = faviconUrl(b.url)
             return (
-              <li key={b.id} className="list-item" style={{ alignItems: 'flex-start' }}>
+              <FtRowItem key={b.id}>
                 {icon ? (
                   <img
                     src={icon}
@@ -570,12 +640,13 @@ export default function Page() {
                 </a>
                 <EditButton onClick={() => startEdit(b)} />
                 <DeleteButton onClick={() => setItems(items.filter((x) => x.id !== b.id))} label="刪除" />
-              </li>
+              </FtRowItem>
             )
           })}
+        </FtRowList>
           {!visible.length && <p className="muted">尚無符合的書籤</p>}
-        </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

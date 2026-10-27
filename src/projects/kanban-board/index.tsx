@@ -1,5 +1,5 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { AddButton } from '../../components/AddButton'
 import { ActionButton } from '../../components/ActionButton'
 import { DeleteButton } from '../../components/DeleteButton'
@@ -7,6 +7,13 @@ import { EditButton } from '../../components/EditButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('kanban-board')!
 
@@ -36,6 +43,8 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 const MAX_ITEMS = 200
 const MAX_TITLE = 80
 const MAX_DETAIL = 500
+
+const CARD_SAMPLES = ['回覆客戶郵件', '撰寫週報', 'Code review']
 
 export default function Page() {
   const [cards, setCards] = useLocalStorage<Card[]>('lab:kanban-board', [
@@ -124,10 +133,22 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <p className="muted">可拖曳卡片至其他欄位，或使用按鈕移動看板會自動儲存在本機</p>
-        <div className="row">
+    <FeatureLayout
+      meta={meta}
+      actions={
+        <ActionButton
+          className="btn sm ghost"
+          disabled={!cards.length}
+          onClick={() => {
+            if (window.confirm('確定清空看板所有卡片？')) setCards([])
+          }}
+        >
+          清空看板
+        </ActionButton>
+      }
+      toolbar={
+        <>
+          <div className="row">
           <div className="field-wrap" style={{ flex: 1 }}>
             <input
               className={`field${text.length > 0 && !titleOk ? ' is-invalid' : ''}`}
@@ -161,19 +182,63 @@ export default function Page() {
             新增
           </AddButton>
         </div>
-
-        <div className="row">
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {CARD_SAMPLES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="btn sm ghost"
+                disabled={atLimit}
+                onClick={() => {
+                  setText(s)
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存', value: '本機 localStorage' },
+        { label: '卡片上限', value: `${MAX_ITEMS} 張` },
+        { label: '進行中 WIP', value: '預設 3 張，超出會確認' },
+        { label: '操作', value: '拖曳或按鈕移動欄位' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: 'WIP 限制',
+          body: '「進行中」欄建議同時最多 3 張卡片，拖入第 4 張時會詢問是否仍要移動。',
+        },
+        {
+          title: '優先順序',
+          body: '同一欄內卡片依高→中→低優先排序顯示。',
+        },
+      ]}
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="📌"
+          title={`${cards.length} 張卡片`}
+          subtitle={`待辦 ${counts.todo} · 進行 ${counts.doing}${COLS.find((c) => c.id === 'doing')?.wip != null ? ` / WIP ${COLS.find((c) => c.id === 'doing')!.wip}` : ''} · 完成 ${counts.done}`}
+        />
+        <FtMetricGrid>
           {COLS.map((col) => (
-            <span key={col.id} className="tag">
-              {col.label} {counts[col.id]}
-              {col.wip != null ? ` / WIP ${col.wip}` : ''}
-            </span>
+            <FtMetric
+              key={col.id}
+              label={col.label}
+              value={
+                col.wip != null
+                  ? `${counts[col.id]} / ${col.wip}`
+                  : String(counts[col.id])
+              }
+            />
           ))}
-          <span className="muted" style={{ marginLeft: 'auto' }}>
-            共 {cards.length} 張
-          </span>
-        </div>
-
+          <FtMetric label="總卡片" value={`${cards.length} / ${MAX_ITEMS}`} />
+        </FtMetricGrid>
+        <FtSection title="看板">
         <div className="kanban">
           {COLS.map((col) => {
             const overWip = col.wip != null && counts[col.id] > col.wip
@@ -354,7 +419,8 @@ export default function Page() {
             )
           })}
         </div>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

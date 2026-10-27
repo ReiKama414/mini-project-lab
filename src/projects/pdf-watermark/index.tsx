@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
 import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useState } from 'react'
@@ -110,104 +112,109 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button
-          type="button"
+        <ActionButton
           className="btn sm accent"
+          icon="download"
           disabled={!file || !isNonEmpty(text) || busy}
           onClick={() => void run()}
         >
-          下載
-        </button>
+          {busy ? '處理中…' : '下載'}
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        以影像嵌入浮水印，支援中文單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={PDF_ACCEPT}
           maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${PDF_MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
-            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+      infoItems={ftPdfInfoItems([{ label: '浮水印文字', value: `最多 ${TEXT_MAX} 字` }])}
+      faq={ftPdfFaq}
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={busy && progress ? [{ label: '狀態', value: progress }] : []}
+        />
         {error && <p className="field-error">{error}</p>}
-        {file && pageCount > 0 && (
+        {file && pageCount > 0 ? (
           <>
             {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
             <PdfThumbGrid pageCount={pageCount} thumbs={thumbs} loading={thumbsLoading} mode="view" />
           </>
+        ) : (
+          <p className="muted">上傳 PDF 後可預覽各頁縮圖。</p>
         )}
-        <div className="field-wrap">
-          <label className="label">浮水印文字</label>
-          <input
-            className={`field${!isNonEmpty(text) ? ' is-invalid' : ''}`}
-            value={text}
-            maxLength={TEXT_MAX}
-            disabled={busy}
-            onChange={(e) => setText(limitText(e.target.value, TEXT_MAX))}
-          />
-          <div className="field-meta">
-            <span> </span>
-            <span>
-              {charCount(text)} / {TEXT_MAX}
-            </span>
-          </div>
-        </div>
-        <div className="grid-2">
-          <label className="stack">
-            <span className="label">透明度 {opacity}%</span>
-            <input
-              type="range"
-              min={5}
-              max={80}
-              disabled={busy}
-              value={opacity}
-              onChange={(e) => setOpacity(clamp(Number(e.target.value), 5, 80))}
-            />
-          </label>
-          <label className="stack">
-            <span className="label">字級 {size}</span>
-            <input
-              type="range"
-              min={12}
-              max={120}
-              disabled={busy}
-              value={size}
-              onChange={(e) => setSize(clamp(Number(e.target.value), 12, 120))}
-            />
-          </label>
-          <label className="stack">
-            <span className="label">角度 {angle}°</span>
-            <input
-              type="range"
-              min={-90}
-              max={90}
-              disabled={busy}
-              value={angle}
-              onChange={(e) => setAngle(clamp(Number(e.target.value), -90, 90))}
-            />
-          </label>
-          <label className="stack">
-            <span className="label">顏色</span>
-            <input type="color" value={color} disabled={busy} onChange={(e) => setColor(e.target.value)} />
-          </label>
-        </div>
-        <button type="button" className="btn accent" disabled={!file || !isNonEmpty(text) || busy} onClick={() => void run()}>
-          {busy ? progress || '處理中…' : '套用並下載'}
-        </button>
+        {file && (
+          <FtSection title="浮水印" hint="以 Canvas 影像嵌入，支援中文。">
+            <div className="stack">
+              <div className="field-wrap">
+                <label className="label">浮水印文字</label>
+                <input
+                  className={`field${!isNonEmpty(text) ? ' is-invalid' : ''}`}
+                  value={text}
+                  maxLength={TEXT_MAX}
+                  disabled={busy}
+                  onChange={(e) => setText(limitText(e.target.value, TEXT_MAX))}
+                />
+                <div className="field-meta">
+                  <span> </span>
+                  <span>
+                    {charCount(text)} / {TEXT_MAX}
+                  </span>
+                </div>
+              </div>
+              <div className="grid-2">
+                <label className="stack">
+                  <span className="label">透明度 {opacity}%</span>
+                  <input
+                    type="range"
+                    min={5}
+                    max={80}
+                    disabled={busy}
+                    value={opacity}
+                    onChange={(e) => setOpacity(clamp(Number(e.target.value), 5, 80))}
+                  />
+                </label>
+                <label className="stack">
+                  <span className="label">字級 {size}</span>
+                  <input
+                    type="range"
+                    min={12}
+                    max={120}
+                    disabled={busy}
+                    value={size}
+                    onChange={(e) => setSize(clamp(Number(e.target.value), 12, 120))}
+                  />
+                </label>
+                <label className="stack">
+                  <span className="label">角度 {angle}°</span>
+                  <input
+                    type="range"
+                    min={-90}
+                    max={90}
+                    disabled={busy}
+                    value={angle}
+                    onChange={(e) => setAngle(clamp(Number(e.target.value), -90, 90))}
+                  />
+                </label>
+                <label className="stack">
+                  <span className="label">顏色</span>
+                  <input type="color" value={color} disabled={busy} onChange={(e) => setColor(e.target.value)} />
+                </label>
+              </div>
+            </div>
+          </FtSection>
+        )}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

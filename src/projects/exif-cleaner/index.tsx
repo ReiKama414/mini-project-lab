@@ -1,7 +1,16 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { FtSection, FtToolRoot } from '../../components/FeatureToolUI'
+import {
+  FtAsidePreview,
+  FtImageHero,
+  FtImageMetrics,
+  FtImgAside,
+  ftImageLocalFaq,
+} from '../../components/FtImageToolUI'
 import { formatBytes, copyText } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadBlob, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import exifr from 'exifr'
@@ -33,6 +42,8 @@ export default function Page() {
   const [cleanBlob, setCleanBlob] = useState<Blob | null>(null)
   const [outExt, setOutExt] = useState('jpg')
   const [origSize, setOrigSize] = useState(0)
+  const [imgW, setImgW] = useState(0)
+  const [imgH, setImgH] = useState(0)
   const [note, setNote] = useState('')
 
   async function onFile(file: File | null) {
@@ -51,6 +62,8 @@ export default function Page() {
       setExif(data && typeof data === 'object' ? (data as Record<string, unknown>) : null)
       const img = await loadImageFromFile(file)
       const { canvas } = canvasFromImage(img)
+      setImgW(canvas.width)
+      setImgH(canvas.height)
       const fmt = pickMime(file)
       const blob = await new Promise<Blob | null>((res) =>
         canvas.toBlob(res, fmt.mime, fmt.quality),
@@ -76,43 +89,75 @@ export default function Page() {
   const entries = exif ? Object.entries(exif).slice(0, 40) : []
   const outName = `${fileName.replace(/\.[^.]+$/, '') || 'image'}-no-exif.${outExt}`
 
+  const imageMeta = useMemo(
+    () => ({ fileName, fileSize: origSize, width: imgW, height: imgH }),
+    [fileName, origSize, imgW, imgH],
+  )
+
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      variant="stacked"
+      toolbar={
+        <FileDrop
+          accept={IMAGE_ACCEPT}
+          maxBytes={IMAGE_MAX_BYTES}
+          disabled={busy}
+          label="拖放圖片到此，或點擊選擇"
+          hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)} · 僅本機處理`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
+      }
       actions={
-        <button
-          type="button"
+        <ActionButton
           className="btn sm accent"
           disabled={!cleanBlob || busy}
           onClick={() => cleanBlob && downloadBlob(cleanBlob, outName)}
+          icon="download"
         >
           下載已清除
-        </button>
+        </ActionButton>
+      }
+      infoItems={[
+        { label: '單檔上限', value: formatBytes(IMAGE_MAX_BYTES) },
+        { label: '方式', value: 'Canvas 重繪去除中繼資料' },
+        { label: '輸出', value: 'PNG 保留透明；JPEG／WebP 依原格式' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        ftImageLocalFaq(`EXIF 解析與重繪在瀏覽器完成；部分 RAW 或超大圖可能無法讀取。`),
+      ]}
+      aside={
+        <FtAsidePreview
+          title="清除後預覽"
+          tag={cleanBlob ? <span className="tag">{formatBytes(cleanBlob.size)}</span> : null}
+        >
+          <FtImgAside src={preview} empty="上傳後顯示重繪結果" />
+        </FtAsidePreview>
       }
     >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        透過 Canvas 重繪去除 EXIF／GPSPNG 會以 PNG 匯出以保留透明；JPEG／WebP 依原格式輸出
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            disabled={busy}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
-          />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {formatBytes(origSize)}
-              {cleanBlob ? ` → ${formatBytes(cleanBlob.size)}` : ''}
-            </p>
-          )}
-          {busy && <p className="field-hint">處理中…</p>}
-          {note && <p className="field-hint">{note}</p>}
-          {error && <p className="field-error">{error}</p>}
-          <div className="label">偵測到的 EXIF</div>
+      <FtToolRoot>
+        <FtImageHero
+          emoji="🧹"
+          meta={imageMeta}
+          metaLine={note || (entries.length ? `偵測到 ${entries.length} 項 EXIF` : fileName ? '未偵測到 EXIF' : undefined)}
+          badge={cleanBlob ? <span className="tag">.{outExt}</span> : busy ? <span className="tag">處理中</span> : null}
+        />
+        <FtImageMetrics
+          meta={imageMeta}
+          extra={[
+            {
+              label: '輸出大小',
+              value: cleanBlob ? formatBytes(cleanBlob.size) : '—',
+              mono: true,
+            },
+            { label: 'EXIF 欄位', value: entries.length || '—' },
+          ]}
+        />
+        {busy && <p className="field-hint">處理中…</p>}
+        {error && <p className="field-error">{error}</p>}
+
+        <FtSection title="偵測到的 EXIF" hint="重繪匯出後中繼資料不會寫入新檔">
           {entries.length ? (
             <div className="stack" style={{ maxHeight: 320, overflow: 'auto', fontSize: 13 }}>
               {entries.map(([k, v]) => (
@@ -123,40 +168,19 @@ export default function Page() {
                   </span>
                 </div>
               ))}
-              <button type="button" className="btn sm ghost" onClick={() => void copyText(JSON.stringify(exif, null, 2))}>
+              <ActionButton className="btn sm ghost" onClick={() => void copyText(JSON.stringify(exif, null, 2))} icon="copy">
                 複製 JSON
-              </button>
+              </ActionButton>
             </div>
           ) : (
             <p className="muted" style={{ margin: 0 }}>{fileName ? '未偵測到 EXIF 或已為乾淨圖' : '上傳後顯示'}</p>
           )}
-          <button type="button" className="btn accent" disabled={!cleanBlob || busy} onClick={() => cleanBlob && downloadBlob(cleanBlob, outName)}>
-            下載無 EXIF（.{outExt}）
-          </button>
-        </div>
-        <div className="panel stack">
-          <div className="label">清除後預覽</div>
-          {preview ? (
-            <img
-              src={preview}
-              alt="preview"
-              style={{
-                maxWidth: '100%',
-                borderRadius: 12,
-                border: '1px solid var(--line)',
-                background:
-                  'linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%)',
-                backgroundSize: '16px 16px',
-                backgroundPosition: '0 0,0 8px,8px -8px,-8px 0',
-              }}
-            />
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </FtSection>
+
+        <ActionButton className="btn accent" disabled={!cleanBlob || busy} onClick={() => cleanBlob && downloadBlob(cleanBlob, outName)} icon="download">
+          下載無 EXIF（.{outExt}）
+        </ActionButton>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

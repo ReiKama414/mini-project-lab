@@ -1,6 +1,9 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT } from '../../lib/pdf'
 import { useState } from 'react'
 import { formatBytes, limitText, charCount } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -113,38 +116,44 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="僅支援 AcroForm 可填表單；XFA 或純掃描影像表單可能無欄位。匯出時會攤平欄位。"
+      infoItems={ftPdfInfoItems([
+        { label: '格式', value: 'AcroForm 文字／下拉等可填欄位' },
+        { label: '限制', value: `單檔 ${formatBytes(PDF_MAX)}` },
+      ])}
+      faq={ftPdfFaq}
       actions={
-        <button
-          type="button"
+        <ActionButton
           className="btn sm accent"
+          icon="download"
           disabled={!file || !fields.length || busy}
           onClick={() => void run()}
         >
-          下載
-        </button>
+          {busy ? '處理中…' : '下載'}
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        僅支援標準 AcroForm 可填表單（文字／下拉等）；不支援 XFA 或純掃描影像表單匯出時會攤平欄位單檔上限{' '}
-        {formatBytes(PDF_MAX)}
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
-          accept="application/pdf"
+          accept={PDF_ACCEPT}
           maxBytes={PDF_MAX}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
           hint={`上限 ${formatBytes(PDF_MAX)}`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {fields.length} 個欄位 · {formatBytes(file.size)}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+    >
+      <div className="stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          extra={[
+            ...(fields.length ? [{ label: '欄位', value: `${fields.length} 個` }] : []),
+            ...(busy && progress ? [{ label: '狀態', value: progress }] : []),
+          ]}
+        />
         {error && <p className="field-error">{error}</p>}
         {fields.map((row, i) => (
           <div key={row.name} className="field-wrap">
@@ -168,10 +177,7 @@ export default function Page() {
             </div>
           </div>
         ))}
-        <button type="button" className="btn accent" disabled={!file || !fields.length || busy} onClick={() => void run()}>
-          {busy ? progress || '處理中…' : '填寫並下載'}
-        </button>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

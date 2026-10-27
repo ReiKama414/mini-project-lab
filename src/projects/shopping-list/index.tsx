@@ -1,9 +1,17 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, downloadText, isNonEmpty, limitText, copyText, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import { AddButton } from '../../components/AddButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('shopping-list')!
 
@@ -19,6 +27,12 @@ const AISLES = ['生鮮蔬果', '肉類海鮮', '乳製品', '乾貨雜糧', '�
 const MAX_ITEMS = 200
 const MAX_NAME = 80
 const MAX_QTY = 20
+
+const SHOP_SAMPLES = [
+  { label: '牛奶', name: '牛奶', aisle: '乳製品', qty: '1' },
+  { label: '雞蛋', name: '雞蛋', aisle: '生鮮蔬果', qty: '1 盒' },
+  { label: '衛生紙', name: '衛生紙', aisle: '日用品', qty: '1 包' },
+]
 
 const LEGACY_AISLE: Record<string, string> = {
   生鮮: '生鮮蔬果',
@@ -148,16 +162,27 @@ export default function Page() {
     }
   }
 
+  function applyShopSample(s: (typeof SHOP_SAMPLES)[0]) {
+    setName(s.name)
+    setAisle(s.aisle)
+    setQty(s.qty)
+  }
+
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
         <div className="row">
-          <ActionButton className="btn ghost sm" onClick={shareText} icon="copy">{copied ? '已複製！' : '複製分享文字'}</ActionButton>
-          <ActionButton className="btn ghost sm" disabled={!items.length} onClick={exportJson}>匯出 JSON</ActionButton>
-          <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
+          <ActionButton className="btn sm ghost" onClick={shareText} icon="copy">
+            {copied ? '已複製！' : '複製分享文字'}
+          </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!items.length} onClick={exportJson} icon="download">
+            匯出 JSON
+          </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={() => importRef.current?.click()}>
             匯入 JSON
-          </button>
+          </ActionButton>
           <input
             ref={importRef}
             type="file"
@@ -170,16 +195,56 @@ export default function Page() {
           />
         </div>
       }
-    >
-      <div className="panel stack">
-        {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
-        <div className="row">
-          <div className="metric" style={{ fontSize: 22 }}>
-            未購 {pending}
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">快速品項</h2>
           </div>
-          <span className="tag">已購 {doneCount}</span>
-          <span className="muted">共 {items.length} 項</span>
-        </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {SHOP_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyShopSample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">未購 {pending}</span>
+            <span className="tag">已購 {doneCount}</span>
+            <span className="tag">共 {items.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '品項上限', value: `${MAX_ITEMS} 項` },
+        { label: '分享', value: '複製純文字清單，依走道分組' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '走道', body: '舊版「分類」欄位會自動對應到新走道名稱。' }]}
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🛒"
+          title={pending}
+          subtitle="待購品項"
+          meta={
+            <>
+              已購 {doneCount} · 共 {items.length} 項
+              <br />
+              走道：{filterAisle === 'all' ? '全部' : filterAisle}
+            </>
+          }
+          badge={pending === 0 && items.length > 0 ? <span className="tag">購物完成</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="未購" value={pending} />
+          <FtMetric label="已購" value={doneCount} />
+          <FtMetric label="走道數" value={byAisle.length} />
+          <FtMetric label="上限" value={`${items.length} / ${MAX_ITEMS}`} />
+        </FtMetricGrid>
+
+        <FtSection title="加入品項">
+        {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
         <div className="row">
           <div className="field-wrap" style={{ flex: 1, minWidth: 120 }}>
             <input
@@ -217,10 +282,13 @@ export default function Page() {
               <option key={c}>{c}</option>
             ))}
           </select>
-          <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
+          <AddButton onClick={add} disabled={!canAdd}>
             加入
-          </button>
+          </AddButton>
         </div>
+        </FtSection>
+
+        <FtSection title="清單操作">
         <div className="row">
           <select
             className="field"
@@ -235,24 +303,23 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <button type="button" className="btn sm ghost" onClick={() => checkAll(true)}>
+          <ActionButton className="btn sm ghost" onClick={() => checkAll(true)}>
             全部勾選
-          </button>
-          <button type="button" className="btn sm ghost" onClick={() => checkAll(false)}>
+          </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={() => checkAll(false)}>
             全部取消
-          </button>
-          <button
-            type="button"
+          </ActionButton>
+          <ActionButton
             className="btn sm ghost"
             style={{ marginLeft: 'auto' }}
             onClick={() => setItems(items.filter((i) => !i.done))}
           >
             清除已購
-          </button>
+          </ActionButton>
         </div>
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="依走道分組">
         {byAisle.map(([a, list]) => (
           <div key={a} className="stack" style={{ gap: 6 }}>
             <strong>
@@ -283,7 +350,8 @@ export default function Page() {
           </div>
         ))}
         {!visible.length && <p className="muted">清單是空的，開始加入品項吧</p>}
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

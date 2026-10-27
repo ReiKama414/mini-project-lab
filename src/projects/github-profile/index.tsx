@@ -1,5 +1,5 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout } from '../../components/FeatureLayout'
 import { ActionButton } from '../../components/ActionButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -220,8 +220,22 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      infoItems={[
+        { label: '資料來源', value: 'GitHub REST API（公開資料）' },
+        { label: '速率限制', value: '未登入約 60 次／小時／IP' },
+        { label: '倉庫列表', value: '單次最多取 100 筆公開倉庫' },
+        { label: '語言統計', value: '依本次載入的倉庫計數，非全帳號掃描' },
+      ]}
+      faq={[
+        {
+          title: '私人倉庫',
+          body: '無 Token 時僅能看公開欄位；私人倉庫數量不會出現在列表中。',
+        },
+        { title: '近期動態', body: '來自 events/public，部分帳號可能為空或延遲。' },
+        { title: '隱私', body: '帳號與選項記在本機；請求由瀏覽器直接送往 api.github.com。' },
+      ]}
       actions={
         <div className="row gh-shell-actions">
           <ActionButton
@@ -243,9 +257,8 @@ export default function Page() {
           )}
         </div>
       }
-    >
-      <div className="gh-calc">
-        <section className="panel gh-toolbar">
+      toolbar={
+        <>
           <div className="pw-panel-head">
             <h3 className="pw-panel-title">查詢</h3>
             {rateRemaining != null && (
@@ -285,7 +298,9 @@ export default function Page() {
             <span className={!isNonEmpty(user) ? 'warn' : undefined}>
               {isNonEmpty(user) ? '可查詢公開資料' : '請輸入帳號'}
             </span>
-            <span>{charCount(user)}/{USER_MAX}</span>
+            <span>
+              {charCount(user)}/{USER_MAX}
+            </span>
           </div>
           <div className="gh-samples">
             <span className="muted">範例：</span>
@@ -297,8 +312,10 @@ export default function Page() {
           </div>
           {error && <p className="field-error">{error}</p>}
           {loading && <p className="muted">正在載入個人資料與儲存庫…</p>}
-        </section>
-
+        </>
+      }
+    >
+      <div className="gh-calc">
         <div className="gh-main">
           <section className="panel gh-profile-panel">
             {!profile && !loading && (
@@ -434,42 +451,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel gh-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">資料來源</span>
-              <strong>GitHub REST API（公開資料）</strong>
-            </li>
-            <li>
-              <span className="muted">速率限制</span>
-              <strong>未登入約 60 次／小時／IP</strong>
-            </li>
-            <li>
-              <span className="muted">倉庫列表</span>
-              <strong>單次最多取 100 筆公開倉庫</strong>
-            </li>
-            <li>
-              <span className="muted">語言統計</span>
-              <strong>依本次載入的倉庫計數，非全帳號掃描</strong>
-            </li>
-          </ul>
-          <div className="gh-faq">
-            <p>
-              <strong>私人倉庫</strong>
-              無 Token 時僅能看公開欄位；私人倉庫數量不會出現在列表中。
-            </p>
-            <p>
-              <strong>近期動態</strong>
-              來自 <code>events/public</code>，部分帳號可能為空或延遲。
-            </p>
-            <p>
-              <strong>隱私</strong>
-              帳號與選項記在本機；請求由瀏覽器直接送往 api.github.com。
-            </p>
-          </div>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

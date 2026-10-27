@@ -1,6 +1,8 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT } from '../../lib/pdf'
 import { useEffect, useRef, useState } from 'react'
 import { clamp, formatBytes } from '../../lib/utils'
 import * as pdfjs from 'pdfjs-dist'
@@ -99,55 +101,36 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta}>
-      <p className="muted" style={{ marginBottom: 12 }}>
-        檔案僅在瀏覽器開啟，不會上傳單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁
-      </p>
-      <div className="panel stack">
+    <FeatureLayout
+      meta={meta}
+      footerHint="檔案僅在瀏覽器開啟，不會上傳。"
+      infoItems={ftPdfInfoItems([
+        { label: '渲染', value: 'pdf.js 本機翻頁預覽' },
+        { label: '本工具頁數', value: `最多 ${MAX_PAGES} 頁` },
+      ])}
+      faq={ftPdfFaq}
+      toolbar={
         <FileDrop
-          accept="application/pdf"
+          accept={PDF_ACCEPT}
           maxBytes={PDF_MAX}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX)} · 最多 ${MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {fileName && (
-          <p className="muted" style={{ margin: 0 }}>
-            {fileName} · {pageCount} 頁 · {formatBytes(fileSize)}
-            {busy || progress ? ` · ${progress || '載入中…'}` : ''}
-          </p>
-        )}
+      }
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={fileName || undefined}
+          sizeBytes={fileSize}
+          pageCount={pageCount}
+          extra={[
+            ...(pageCount > 0 ? [{ label: '目前頁', value: `${page} / ${pageCount}` }] : []),
+            ...(busy || progress ? [{ label: '狀態', value: progress || '載入中…' }] : []),
+          ]}
+        />
         {error && <p className="field-error">{error}</p>}
-        {pageCount > 0 && (
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn sm ghost" disabled={page <= 1 || busy} onClick={() => setPage((p) => p - 1)}>
-              上一頁
-            </button>
-            <span className="muted">
-              {page} / {pageCount}
-            </span>
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={page >= pageCount || busy}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              下一頁
-            </button>
-            <label className="stack" style={{ minWidth: 160 }}>
-              <span className="label">縮放 {scale.toFixed(1)}x</span>
-              <input
-                type="range"
-                min={5}
-                max={30}
-                disabled={busy}
-                value={Math.round(scale * 10)}
-                onChange={(e) => setScale(clamp(Number(e.target.value) / 10, 0.5, 3))}
-              />
-            </label>
-          </div>
-        )}
         <div
           style={{
             overflow: 'auto',
@@ -159,7 +142,39 @@ export default function Page() {
         >
           <canvas ref={canvasRef} style={{ display: 'block', margin: '0 auto', maxWidth: '100%' }} />
         </div>
+        {!pageCount && <p className="muted">上傳 PDF 後可在此翻頁預覽。</p>}
+        {pageCount > 0 && (
+          <FtSection title="瀏覽">
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <button type="button" className="btn sm ghost" disabled={page <= 1 || busy} onClick={() => setPage((p) => p - 1)}>
+                上一頁
+              </button>
+              <span className="muted">
+                {page} / {pageCount}
+              </span>
+              <button
+                type="button"
+                className="btn sm ghost"
+                disabled={page >= pageCount || busy}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                下一頁
+              </button>
+              <label className="stack" style={{ minWidth: 160 }}>
+                <span className="label">縮放 {scale.toFixed(1)}x</span>
+                <input
+                  type="range"
+                  min={5}
+                  max={30}
+                  disabled={busy}
+                  value={Math.round(scale * 10)}
+                  onChange={(e) => setScale(clamp(Number(e.target.value) / 10, 0.5, 3))}
+                />
+              </label>
+            </div>
+          </FtSection>
+        )}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

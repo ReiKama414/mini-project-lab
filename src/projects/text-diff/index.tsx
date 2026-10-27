@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import { ActionButton } from '../../components/ActionButton'
 import { useMemo, useState } from 'react'
@@ -95,39 +95,20 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <div className="row xc-shell-actions">
-          <ActionButton
-            className="btn sm ghost"
-            disabled={!result.diffCount}
-            onClick={() => void copyVal(report, 'out')}
-            icon="copy"
-          >
-            {copied === 'out' ? '已複製' : '複製差異'}
-          </ActionButton>
-          <ActionButton
-            className="btn sm accent"
-            disabled={!result.diffCount}
-            onClick={() => downloadText('text-diff.txt', report)}
-            icon="download"
-          >
-            下載
-          </ActionButton>
-        </div>
-      }
-    >
-      <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              {result.ready && !result.error && (
-                <span className="tag">{result.diffCount ? `${result.diffCount} 行不同` : '全部相同'}</span>
-              )}
-              {result.error && <span className="tag xc-tag-warn">無法比對</span>}
-            </div>
+      infoItems={[
+        { label: '演算法', value: '逐行對齊比較（非 LCS／Myers）；插入或刪除整行時後續行可能錯位' },
+        { label: '上限', value: `最多 ${LINE_CAP.toLocaleString()} 行、${MAX.toLocaleString()} 字元／側` },
+      ]}
+      faq={[ftPrivacyLocal, { title: '相關', body: 'JSON Diff' }]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            {result.ready && !result.error && (
+              <span className="tag">{result.diffCount ? `${result.diffCount} 行不同` : '全部相同'}</span>
+            )}
+            {result.error && <span className="tag xc-tag-warn">無法比對</span>}
           </div>
           <div className="pw-block">
             <div className="label">範例</div>
@@ -155,7 +136,29 @@ export default function Page() {
             </label>
           </div>
         </div>
-
+      }
+      actions={
+        <div className="row xc-shell-actions">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!result.diffCount}
+            onClick={() => void copyVal(report, 'out')}
+            icon="copy"
+          >
+            {copied === 'out' ? '已複製' : '複製差異'}
+          </ActionButton>
+          <ActionButton
+            className="btn sm accent"
+            disabled={!result.diffCount}
+            onClick={() => downloadText('text-diff.txt', report)}
+            icon="download"
+          >
+            下載
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="xc-calc">
         <div className="xc-main xc-view-split">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -283,24 +286,7 @@ export default function Page() {
           )}
         </section>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">演算法</span>
-              <strong>逐行對齊比較（非 LCS／Myers）；插入或刪除整行時後續行可能錯位</strong>
-            </li>
-            <li>
-              <span className="muted">上限</span>
-              <strong>最多 {LINE_CAP.toLocaleString()} 行、{MAX.toLocaleString()} 字元／側</strong>
-            </li>
-            <li>
-              <span className="muted">隱私</span>
-              <strong>本機比對，不上傳；相關：JSON Diff</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

@@ -1,10 +1,20 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtRowItem,
+  FtRowList,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('habit-tracker')!
 
@@ -12,6 +22,8 @@ type Habit = { id: string; name: string; checks: string[]; createdAt: number }
 
 const MAX_ITEMS = 50
 const MAX_NAME = 40
+
+const HABIT_SAMPLES = ['喝水 8 杯', '運動 30 分', '冥想 10 分', '早睡']
 
 function toKey(d: Date) {
   return d.toISOString().slice(0, 10)
@@ -104,30 +116,26 @@ export default function Page() {
     return Math.round((done / (habits.length * 7)) * 100)
   }, [habits, days])
 
-  return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <div className="grid-3">
-          <div className="metric">
-            <div className="muted">習慣數</div>
-            <div style={{ fontSize: 24 }}>{habits.length}</div>
-          </div>
-          <div className="metric">
-            <div className="muted">本週完成率</div>
-            <div style={{ fontSize: 24 }}>{weekRate}%</div>
-            <div className="progress" style={{ marginTop: 8 }}>
-              <span style={{ width: `${weekRate}%` }} />
-            </div>
-          </div>
-          <div className="metric">
-            <div className="muted">今日已打卡</div>
-            <div style={{ fontSize: 24 }}>
-              {habits.filter((h) => h.checks.includes(today)).length}/{habits.length}
-            </div>
-          </div>
-        </div>
+  const todayDone = habits.filter((h) => h.checks.includes(today)).length
 
-        <div className="row">
+  return (
+    <FeatureLayout
+      meta={meta}
+      variant="stacked"
+      actions={
+        <ActionButton
+          className="btn sm ghost"
+          disabled={!habits.length}
+          onClick={() => {
+            if (window.confirm('確定刪除全部習慣？')) setHabits([])
+          }}
+        >
+          清空習慣
+        </ActionButton>
+      }
+      toolbar={
+        <>
+          <div className="row">
           <div className="field-wrap" style={{ flex: 1 }}>
             <input
               className={`field${name.length > 0 && !nameOk ? ' is-invalid' : ''}`}
@@ -151,10 +159,70 @@ export default function Page() {
               </span>
             </div>
           </div>
-          <AddButton type="button"  onClick={add} disabled={!canAdd}>
-            新增</AddButton>
+          <AddButton type="button" onClick={add} disabled={!canAdd}>
+            新增
+          </AddButton>
         </div>
-
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {HABIT_SAMPLES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="btn sm ghost"
+                disabled={atLimit}
+                onClick={() => {
+                  setName(s)
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      aside={
+        <>
+          <FtToolHero
+            emoji="✅"
+            title={`今日 ${todayDone}/${habits.length}`}
+            subtitle={`本週完成率 ${weekRate}% · ${habits.length} 個習慣`}
+          />
+          <FtMetricGrid>
+            <FtMetric label="習慣數" value={habits.length} />
+            <FtMetric label="本週完成率" value={`${weekRate}%`} />
+            <FtMetric label="今日打卡" value={`${todayDone}/${habits.length}`} />
+            <FtMetric label="今日日期" value={today} mono />
+          </FtMetricGrid>
+          <div className="progress">
+            <span style={{ width: `${weekRate}%` }} />
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存', value: '本機 localStorage' },
+        { label: '習慣上限', value: `${MAX_ITEMS} 個` },
+        { label: '日期', value: '以 ISO 日期（本地時區）記錄打卡' },
+        { label: '連續天數', value: '從今天或昨天往回計算' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: '本週完成率',
+          body: '所有習慣在過去 7 天的打卡格數 ÷（習慣數 × 7）。',
+        },
+        {
+          title: '熱力圖',
+          body: '近 30 日格子可點擊切換打卡，方便補登或取消。',
+        },
+      ]}
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🔥"
+          title={`${habits.length} 個習慣`}
+          subtitle={`本週完成率 ${weekRate}% · 今日已打卡 ${todayDone}/${habits.length || 1}`}
+        />
         <div className="row muted" style={{ fontSize: 12, paddingLeft: 8 }}>
           <span style={{ width: 120 }}>習慣</span>
           {days.map((d) => (
@@ -164,17 +232,15 @@ export default function Page() {
           ))}
         </div>
 
-        <ul className="list">
+        <FtSection title="習慣打卡">
+        <FtRowList>
           {habits.map((h) => {
             const weekHits = days.filter((d) => h.checks.includes(d)).length
             const monthHits = days30.filter((d) => h.checks.includes(d)).length
             const streak = calcStreak(h.checks)
             return (
-              <li
-                key={h.id}
-                className="list-item"
-                style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}
-              >
+              <FtRowItem key={h.id}>
+              <div className="stack" style={{ flex: 1, gap: 10, width: '100%' }}>
                 <div className="row">
                   <strong style={{ flex: 1 }}>{h.name}</strong>
                   <span className="tag">連續 {streak} 天</span>
@@ -236,12 +302,14 @@ export default function Page() {
                     })}
                   </div>
                 </div>
-              </li>
+              </div>
+              </FtRowItem>
             )
           })}
+        </FtRowList>
           {!habits.length && <p className="muted">新增習慣開始打卡</p>}
-        </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { ActionButton } from '../../components/ActionButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -121,33 +121,21 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <div className="row xc-shell-actions">
-          <ActionButton className="btn sm ghost" disabled={!tags} onClick={() => void copyVal(tags, 'out')} icon="copy">
-            {copied === 'out' ? '已複製' : '複製'}
-          </ActionButton>
-          <ActionButton
-            className="btn sm accent"
-            onClick={() => downloadText('og-tags.html', tags, 'text/html')}
-            icon="download"
-          >
-            下載
-          </ActionButton>
-        </div>
-      }
-    >
-      <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              {isNonEmpty(title) && <span className="tag">標題 {charCount(title)}</span>}
-              {!urlOk && <span className="tag xc-tag-warn">網址無效</span>}
-              {!imgOk && <span className="tag xc-tag-warn">圖片無效</span>}
-              {fetching && <span className="tag">抓取中…</span>}
-            </div>
+      infoItems={[
+        { label: '預覽', value: '視覺示意，非各社群平台真實渲染；實際外觀依平台裁切與快取而定' },
+        { label: '抓取', value: '經第三方代理讀取網頁 HTML，可能受 CORS／配額限制' },
+        { label: '建議', value: 'og:image 建議 ≥ 1200×630；標題約 60 字內、描述約 160 字內' },
+      ]}
+      faq={[{ title: '相關', body: 'Meta Tags 產生器' }, ftPrivacyLocal]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            {isNonEmpty(title) && <span className="tag">標題 {charCount(title)}</span>}
+            {!urlOk && <span className="tag xc-tag-warn">網址無效</span>}
+            {!imgOk && <span className="tag xc-tag-warn">圖片無效</span>}
+            {fetching && <span className="tag">抓取中…</span>}
           </div>
           <div className="pw-block">
             <div className="label">範例</div>
@@ -183,7 +171,23 @@ export default function Page() {
           </div>
           {(fetchMsg || hint) && <p className="field-hint">{fetchMsg || hint}</p>}
         </div>
-
+      }
+      actions={
+        <div className="row xc-shell-actions">
+          <ActionButton className="btn sm ghost" disabled={!tags} onClick={() => void copyVal(tags, 'out')} icon="copy">
+            {copied === 'out' ? '已複製' : '複製'}
+          </ActionButton>
+          <ActionButton
+            className="btn sm accent"
+            onClick={() => downloadText('og-tags.html', tags, 'text/html')}
+            icon="download"
+          >
+            下載
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="xc-calc">
         <div className="xc-main">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -292,28 +296,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">預覽</span>
-              <strong>視覺示意，非各社群平台真實渲染；實際外觀依平台裁切與快取而定</strong>
-            </li>
-            <li>
-              <span className="muted">抓取</span>
-              <strong>經第三方代理讀取網頁 HTML，可能受 CORS／配額限制</strong>
-            </li>
-            <li>
-              <span className="muted">建議</span>
-              <strong>og:image 建議 ≥ 1200×630；標題約 60 字內、描述約 160 字內</strong>
-            </li>
-            <li>
-              <span className="muted">相關</span>
-              <strong>Meta Tags 產生器</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

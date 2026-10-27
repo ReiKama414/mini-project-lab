@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import { ActionButton } from '../../components/ActionButton'
 import { useMemo, useState } from 'react'
@@ -119,8 +119,42 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      infoItems={[
+        { label: '演算法', value: '路徑扁平化後比對鍵值（非完整 tree／LCS diff）' },
+        { label: '陣列', value: '以索引比對；重排可能顯示為多處變更' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '相關', body: 'Text Diff、JSON Formatter' }]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            {result.ready && !result.error && (
+              <span className="tag">{result.diff.length ? `${result.diff.length} 處差異` : '相同'}</span>
+            )}
+            {result.error && isNonEmpty(a) && isNonEmpty(b) && <span className="tag xc-tag-warn">解析失敗</span>}
+          </div>
+          <div className="pw-block">
+            <div className="label">範例</div>
+            <div className="pw-chips">
+              {SAMPLES.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className="btn sm ghost"
+                  onClick={() => {
+                    setA(s.a)
+                    setB(s.b)
+                    setHint(`已套用「${s.label}」`)
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      }
       actions={
         <div className="row xc-shell-actions">
           <ActionButton
@@ -143,39 +177,6 @@ export default function Page() {
       }
     >
       <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              {result.ready && !result.error && (
-                <span className="tag">{result.diff.length ? `${result.diff.length} 處差異` : '相同'}</span>
-              )}
-              {result.error && isNonEmpty(a) && isNonEmpty(b) && (
-                <span className="tag xc-tag-warn">解析失敗</span>
-              )}
-            </div>
-          </div>
-          <div className="pw-block">
-            <div className="label">範例</div>
-            <div className="pw-chips">
-              {SAMPLES.map((s) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  className="btn sm ghost"
-                  onClick={() => {
-                    setA(s.a)
-                    setB(s.b)
-                    setHint(`已套用「${s.label}」`)
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
         <div className="xc-main xc-view-split">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -298,24 +299,7 @@ export default function Page() {
           )}
         </section>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">演算法</span>
-              <strong>路徑扁平化後比對鍵值（非完整 tree／LCS diff）</strong>
-            </li>
-            <li>
-              <span className="muted">陣列</span>
-              <strong>以索引比對；重排可能顯示為多處變更</strong>
-            </li>
-            <li>
-              <span className="muted">隱私</span>
-              <strong>本機解析，不上傳；相關：Text Diff、JSON Formatter</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

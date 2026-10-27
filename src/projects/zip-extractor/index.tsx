@@ -1,11 +1,13 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import JSZip from 'jszip'
 import { downloadBlob } from '../../lib/imageCanvas'
 import { formatBytes } from '../../lib/utils'
+import { ActionButton } from '../../components/ActionButton'
+import { FtMetric, FtMetricGrid, FtSection, FtToolHero, FtToolRoot } from '../../components/FeatureToolUI'
 
 const meta: ProjectMeta = getProject('zip-extractor') ?? {
   slug: 'zip-extractor',
@@ -29,6 +31,9 @@ export default function Page() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
+
+  const fileCount = useMemo(() => entries.filter((e) => !e.dir).length, [entries])
+  const totalUncompressed = useMemo(() => entries.filter((e) => !e.dir).reduce((s, e) => s + e.size, 0), [entries])
 
   async function onFile(file: File | null) {
     if (!file) return
@@ -97,11 +102,14 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta}>
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機檢視並下載 ZIP 內檔案壓縮檔上限 {formatBytes(ZIP_MAX)}，最多 {ENTRY_MAX} 個項目
-      </p>
-      <div className="panel stack">
+    <FeatureLayout
+      meta={meta}
+      footerHint="本機檢視並下載 ZIP 內檔案。"
+      infoItems={[
+        { label: '限制', value: `壓縮檔 ${formatBytes(ZIP_MAX)}、最多 ${ENTRY_MAX} 個項目、單檔解壓 ${formatBytes(EXTRACT_MAX)}` },
+      ]}
+      faq={[ftPrivacyLocal]}
+      toolbar={
         <FileDrop
           accept=".zip,application/zip"
           maxBytes={ZIP_MAX}
@@ -110,35 +118,50 @@ export default function Page() {
           hint={`上限 ${formatBytes(ZIP_MAX)}`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {zipName && (
-          <p className="muted" style={{ margin: 0 }}>
-            {zipName} · {entries.length} 個項目
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
-        {busy && !zipName && <p className="muted">{progress || '讀取中…'}</p>}
+      }
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="📦"
+          title={zipName || '尚未載入 ZIP'}
+          subtitle={
+            zipName
+              ? `${entries.length} 個項目 · ${fileCount} 個檔案`
+              : '上傳後在本機列出內容，可個別下載'
+          }
+          meta={busy && progress ? progress : undefined}
+          badge={busy ? <span className="tag">處理中</span> : zipName ? <span className="tag">已載入</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="項目數" value={entries.length || '—'} />
+          <FtMetric label="檔案數" value={zipName ? fileCount : '—'} />
+          <FtMetric label="解壓總量（估）" value={zipName ? formatBytes(totalUncompressed) : '—'} mono />
+          <FtMetric label="模式" value="本機 JSZip" />
+        </FtMetricGrid>
         {error && <p className="field-error">{error}</p>}
-        <span className="metric">{entries.length} 個項目</span>
-        <ul className="list">
-          {entries.map((e) => (
-            <li key={e.path} className="list-item">
-              <span className="mono" style={{ flex: 1, wordBreak: 'break-all', fontSize: 13 }}>
-                {e.dir ? '[目錄] ' : ''}
-                {e.path}
-              </span>
-              {!e.dir && (
-                <>
-                  <span className="tag">{formatBytes(e.size)}</span>
-                  <button type="button" className="btn sm ghost" disabled={busy} onClick={() => void extractOne(e.path)}>
-                    下載
-                  </button>
-                </>
-              )}
-            </li>
-          ))}
-          {!entries.length && <p className="muted">上傳 ZIP 後會列出內容；解壓僅在本機進行</p>}
-        </ul>
-      </div>
-    </ProjectShell>
+        {busy && !zipName && <p className="muted">{progress || '讀取中…'}</p>}
+        <FtSection title="內容列表">
+          <ul className="list">
+            {entries.map((e) => (
+              <li key={e.path} className="list-item">
+                <span className="mono" style={{ flex: 1, wordBreak: 'break-all', fontSize: 13 }}>
+                  {e.dir ? '[目錄] ' : ''}
+                  {e.path}
+                </span>
+                {!e.dir && (
+                  <>
+                    <span className="tag">{formatBytes(e.size)}</span>
+                    <ActionButton className="btn sm ghost" disabled={busy} onClick={() => void extractOne(e.path)} icon="download">
+                      下載
+                    </ActionButton>
+                  </>
+                )}
+              </li>
+            ))}
+            {!entries.length && <p className="muted">上傳 ZIP 後會列出內容；解壓僅在本機進行</p>}
+          </ul>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

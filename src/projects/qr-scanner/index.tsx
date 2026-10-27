@@ -1,5 +1,5 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
@@ -7,6 +7,15 @@ import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, formatBytes, isNonEmpty, limitText, uid } from '../../lib/utils'
 import { IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { ActionButton } from '../../components/ActionButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtRowItem,
+  FtRowList,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('qr-scanner')!
 
@@ -367,24 +376,168 @@ export default function Page() {
     revokePreview()
   }, [stopCamera])
 
-  const samples = [
-    'https://github.com',
-    'WIFI:T:WPA;S:CafeWiFi;P:hello123;H:false;;',
-    'mailto:hello@lab.dev',
-    'TEL:+886912345678',
-    'BEGIN:VCARD\nVERSION:3.0\nFN:Lab User\nTEL:+886900000000\nEMAIL:lab@example.com\nEND:VCARD',
-    'geo:25.0330,121.5654',
+  const samples: { label: string; value: string }[] = [
+    { label: '網址', value: 'https://github.com' },
+    { label: 'Wi‑Fi', value: 'WIFI:T:WPA;S:CafeWiFi;P:hello123;H:false;;' },
+    { label: 'Email', value: 'mailto:hello@lab.dev' },
+    { label: '電話', value: 'TEL:+886912345678' },
+    {
+      label: 'vCard',
+      value:
+        'BEGIN:VCARD\nVERSION:3.0\nFN:Lab User\nTEL:+886900000000\nEMAIL:lab@example.com\nEND:VCARD',
+    },
+    { label: '座標', value: 'geo:25.0330,121.5654' },
   ]
 
   return (
-    <ProjectShell meta={meta}>
-      <div className="grid-2">
-        <div className="panel stack">
-          <p className="muted">
-            上傳含 QR 的圖片即可自動解碼；支援相機即時掃描
-            {barcodeFast ? '（BarcodeDetector 加速）' : '（jsQR）'}也可手動貼上內容
-          </p>
-
+    <FeatureLayout
+      meta={meta}
+      variant="stacked"
+      actions={
+        <div className="row">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!isNonEmpty(payload)}
+            onClick={() => copyText(payload)}
+            icon="copy"
+          >
+            複製原始
+          </ActionButton>
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!history.length}
+            onClick={() => setHistory([])}
+          >
+            清空歷史
+          </ActionButton>
+        </div>
+      }
+      toolbar={
+        <>
+          <div className="ft-samples">
+            <span className="muted">範例 payload：</span>
+            {samples.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyPayload(s.value)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      aside={
+        <>
+          <FtToolHero
+            emoji="📱"
+            title={decoded.summary}
+            subtitle={`類型 · ${decoded.type}`}
+            badge={
+              status && !error ? <span className="tag">{status}</span> : cameraOn ? <span className="tag">相機中</span> : null
+            }
+          />
+          <FtMetricGrid>
+            <FtMetric label="解碼引擎" value={barcodeFast ? 'BarcodeDetector' : 'jsQR'} />
+            <FtMetric label="歷史筆數" value={history.length} />
+            <FtMetric label="Payload 字元" value={charCount(payload)} mono />
+            <FtMetric label="相機" value={cameraSupported ? (cameraOn ? '掃描中' : '就緒') : '不支援'} />
+          </FtMetricGrid>
+          {decoded.details.length > 0 && (
+            <FtSection title="欄位">
+              <FtRowList>
+                {decoded.details.map((d) => (
+                  <FtRowItem key={d.label}>
+                    <div className="stack" style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                      <span className="muted" style={{ fontSize: 12 }}>
+                        {d.label}
+                      </span>
+                      <span className="mono" style={{ wordBreak: 'break-all' }}>
+                        {d.value}
+                      </span>
+                    </div>
+                    <ActionButton
+                      className="btn sm ghost"
+                      onClick={() => copyText(d.value)}
+                      icon="copy"
+                      iconOnly
+                      tooltip="複製"
+                    />
+                  </FtRowItem>
+                ))}
+              </FtRowList>
+            </FtSection>
+          )}
+          {decoded.actions.length > 0 && (
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              {decoded.actions.map((a) =>
+                a.href ? (
+                  <a key={a.label} className="btn sm teal" href={a.href} target="_blank" rel="noreferrer">
+                    {a.label}
+                  </a>
+                ) : (
+                  <ActionButton
+                    key={a.label}
+                    className="btn sm ghost"
+                    onClick={() => a.copy && copyText(a.copy)}
+                  >
+                    {a.label}
+                  </ActionButton>
+                ),
+              )}
+            </div>
+          )}
+          <FtSection title="歷史紀錄">
+            <FtRowList>
+              {history.map((h) => (
+                <FtRowItem key={h.id}>
+                  <div className="stack" style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                    <div className="row" style={{ flexWrap: 'wrap' }}>
+                      <span className="tag">{h.type}</span>
+                      <span className="muted" style={{ fontSize: 12 }}>
+                        {new Date(h.at).toLocaleString('zh-TW')}
+                      </span>
+                    </div>
+                    <span className="mono" style={{ fontSize: 13, wordBreak: 'break-all' }}>
+                      {h.text.slice(0, 120)}
+                      {h.text.length > 120 ? '…' : ''}
+                    </span>
+                  </div>
+                  <div className="row">
+                    <ActionButton className="btn sm accent" onClick={() => setPayload(h.text)}>
+                      載入
+                    </ActionButton>
+                    <ActionButton
+                      className="btn sm ghost"
+                      onClick={() => copyText(h.text)}
+                      icon="copy"
+                      iconOnly
+                      tooltip="複製"
+                    />
+                  </div>
+                </FtRowItem>
+              ))}
+            </FtRowList>
+            {!history.length && <p className="muted">尚無歷史</p>}
+          </FtSection>
+        </>
+      }
+      infoItems={[
+        { label: '解碼引擎', value: barcodeFast ? 'BarcodeDetector + jsQR 備援' : 'jsQR（本機）' },
+        { label: '圖片上限', value: formatBytes(IMAGE_MAX_BYTES) },
+        { label: 'Payload', value: `最多 ${PAYLOAD_MAX.toLocaleString()} 字元` },
+        { label: '歷史', value: '本機最多 30 筆' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: '相機權限',
+          body: '掃描需允許相機；若失敗請改上傳 QR 圖片或手動貼上內容。',
+        },
+        {
+          title: 'Wi‑Fi QR',
+          body: '解析結果僅供查看密碼與 SSID；是否自動連線取決於作業系統，本工具不會代連。',
+        },
+      ]}
+    >
+      <FtToolRoot>
           <FileDrop
             accept={IMAGE_ACCEPT}
             maxBytes={IMAGE_MAX_BYTES}
@@ -396,9 +549,9 @@ export default function Page() {
 
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {cameraSupported && !cameraOn && (
-              <button className="btn accent" type="button" disabled={busy} onClick={() => void startCamera()}>
+              <ActionButton className="btn accent" type="button" disabled={busy} onClick={() => void startCamera()}>
                 開啟相機掃描
-              </button>
+              </ActionButton>
             )}
             {cameraOn && (
               <ActionButton className="btn ghost" onClick={stopCamera}>關閉相機</ActionButton>
@@ -406,7 +559,6 @@ export default function Page() {
           </div>
 
           {busy && <p className="muted">處理中…</p>}
-          {status && !error && <p className="muted">{status}</p>}
           {error && <p className="field-error">{error}</p>}
 
           <video
@@ -449,101 +601,10 @@ export default function Page() {
               </span>
             </div>
           </label>
-          <div className="row">
-            <button className="btn accent" onClick={() => remember(payload)} disabled={!isNonEmpty(payload)}>
-              解析並加入歷史
-            </button>
-            <button className="btn ghost" onClick={() => copyText(payload)} disabled={!isNonEmpty(payload)}>
-              複製原始
-            </button>
-          </div>
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            {samples.map((s, i) => (
-              <button key={i} className="btn sm ghost" onClick={() => applyPayload(s)}>
-                範例 {i + 1}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="panel stack">
-          <div className="metric">
-            <div className="tag">{decoded.summary}</div>
-            <span className="muted" style={{ fontSize: 12 }}>
-              類型：{decoded.type}
-            </span>
-            <ul className="list" style={{ marginTop: 12 }}>
-              {decoded.details.map((d) => (
-                <li key={d.label} className="list-item">
-                  <div className="stack" style={{ flex: 1, gap: 2 }}>
-                    <span className="muted" style={{ fontSize: 12 }}>
-                      {d.label}
-                    </span>
-                    <span className="mono" style={{ wordBreak: 'break-all' }}>
-                      {d.value}
-                    </span>
-                  </div>
-                  <ActionButton className="btn sm ghost" onClick={() => copyText(d.value)} icon="copy" iconOnly tooltip="複製" />
-                </li>
-              ))}
-            </ul>
-            {decoded.actions.length > 0 && (
-              <div className="row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-                {decoded.actions.map((a) =>
-                  a.href ? (
-                    <a key={a.label} className="btn sm teal" href={a.href} target="_blank" rel="noreferrer">
-                      {a.label}
-                    </a>
-                  ) : (
-                    <button
-                      key={a.label}
-                      className="btn sm ghost"
-                      onClick={() => a.copy && copyText(a.copy)}
-                    >
-                      {a.label}
-                    </button>
-                  ),
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="row">
-            <span className="label">歷史紀錄</span>
-            <ActionButton
-              className="btn sm ghost"
-              style={{ marginLeft: 'auto' }}
-              onClick={() => setHistory([])}
-              disabled={!history.length}
-            >
-              清空
-            </ActionButton>
-          </div>
-          <ul className="list">
-            {history.map((h) => (
-              <li key={h.id} className="list-item">
-                <div className="stack" style={{ flex: 1, gap: 2 }}>
-                  <div className="row">
-                    <span className="tag">{h.type}</span>
-                    <span className="muted" style={{ fontSize: 12 }}>
-                      {new Date(h.at).toLocaleString('zh-TW')}
-                    </span>
-                  </div>
-                  <span className="mono" style={{ fontSize: 13, wordBreak: 'break-all' }}>
-                    {h.text.slice(0, 120)}
-                    {h.text.length > 120 ? '…' : ''}
-                  </span>
-                </div>
-                <button className="btn sm accent" onClick={() => setPayload(h.text)}>
-                  載入
-                </button>
-                <ActionButton className="btn sm ghost" onClick={() => copyText(h.text)} icon="copy" iconOnly tooltip="複製" />
-              </li>
-            ))}
-            {!history.length && <p className="muted">尚無歷史</p>}
-          </ul>
-        </div>
-      </div>
-    </ProjectShell>
+          <ActionButton className="btn accent" onClick={() => remember(payload)} disabled={!isNonEmpty(payload)}>
+            解析並加入歷史
+          </ActionButton>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

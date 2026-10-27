@@ -1,11 +1,19 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { ActionButton } from '../../components/ActionButton'
+import { FtSection, FtToolRoot } from '../../components/FeatureToolUI'
+import {
+  FtAsidePreview,
+  FtCanvasAside,
+  FtImageHero,
+  FtImageMetrics,
+  ftImageLocalFaq,
+} from '../../components/FtImageToolUI'
 const fallback: ProjectMeta = { slug: 'ai-background-remover', title: '啟發式去背', description: '以近白／綠幕或四角洪水填色去除背景', tier: 'feature', effort: '1～3 天', tags: ['image'] }
 const meta = getProject('ai-background-remover') ?? fallback
 
@@ -75,6 +83,9 @@ export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const srcRef = useRef<HTMLCanvasElement | null>(null)
   const [fileName, setFileName] = useState('')
+  const [fileSize, setFileSize] = useState(0)
+  const [imgW, setImgW] = useState(0)
+  const [imgH, setImgH] = useState(0)
   const [error, setError] = useState('')
   const [hasImage, setHasImage] = useState(false)
   const [mode, setMode] = useLocalStorage<Mode>('lab:ai-bg:mode', 'white')
@@ -97,11 +108,28 @@ export default function Page() {
     if (file.size > IMAGE_MAX_BYTES) { setError(`檔案過大（上限 ${formatBytes(IMAGE_MAX_BYTES)}）`); return }
     try {
       setError('')
-      srcRef.current = canvasFromImage(await loadImageFromFile(file)).canvas
+      const { canvas } = canvasFromImage(await loadImageFromFile(file))
+      srcRef.current = canvas
       setFileName(file.name)
+      setFileSize(file.size)
+      setImgW(canvas.width)
+      setImgH(canvas.height)
       setHasImage(true)
-    } catch { setError('無法讀取圖片'); setHasImage(false) }
+    } catch {
+      setError('無法讀取圖片')
+      setHasImage(false)
+      setFileSize(0)
+      setImgW(0)
+      setImgH(0)
+    }
   }
+
+  const imageMeta = useMemo(
+    () => ({ fileName, fileSize, width: imgW, height: imgH }),
+    [fileName, fileSize, imgW, imgH],
+  )
+
+  const modeLabel = mode === 'white' ? '近白背景' : mode === 'green' ? '綠幕' : '四角洪水'
 
   function download() {
     if (!canvasRef.current || !hasImage) return
@@ -110,32 +138,61 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta} actions={<ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG</ActionButton>}>
-      <p className="muted" style={{ marginBottom: 12 }}>啟發式去背（近白／綠幕／四角洪水），非深度學習模型</p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
-          />
-          {fileName && <p className="muted" style={{ fontSize: 13, margin: 0 }}>{fileName}</p>}
-          {error && <p className="field-error">{error}</p>}
+    <FeatureLayout
+      meta={meta}
+      variant="stacked"
+      toolbar={
+        <FileDrop
+          accept={IMAGE_ACCEPT}
+          maxBytes={IMAGE_MAX_BYTES}
+          label="拖放圖片到此，或點擊選擇"
+          hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)} · 啟發式去背（非雲端 AI）`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
+      }
+      actions={
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download} icon="download">
+          下載 PNG
+        </ActionButton>
+      }
+      infoItems={[
+        { label: '單檔上限', value: formatBytes(IMAGE_MAX_BYTES) },
+        { label: '演算法', value: '近白／綠幕／四角洪水（非 AI 模型）' },
+        { label: '輸出', value: '透明 PNG' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        ftImageLocalFaq(`像素級運算在瀏覽器執行；複雜背景或高解析度可能效果不佳。`),
+      ]}
+      aside={
+        <FtAsidePreview title="透明背景預覽" tag={hasImage ? <span className="tag">PNG</span> : null}>
+          <FtCanvasAside canvasRef={canvasRef} hasImage={hasImage} empty="上傳後即時去背預覽" checkerboard />
+        </FtAsidePreview>
+      }
+    >
+      <FtToolRoot>
+        <FtImageHero
+          emoji="✂️"
+          meta={imageMeta}
+          metaLine={hasImage ? `${modeLabel} · 容差 ${tolerance}` : '選擇模式與容差後右側即時預覽'}
+        />
+        <FtImageMetrics meta={imageMeta} extra={[{ label: '模式', value: hasImage ? modeLabel : '—' }]} />
+        {error && <p className="field-error">{error}</p>}
+        <FtSection title="去背模式">
           <div className="row">
             {([['white', '近白背景'], ['green', '綠幕'], ['flood', '四角洪水']] as [Mode, string][]).map(([id, label]) => (
               <button key={id} type="button" className={`btn sm ${mode === id ? 'accent' : 'ghost'}`} onClick={() => setMode(id)}>{label}</button>
             ))}
           </div>
-          <label className="stack"><span className="label">容差 {tolerance}</span><input type="range" min={5} max={120} value={tolerance} onChange={(e) => setTolerance(clamp(Number(e.target.value), 5, 120))} /></label>
-          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載透明 PNG</ActionButton>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          {hasImage ? <div style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'auto', maxHeight: 560, background: 'repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 50% / 16px 16px' }}><canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} /></div> : <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>上傳後預覽</div>}
-        </div>
-      </div>
-    </ProjectShell>
+          <label className="stack">
+            <span className="label">容差 {tolerance}</span>
+            <input type="range" min={5} max={120} value={tolerance} onChange={(e) => setTolerance(clamp(Number(e.target.value), 5, 120))} />
+          </label>
+        </FtSection>
+        <ActionButton className="btn accent" disabled={!hasImage} onClick={download} icon="download">
+          下載透明 PNG
+        </ActionButton>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

@@ -1,6 +1,8 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics } from '../../components/FeatureToolUI'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT } from '../../lib/pdf'
 import { useRef, useState } from 'react'
 import { formatBytes, copyText, downloadText, limitText, charCount } from '../../lib/utils'
 import * as pdfjs from 'pdfjs-dist'
@@ -84,40 +86,44 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="僅擷取內嵌文字層；掃描 PDF 需先 OCR。"
+      infoItems={ftPdfInfoItems([
+        { label: '本工具頁數', value: `最多 ${MAX_PAGES} 頁` },
+        { label: '單檔上限', value: formatBytes(PDF_MAX) },
+      ])}
+      faq={ftPdfFaq}
       actions={
         <div className="row">
           <ActionButton className="btn sm ghost" disabled={!text || busy} onClick={() => void copyText(text)} icon="copy" iconOnly tooltip="複製" />
-          <button
-            type="button"
+          <ActionButton
             className="btn sm accent"
+            icon="download"
             disabled={!text || busy}
             onClick={() => downloadText((fileName.replace(/\.pdf$/i, '') || 'pdf') + '-text.txt', text)}
           >
             下載 TXT
-          </button>
+          </ActionButton>
         </div>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        僅擷取內嵌文字層；掃描檔需先 OCR單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
-          accept="application/pdf"
+          accept={PDF_ACCEPT}
           maxBytes={PDF_MAX}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX)} · 最多 ${MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {fileName && (
-          <p className="muted" style={{ margin: 0 }}>
-            {fileName} · {pageCount} 頁
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+    >
+      <div className="stack">
+        <FtPdfFileMetrics
+          fileName={fileName || undefined}
+          pageCount={pageCount}
+          extra={busy && progress ? [{ label: '狀態', value: progress }] : []}
+        />
         {error && <p className="field-error">{error}</p>}
         {busy && (
           <ActionButton className="btn sm ghost" onClick={abort}>取消</ActionButton>
@@ -141,6 +147,6 @@ export default function Page() {
           </div>
         </div>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

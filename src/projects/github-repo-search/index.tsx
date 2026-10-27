@@ -1,14 +1,33 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { useState } from 'react'
+import { FeatureLayout } from '../../components/FeatureLayout'
+import { FtMetric, FtMetricGrid, FtToolHero, FtToolRoot } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
+import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { limitText, charCount, isNonEmpty, clamp, parseNumber, cn } from '../../lib/utils'
+import {
+  friendlyGithubHttpError,
+  formatRateLimitHint,
+  rateLimitFromHeaders,
+} from '../../lib/githubApi'
+import { charCount, clamp, cn, copyText, isNonEmpty, limitText, parseNumber } from '../../lib/utils'
 
 const meta = getProject('github-repo-search')!
 
 const Q_MAX = 200
 const LANG_MAX = 40
 const MAX_FAVS = 50
+const PER_PAGE = 10
+
+const QUERY_SAMPLES = [
+  { label: 'React TS', q: 'react typescript' },
+  { label: 'Next.js', q: 'next.js app router' },
+  { label: 'Rust CLI', q: 'rust cli' },
+  { label: 'LLM', q: 'llm inference' },
+]
+
+const STAR_PRESETS = [0, 100, 500, 1000, 5000]
+
+const LANGS = ['', 'TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'Swift', 'Kotlin']
 
 type Repo = {
   id: number
@@ -20,25 +39,15 @@ type Repo = {
   forks_count: number
   open_issues_count: number
   updated_at: string
+  created_at: string
   license: { spdx_id: string } | null
+  topics?: string[]
 }
 
 type FavRepo = {
   full_name: string
   html_url: string
   stargazers: number
-}
-
-const LANGS = ['', 'TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'Swift']
-const PER_PAGE = 10
-
-function rateLimitFromHeaders(headers: Headers): { remaining: number | null; reset: number | null } {
-  const rem = headers.get('x-ratelimit-remaining')
-  const reset = headers.get('x-ratelimit-reset')
-  return {
-    remaining: rem != null && rem !== '' ? Number(rem) : null,
-    reset: reset != null && reset !== '' ? Number(reset) : null,
-  }
 }
 
 export default function Page() {
@@ -57,13 +66,14 @@ export default function Page() {
   const [error, setError] = useState('')
   const [rateRemaining, setRateRemaining] = useState<number | null>(null)
   const [rateReset, setRateReset] = useState<number | null>(null)
+  const [copied, setCopied] = useState(false)
 
-  function buildQuery() {
+  const builtQuery = useMemo(() => {
     const parts = [q.trim()]
     if (language) parts.push(`language:${language}`)
     if (minStars > 0) parts.push(`stars:>=${minStars}`)
     return parts.filter(Boolean).join(' ')
-  }
+  }, [q, language, minStars])
 
   function isFav(fullName: string) {
     return favs.some((f) => f.full_name === fullName)
@@ -82,34 +92,27 @@ export default function Page() {
   }
 
   async function search(nextPage = 1, append = false) {
-    const query = buildQuery()
     if (!q.trim()) return
     setLoading(true)
     setError('')
     try {
       const url =
-        `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}` +
+        `https://api.github.com/search/repositories?q=${encodeURIComponent(builtQuery)}` +
         `&sort=${sort}&order=desc&per_page=${PER_PAGE}&page=${nextPage}`
       const res = await fetch(url)
       const rl = rateLimitFromHeaders(res.headers)
       if (rl.remaining != null) setRateRemaining(rl.remaining)
       if (rl.reset != null) setRateReset(rl.reset)
-      if (!res.ok) {
-        if (res.status === 403 || res.status === 429) {
-          throw new Error(
-            rl.remaining === 0
-              ? 'GitHub API 速率已用盡（搜尋 API 限制較嚴），請稍後再試'
-              : '請求被拒絕（可能觸及速率限制），請稍後再試',
-          )
-        }
-        throw new Error(`API 錯誤 ${res.status}`)
-      }
+      if (!res.ok) throw new Error(friendlyGithubHttpError(res.status, rl.remaining))
       const data = (await res.json()) as { items: Repo[]; total_count: number }
       setRepos((prev) => (append ? [...prev, ...data.items] : data.items))
       setTotal(data.total_count)
       setPage(nextPage)
     } catch (e) {
-      if (!append) setRepos([])
+      if (!append) {
+        setRepos([])
+        setTotal(0)
+      }
       setError(e instanceof Error ? e.message : '搜尋失敗')
     } finally {
       setLoading(false)
@@ -118,166 +121,245 @@ export default function Page() {
 
   const canLoadMore = repos.length < total && repos.length > 0
 
-  return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <div className="row">
-          <input
-            className={cn('field', !isNonEmpty(q) && 'is-invalid')}
-            style={{ flex: 1 }}
-            placeholder="搜尋關鍵字…"
-            maxLength={Q_MAX}
-            value={q}
-            onChange={(e) => setQ(limitText(e.target.value, Q_MAX))}
-            onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(q) && search(1, false)}
-          />
-          <button type="button" className="btn accent" onClick={() => search(1, false)} disabled={loading || !isNonEmpty(q)}>
-            {loading && page === 1 ? '搜尋中…' : '搜尋'}
-          </button>
-        </div>
-        <div className="field-meta">
-          <span className={!isNonEmpty(q) ? 'warn' : undefined}>{isNonEmpty(q) ? '可搜尋' : '請輸入關鍵字'}</span>
-          <span>{charCount(q)}/{Q_MAX}</span>
-        </div>
+  async function copyQuery() {
+    await copyText(builtQuery)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1400)
+  }
+
+  const toolbar = (
+    <>
+      <div className="pw-panel-head">
+        <h3 className="pw-panel-title">搜尋</h3>
         {rateRemaining != null && (
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            API 剩餘額度：{rateRemaining}
-            {rateReset != null && rateRemaining === 0
-              ? ` · 約於 ${new Date(rateReset * 1000).toLocaleTimeString('zh-TW')} 重置`
-              : ''}
-          </p>
+          <span className="tag gh-rate">{formatRateLimitHint(rateRemaining, rateReset)}</span>
         )}
-
-        <div className="grid-3">
-          <label className="stack" style={{ gap: 4 }}>
-            <span className="label">語言</span>
-            <select
-              className="field"
-              value={language}
-              onChange={(e) => setLanguage(limitText(e.target.value, LANG_MAX))}
-            >
-              {LANGS.map((l) => (
-                <option key={l || 'any'} value={l}>
-                  {l || '不限'}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="stack" style={{ gap: 4 }}>
-            <span className="label">最少 ★</span>
-            <input
-              className="field"
-              type="number"
-              min={0}
-              value={minStars}
-              onChange={(e) => setMinStars(clamp(parseNumber(e.target.value, 0), 0, 1000000))}
-            />
-          </label>
-          <label className="stack" style={{ gap: 4 }}>
-            <span className="label">排序</span>
-            <select
-              className="field"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as typeof sort)}
-            >
-              <option value="stars">Stars</option>
-              <option value="updated">最近更新</option>
-              <option value="forks">Forks</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="row">
-          <span className="muted">
-            查詢：<span className="mono">{buildQuery() || '—'}</span>
-          </span>
-          {total > 0 && (
-            <span className="tag" style={{ marginLeft: 'auto' }}>
-              約 {total.toLocaleString()} 筆 · 已顯示 {repos.length}
-            </span>
-          )}
-        </div>
-
-        {error && (
-          <p className="tag" style={{ background: '#d6406a', color: '#fff' }}>
-            {error}
-          </p>
-        )}
-
-        {favs.length > 0 && (
-          <div className="stack" style={{ gap: 8 }}>
-            <div className="row">
-              <span className="label">收藏（{favs.length}/{MAX_FAVS}）</span>
-              <button type="button" className="btn sm ghost" onClick={() => setFavs([])}>
-                清空收藏
+      </div>
+      <div className="row gh-search-row">
+        <input
+          className={cn('field', !isNonEmpty(q) && 'is-invalid')}
+          style={{ flex: 1 }}
+          placeholder="關鍵字、主題或 owner/repo…"
+          maxLength={Q_MAX}
+          value={q}
+          onChange={(e) => setQ(limitText(e.target.value, Q_MAX))}
+          onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(q) && search(1, false)}
+        />
+        <ActionButton
+          className="btn accent"
+          onClick={() => search(1, false)}
+          disabled={loading || !isNonEmpty(q)}
+          icon="search"
+        >
+          {loading && page === 1 ? '搜尋中…' : '搜尋'}
+        </ActionButton>
+      </div>
+      <div className="field-meta">
+        <span className={!isNonEmpty(q) ? 'warn' : undefined}>
+          {isNonEmpty(q) ? '可搜尋公開儲存庫' : '請輸入關鍵字'}
+        </span>
+        <span>{charCount(q)}/{Q_MAX}</span>
+      </div>
+      <div className="gh-samples">
+        <span className="muted">範例：</span>
+        {QUERY_SAMPLES.map((s) => (
+          <button key={s.label} type="button" className="btn sm ghost" onClick={() => setQ(s.q)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div className="gh-filters">
+        <label className="stack gh-filter">
+          <span className="label">語言</span>
+          <select
+            className="field"
+            value={language}
+            onChange={(e) => setLanguage(limitText(e.target.value, LANG_MAX))}
+          >
+            {LANGS.map((l) => (
+              <option key={l || 'any'} value={l}>
+                {l || '不限'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="stack gh-filter">
+          <span className="label">最少 ★</span>
+          <input
+            className="field"
+            type="number"
+            min={0}
+            value={minStars}
+            onChange={(e) => setMinStars(clamp(parseNumber(e.target.value, 0), 0, 1_000_000))}
+          />
+          <div className="gh-star-presets">
+            {STAR_PRESETS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={`btn sm ${minStars === n ? 'accent' : 'ghost'}`}
+                onClick={() => setMinStars(n)}
+              >
+                {n === 0 ? '不限' : `≥${n}`}
               </button>
+            ))}
+          </div>
+        </label>
+        <label className="stack gh-filter">
+          <span className="label">排序</span>
+          <select
+            className="field"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
+          >
+            <option value="stars">Stars</option>
+            <option value="updated">最近更新</option>
+            <option value="forks">Forks</option>
+          </select>
+        </label>
+      </div>
+      <div className="gh-query-preview">
+        <span className="muted">實際查詢：</span>
+        <code className="mono">{builtQuery || '—'}</code>
+        {total > 0 && (
+          <span className="tag gh-result-count">
+            約 {total.toLocaleString()} 筆 · 已顯示 {repos.length}
+          </span>
+        )}
+      </div>
+      {error && <p className="field-error">{error}</p>}
+    </>
+  )
+
+  return (
+    <FeatureLayout
+      meta={meta}
+      toolbar={toolbar}
+      actions={
+        <div className="row gh-shell-actions">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!builtQuery}
+            onClick={() => void copyQuery()}
+            icon="copy"
+          >
+            {copied ? '已複製' : '複製查詢字串'}
+          </ActionButton>
+        </div>
+      }
+      infoItems={[
+        { label: 'API', value: 'GitHub Search Repositories' },
+        { label: '搜尋限制', value: '約 30 次／分鐘（未認證，依 IP）' },
+        { label: '一般 REST', value: '約 60 次／小時（未認證）' },
+        { label: '收藏', value: `存於本機，最多 ${MAX_FAVS} 筆` },
+      ]}
+      faq={[
+        {
+          title: '查詢語法',
+          body: '支援 language:、stars:>=、topic: 等 GitHub 搜尋限定；多關鍵字以空白分隔。',
+        },
+        { title: '排序', body: '依 stars／forks／updated 排序；總筆數為 GitHub 回傳的近似值。' },
+        { title: '隱私', body: '搜尋與收藏設定記在本機；請求由瀏覽器直接送往 api.github.com。' },
+      ]}
+    >
+      <FtToolRoot>
+        {total > 0 && (
+          <>
+            <FtToolHero
+              emoji="🔍"
+              title={`約 ${total.toLocaleString()} 筆結果`}
+              subtitle={`查詢：${builtQuery}`}
+              meta={`已顯示 ${repos.length} 筆 · 排序 ${sort}`}
+              badge={loading ? <span className="tag">載入中</span> : null}
+            />
+            <FtMetricGrid>
+              <FtMetric label="總筆數（約）" value={total.toLocaleString()} />
+              <FtMetric label="已載入" value={repos.length} />
+              <FtMetric label="收藏" value={`${favs.length}/${MAX_FAVS}`} />
+              <FtMetric label="語言" value={language || '不限'} />
+            </FtMetricGrid>
+          </>
+        )}
+        <div className="gh-results-inner">
+        {favs.length > 0 && (
+          <div className="gh-favs-inline">
+            <div className="pw-panel-head">
+              <h3 className="pw-panel-title">收藏（{favs.length}/{MAX_FAVS}）</h3>
+              <ActionButton className="btn sm ghost" onClick={() => setFavs([])} icon="trash">
+                清空
+              </ActionButton>
             </div>
-            <ul className="list">
+            <ul className="gh-fav-list">
               {favs.map((f) => (
-                <li key={f.full_name} className="list-item">
-                  <a href={f.html_url} target="_blank" rel="noreferrer" style={{ fontWeight: 600, flex: 1 }}>
+                <li key={f.full_name} className="gh-fav-item">
+                  <a href={f.html_url} target="_blank" rel="noreferrer">
                     {f.full_name}
                   </a>
-                  <span className="tag">★ {f.stargazers.toLocaleString()}</span>
-                  <button type="button" className="btn sm ghost" onClick={() => setFavs((xs) => xs.filter((x) => x.full_name !== f.full_name))}>
+                  <span className="tag mono">★ {f.stargazers.toLocaleString()}</span>
+                  <ActionButton
+                    className="btn sm ghost"
+                    onClick={() => setFavs((xs) => xs.filter((x) => x.full_name !== f.full_name))}
+                    icon="none"
+                  >
                     取消
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        <ul className="list">
+        <h3 className="pw-panel-title">結果</h3>
+        {!loading && !repos.length && !error && (
+          <p className="muted gh-empty">輸入關鍵字並套用篩選後開始搜尋。</p>
+        )}
+        <ul className="gh-repo-list gh-repo-list-full">
           {repos.map((r) => (
-            <li
-              key={r.id}
-              className="list-item"
-              style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}
-            >
-              <div className="row">
-                <a href={r.html_url} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>
+            <li key={r.id} className="gh-repo-card">
+              <div className="gh-repo-head">
+                <a href={r.html_url} target="_blank" rel="noreferrer" className="gh-repo-name">
                   {r.full_name}
                 </a>
-                <span className="tag">★ {r.stargazers_count.toLocaleString()}</span>
-                <button
-                  type="button"
+                <span className="tag mono">★ {r.stargazers_count.toLocaleString()}</span>
+                <ActionButton
                   className={`btn sm ${isFav(r.full_name) ? 'teal' : 'ghost'}`}
                   onClick={() => toggleFav(r)}
                   disabled={!isFav(r.full_name) && favs.length >= MAX_FAVS}
+                  icon={isFav(r.full_name) ? 'check' : 'plus'}
                 >
                   {isFav(r.full_name) ? '已收藏' : '收藏'}
-                </button>
+                </ActionButton>
               </div>
-              <p className="muted" style={{ margin: 0 }}>
-                {r.description || '（無描述）'}
-              </p>
-              <div className="row muted" style={{ fontSize: 13, flexWrap: 'wrap' }}>
+              <p className="muted gh-repo-desc">{r.description || '（無描述）'}</p>
+              {r.topics && r.topics.length > 0 && (
+                <div className="gh-topics">
+                  {r.topics.slice(0, 6).map((t) => (
+                    <span key={t} className="tag">{t}</span>
+                  ))}
+                </div>
+              )}
+              <div className="gh-repo-meta muted">
                 <span>{r.language || '—'}</span>
-                <span>forks {r.forks_count}</span>
+                <span>forks {r.forks_count.toLocaleString()}</span>
                 <span>issues {r.open_issues_count}</span>
                 {r.license && <span>{r.license.spdx_id}</span>}
+                <span>建立 {new Date(r.created_at).toLocaleDateString('zh-TW')}</span>
                 <span>更新 {new Date(r.updated_at).toLocaleDateString('zh-TW')}</span>
               </div>
             </li>
           ))}
         </ul>
-
         {canLoadMore && (
-          <button
-            type="button"
+          <ActionButton
             className="btn teal"
             disabled={loading}
             onClick={() => search(page + 1, true)}
           >
             {loading ? '載入中…' : '載入更多'}
-          </button>
+          </ActionButton>
         )}
-
-        {!loading && !repos.length && !error && (
-          <p className="muted">輸入關鍵字並套用篩選後開始搜尋公開儲存庫</p>
-        )}
-      </div>
-    </ProjectShell>
+        </div>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

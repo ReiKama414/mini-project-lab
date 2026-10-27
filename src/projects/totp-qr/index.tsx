@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { ActionButton } from '../../components/ActionButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as OTPAuth from 'otpauth'
@@ -109,32 +109,22 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <div className="row xc-shell-actions">
-          <ActionButton
-            className="btn sm ghost"
-            disabled={!uri}
-            onClick={() => void copyVal(uri, 'uri')}
-            icon="copy"
-          >
-            {copied === 'uri' ? '已複製' : '複製 URI'}
-          </ActionButton>
-          <ActionButton className="btn sm accent" disabled={!uri} onClick={downloadPng} icon="download">
-            下載 QR
-          </ActionButton>
-        </div>
-      }
-    >
-      <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              <span className="tag">otpauth://totp</span>
-              {uri && <span className="tag">就緒</span>}
-            </div>
+      infoItems={[
+        { label: 'URI', value: '標準 otpauth://totp/…，可用 Authenticator 掃描' },
+        { label: '參數', value: 'SHA1、6 碼、30 秒（與 TOTP 工具一致）' },
+      ]}
+      faq={[
+        { title: 'Secret 儲存', body: 'Secret 預設只在記憶體；公用電腦請勿勾選記住。' },
+        ftPrivacyLocal,
+        { title: '相關', body: 'TOTP 驗證碼（即時代碼）' },
+      ]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            <span className="tag">otpauth://totp</span>
+            {uri && <span className="tag">就緒</span>}
           </div>
           <div className="pw-block">
             <div className="label">預設</div>
@@ -162,7 +152,24 @@ export default function Page() {
             </label>
           </div>
         </div>
-
+      }
+      actions={
+        <div className="row xc-shell-actions">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!uri}
+            onClick={() => void copyVal(uri, 'uri')}
+            icon="copy"
+          >
+            {copied === 'uri' ? '已複製' : '複製 URI'}
+          </ActionButton>
+          <ActionButton className="btn sm accent" disabled={!uri} onClick={downloadPng} icon="download">
+            下載 QR
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="xc-calc">
         <div className="xc-main xc-view-split">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -266,28 +273,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">URI</span>
-              <strong>標準 otpauth://totp/…，可用 Authenticator 掃描</strong>
-            </li>
-            <li>
-              <span className="muted">參數</span>
-              <strong>SHA1、6 碼、30 秒（與 TOTP 工具一致）</strong>
-            </li>
-            <li>
-              <span className="muted">隱私</span>
-              <strong>Secret 預設只在記憶體；公用電腦請勿勾選記住</strong>
-            </li>
-            <li>
-              <span className="muted">相關</span>
-              <strong>TOTP Generator（即時驗證碼）</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

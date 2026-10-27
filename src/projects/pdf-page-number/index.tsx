@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { ActionButton } from '../../components/ActionButton'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
 import { FileDrop } from '../../components/FileDrop'
 import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useState } from 'react'
@@ -111,86 +113,100 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="本機為每頁加上數字頁碼。"
+      infoItems={ftPdfInfoItems([
+        { label: '位置', value: '底部置中、底部右側或頂部置中' },
+      ])}
+      faq={[
+        { title: '起始頁碼', body: '可自訂第一頁顯示的數字（例如章節從 1 開始）。' },
+        ...ftPdfFaq,
+      ]}
       actions={
-        <button type="button" className="btn sm accent" disabled={!file || busy} onClick={() => void run()}>
-          下載
-        </button>
+        <ActionButton className="btn sm accent" disabled={!file || busy} onClick={() => void run()} icon="download">
+          {busy ? '處理中…' : '下載'}
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機為每頁加上數字頁碼單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={PDF_ACCEPT}
           maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${PDF_MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
-            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={[
+            ...(thumbsLoading && thumbsProgress ? [{ label: '縮圖', value: thumbsProgress }] : []),
+            ...(busy && progress ? [{ label: '狀態', value: progress }] : []),
+          ]}
+        />
         {error && <p className="field-error">{error}</p>}
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          {(
-            [
-              ['bottom-center', '底部置中'],
-              ['bottom-right', '底部右側'],
-              ['top-center', '頂部置中'],
-            ] as [Pos, string][]
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={`btn sm ${pos === id ? 'accent' : 'ghost'}`}
-              disabled={busy}
-              onClick={() => setPos(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <label className="stack">
-          <span className="label">起始頁碼</span>
-          <input
-            className="field"
-            type="number"
-            min={1}
-            max={9999}
-            disabled={busy}
-            value={start}
-            onChange={(e) => setStart(clamp(Number(e.target.value) || 1, 1, 9999))}
-          />
-        </label>
-        <label className="stack">
-          <span className="label">字級 {size}</span>
-          <input
-            type="range"
-            min={8}
-            max={36}
-            disabled={busy}
-            value={size}
-            onChange={(e) => setSize(clamp(Number(e.target.value), 8, 36))}
-          />
-        </label>
-        {file && pageCount > 0 && (
+        {file && pageCount > 0 ? (
           <>
             {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
             <PdfThumbGrid pageCount={pageCount} thumbs={thumbs} loading={thumbsLoading} mode="view" />
           </>
+        ) : (
+          <p className="muted">上傳 PDF 後可預覽各頁縮圖。</p>
         )}
-        <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
-          {busy ? progress || '處理中…' : '套用並下載'}
-        </button>
+        {file && (
+          <FtSection title="頁碼設定">
+            <div className="stack">
+              <div className="row" style={{ flexWrap: 'wrap' }}>
+                {(
+                  [
+                    ['bottom-center', '底部置中'],
+                    ['bottom-right', '底部右側'],
+                    ['top-center', '頂部置中'],
+                  ] as [Pos, string][]
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`btn sm ${pos === id ? 'accent' : 'ghost'}`}
+                    disabled={busy}
+                    onClick={() => setPos(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <label className="stack">
+                <span className="label">起始頁碼</span>
+                <input
+                  className="field"
+                  type="number"
+                  min={1}
+                  max={9999}
+                  disabled={busy}
+                  value={start}
+                  onChange={(e) => setStart(clamp(Number(e.target.value) || 1, 1, 9999))}
+                />
+              </label>
+              <label className="stack">
+                <span className="label">字級 {size}</span>
+                <input
+                  type="range"
+                  min={8}
+                  max={36}
+                  disabled={busy}
+                  value={size}
+                  onChange={(e) => setSize(clamp(Number(e.target.value), 8, 36))}
+                />
+              </label>
+            </div>
+          </FtSection>
+        )}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

@@ -1,10 +1,18 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import { AddButton } from '../../components/AddButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('event-countdown')!
 
@@ -28,6 +36,20 @@ const COLORS: { id: ColorTag; label: string; bg: string }[] = [
 
 const MAX_ITEMS = 100
 const MAX_TITLE = 80
+
+const EVENT_SAMPLES = [
+  { label: '跨年', title: '跨年派對', daysFromNow: 365 },
+  { label: '考試', title: '期末考', daysFromNow: 14 },
+  { label: '旅行', title: '出國旅行', daysFromNow: 30 },
+]
+
+function sampleDateTime(daysFromNow: number) {
+  const d = new Date()
+  d.setDate(d.getDate() + daysFromNow)
+  d.setHours(18, 0, 0, 0)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 function isValidDateTime(v: string) {
   if (!v) return false
@@ -148,16 +170,84 @@ export default function Page() {
     setRemindMsg(`已排程「${e.title}」提醒（約 ${mins} 分鐘後）`)
   }
 
+  function applyEventSample(s: (typeof EVENT_SAMPLES)[0]) {
+    setTitle(s.title)
+    setAt(sampleDateTime(s.daysFromNow))
+  }
+
+  const nextEvent = active[0]
+  const nextDiff = nextEvent ? diffParts(nextEvent.t, now) : null
+
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
-        <button className="btn ghost sm" onClick={autoArchivePast}>
+        <ActionButton className="btn sm ghost" onClick={autoArchivePast}>
           歸檔已過期
-        </button>
+        </ActionButton>
       }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">活動範例</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {EVENT_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyEventSample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">進行中 {active.length}</span>
+            <span className="tag">封存 {archived.length}</span>
+            <span className="tag">共 {events.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '活動上限', value: `${MAX_ITEMS} 個` },
+        { label: '提醒', value: '24 小時內可排程本機通知（需允許權限）' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '倒數', body: '列表每秒更新；已過期活動可一鍵歸檔至封存區。' }]}
     >
-      <div className="panel stack">
+      <FtToolRoot>
+        <FtToolHero
+          emoji="⏳"
+          title={
+            nextEvent && nextDiff && !nextDiff.past ? (
+              <span className="mono">
+                {nextDiff.days}天 {String(nextDiff.hours).padStart(2, '0')}:
+                {String(nextDiff.mins).padStart(2, '0')}:{String(nextDiff.secs).padStart(2, '0')}
+              </span>
+            ) : (
+              '—'
+            )
+          }
+          subtitle={nextEvent ? `最近：${nextEvent.title}` : '尚無進行中活動'}
+          meta={
+            nextEvent ? (
+              <>
+                {new Date(nextEvent.at).toLocaleString('zh-TW')}
+                <br />
+                排序：{sort === 'soon' ? '最近先' : sort === 'far' ? '最遠先' : '名稱'}
+              </>
+            ) : (
+              '新增活動開始倒數'
+            )
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="進行中" value={active.length} />
+          <FtMetric label="封存" value={archived.length} />
+          <FtMetric label="總活動" value={`${events.length} / ${MAX_ITEMS}`} />
+          <FtMetric label="已排程提醒" value={Object.keys(scheduled).length} />
+        </FtMetricGrid>
+
+        <FtSection title="新增活動">
         <div className="grid-2">
           <div className="stack" style={{ gap: 0 }}>
             <input
@@ -200,13 +290,13 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <button className="btn accent" onClick={add} disabled={!canAdd}>
+        <AddButton onClick={add} disabled={!canAdd}>
           加入倒數
-        </button>
+        </AddButton>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 個活動</p>}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="倒數列表">
         <div className="row">
           <span className="muted">排序</span>
           {(
@@ -311,7 +401,8 @@ export default function Page() {
             </ul>
           </div>
         )}
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

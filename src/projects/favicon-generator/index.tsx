@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import { ActionButton } from '../../components/ActionButton'
 import { useEffect, useRef, useState } from 'react'
@@ -99,25 +99,20 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <div className="row xc-shell-actions">
-          <ActionButton className="btn sm accent" onClick={download} icon="download">
-            下載 PNG
-          </ActionButton>
-        </div>
-      }
-    >
-      <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              <span className="tag">{s}×{s}</span>
-              {imgName && <span className="tag">{imgName}</span>}
-              {error && <span className="tag xc-tag-warn">圖片失敗</span>}
-            </div>
+      infoItems={[
+        { label: '輸出', value: 'Canvas 匯出單一尺寸 PNG（16–256），不含 .ico 多尺寸封裝' },
+        { label: '底圖', value: '可選上傳圖片；cover／contain 與是否疊字可調' },
+        { label: '字型', value: '依裝置系統字體；圖片不上傳、不持久化' },
+      ]}
+      faq={[{ title: '相關', body: 'Web Manifest、Meta Tags' }, ftPrivacyLocal]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            <span className="tag">{s}×{s}</span>
+            {imgName && <span className="tag">{imgName}</span>}
+            {error && <span className="tag xc-tag-warn">圖片失敗</span>}
           </div>
           <div className="pw-block">
             <div className="label">範例色塊</div>
@@ -171,7 +166,16 @@ export default function Page() {
             </div>
           )}
         </div>
-
+      }
+      actions={
+        <div className="row xc-shell-actions">
+          <ActionButton className="btn sm accent" onClick={download} icon="download">
+            下載 PNG
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="xc-calc">
         <div className="xc-main">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -244,28 +248,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">輸出</span>
-              <strong>Canvas 匯出單一尺寸 PNG（16–256），不含 .ico 多尺寸封裝</strong>
-            </li>
-            <li>
-              <span className="muted">底圖</span>
-              <strong>可選上傳圖片；cover／contain 與是否疊字可調</strong>
-            </li>
-            <li>
-              <span className="muted">字型</span>
-              <strong>依裝置系統字體；圖片不上傳、不持久化</strong>
-            </li>
-            <li>
-              <span className="muted">相關</span>
-              <strong>Web Manifest、Meta Tags</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

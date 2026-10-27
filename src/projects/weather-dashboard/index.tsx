@@ -1,5 +1,6 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout } from '../../components/FeatureLayout'
+import { FtToolHero } from '../../components/FeatureToolUI'
 import { ActionButton } from '../../components/ActionButton'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -402,8 +403,35 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      infoItems={[
+        { label: '資料來源', value: 'Open-Meteo（免費、免 API Key）' },
+        {
+          label: '目前城市',
+          value: `${place.name} · ${place.country}`,
+        },
+        {
+          label: '座標',
+          value: `${place.latitude.toFixed(4)}, ${place.longitude.toFixed(4)}`,
+        },
+        { label: '溫度單位', value: unit === 'C' ? '攝氏 °C' : '華氏 °F' },
+        { label: '預報範圍', value: '未來 12 小時 + 7 日' },
+      ]}
+      faq={[
+        {
+          title: '體感溫度',
+          body: '依風速與濕度推估的 apparent temperature，可能與實測溫度不同。',
+        },
+        {
+          title: 'UV 指數',
+          body: '取當日最高值：0–2 低、3–5 中、6–7 高、8–10 很高、11+ 極高。',
+        },
+        {
+          title: '隱私與限制',
+          body: '城市與單位會記在本機；天氣由瀏覽器直接向 Open-Meteo 請求，需網路。離線或 CORS／API 異常時會顯示錯誤。',
+        },
+      ]}
       actions={
         <div className="row wd-shell-actions">
           <ActionButton
@@ -424,50 +452,52 @@ export default function Page() {
           </ActionButton>
         </div>
       }
+      toolbar={
+        <>
+          <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <span className="label">溫度單位</span>
+            <div className="wd-unit" role="group" aria-label="溫度單位">
+              <button
+                type="button"
+                className={`btn sm ${unit === 'C' ? 'accent' : 'ghost'}`}
+                onClick={() => setUnit('C')}
+              >
+                °C
+              </button>
+              <button
+                type="button"
+                className={`btn sm ${unit === 'F' ? 'accent' : 'ghost'}`}
+                onClick={() => setUnit('F')}
+              >
+                °F
+              </button>
+            </div>
+          </div>
+          <label className="stack wd-search">
+            <span className="label">搜尋城市</span>
+            <div className="row">
+              <input
+                className="field"
+                style={{ flex: 1 }}
+                placeholder="例如：東京、大阪…"
+                value={query}
+                maxLength={QUERY_MAX}
+                onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
+              />
+              <span className="muted wd-count">
+                {charCount(query)}/{QUERY_MAX}
+              </span>
+            </div>
+          </label>
+          {isSearching && searching && <p className="muted">搜尋中…</p>}
+          {isSearching && searchError && <p className="field-error">{searchError}</p>}
+        </>
+      }
     >
       <div className="wd-calc">
         <div className="wd-main">
           <section className="panel wd-cities">
-            <div className="pw-panel-head">
-              <h3 className="pw-panel-title">城市</h3>
-              <div className="wd-unit" role="group" aria-label="溫度單位">
-                <button
-                  type="button"
-                  className={`btn sm ${unit === 'C' ? 'accent' : 'ghost'}`}
-                  onClick={() => setUnit('C')}
-                >
-                  °C
-                </button>
-                <button
-                  type="button"
-                  className={`btn sm ${unit === 'F' ? 'accent' : 'ghost'}`}
-                  onClick={() => setUnit('F')}
-                >
-                  °F
-                </button>
-              </div>
-            </div>
-
-            <label className="stack wd-search">
-              <span className="label">搜尋城市</span>
-              <div className="row">
-                <input
-                  className="field"
-                  style={{ flex: 1 }}
-                  placeholder="例如：東京、大阪…"
-                  value={query}
-                  maxLength={QUERY_MAX}
-                  onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
-                />
-                <span className="muted wd-count">
-                  {charCount(query)}/{QUERY_MAX}
-                </span>
-              </div>
-            </label>
-
-            {isSearching && searching && <p className="muted">搜尋中…</p>}
-            {isSearching && searchError && <p className="field-error">{searchError}</p>}
-
+            <h3 className="pw-panel-title">城市</h3>
             <ul className="wd-city-list" role="listbox" aria-label="城市列表">
               {listPlaces.map((d) => {
                 const cached = listCache[placeKey(d)]
@@ -529,11 +559,6 @@ export default function Page() {
                       : '尚無資料'}
                 </span>
               </div>
-              {weather && (
-                <span className={`tag ${weather.isDay ? '' : 'wd-night'}`}>
-                  {weather.isDay ? '日間' : '夜間'}
-                </span>
-              )}
             </div>
 
             {error && <p className="field-error">{error}</p>}
@@ -541,26 +566,20 @@ export default function Page() {
 
             {weather && (
               <div className="wd-detail-body">
-                <div className={`wd-hero ${weather.isDay ? 'is-day' : 'is-night'}`}>
-                  <div className="wd-hero-temp mono">
-                    {t(weather.temp)}
-                    <span>{unitLabel}</span>
-                  </div>
-                  <div className="wd-hero- Cond">
-                    <div className="wd-hero-cond">
-                      <span className="wd-hero-icon" aria-hidden>
-                        {weather.icon}
-                      </span>
-                      {weather.condition}
-                    </div>
-                    <div className="muted">
-                      體感 {t(weather.feels)}
-                      {unitLabel} · 最高 {t(weather.high)}
-                      {unitLabel} / 最低 {t(weather.low)}
+                <FtToolHero
+                  emoji={weather.icon}
+                  title={
+                    <span className="mono">
+                      {t(weather.temp)}
                       {unitLabel}
-                    </div>
-                  </div>
-                </div>
+                    </span>
+                  }
+                  subtitle={weather.condition}
+                  meta={`體感 ${t(weather.feels)}${unitLabel} · 最高 ${t(weather.high)}${unitLabel} / 最低 ${t(weather.low)}${unitLabel}`}
+                  badge={
+                    <span className={`tag ${weather.isDay ? '' : 'wd-night'}`}>{weather.isDay ? '日間' : '夜間'}</span>
+                  }
+                />
 
                 <div className="wd-metrics">
                   <div className="wd-metric">
@@ -653,51 +672,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel wd-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">資料來源</span>
-              <strong>Open-Meteo（免費、免 API Key）</strong>
-            </li>
-            <li>
-              <span className="muted">目前城市</span>
-              <strong>
-                {place.name} · {place.country}
-              </strong>
-            </li>
-            <li>
-              <span className="muted">座標</span>
-              <strong className="mono">
-                {place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}
-              </strong>
-            </li>
-            <li>
-              <span className="muted">溫度單位</span>
-              <strong>{unit === 'C' ? '攝氏 °C' : '華氏 °F'}</strong>
-            </li>
-            <li>
-              <span className="muted">預報範圍</span>
-              <strong>未來 12 小時 + 7 日</strong>
-            </li>
-          </ul>
-          <div className="wd-faq">
-            <p>
-              <strong>體感溫度</strong>
-              依風速與濕度推估的 apparent temperature，可能與實測溫度不同。
-            </p>
-            <p>
-              <strong>UV 指數</strong>
-              取當日最高值：0–2 低、3–5 中、6–7 高、8–10 很高、11+ 極高。
-            </p>
-            <p>
-              <strong>隱私與限制</strong>
-              城市與單位會記在本機；天氣由瀏覽器直接向 Open-Meteo 請求，需網路。離線或 CORS／API
-              異常時會顯示錯誤。
-            </p>
-          </div>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

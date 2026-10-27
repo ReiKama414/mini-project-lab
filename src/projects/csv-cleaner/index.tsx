@@ -1,5 +1,5 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useState } from 'react'
@@ -7,6 +7,7 @@ import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 import { parseCsv, stringifyCsv } from '../../lib/csv'
 import { ActionButton } from '../../components/ActionButton'
+import { FtMetric, FtMetricGrid, FtSection, FtToolHero, FtToolRoot } from '../../components/FeatureToolUI'
 
 const meta: ProjectMeta = getProject('csv-cleaner') ?? {
   slug: 'csv-cleaner',
@@ -69,11 +70,94 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta}>
-      <p className="muted" style={{ marginBottom: 12 }}>
-        以 RFC4180 解析後修剪／去重上傳上限 {formatBytes(FILE_MAX)}
-      </p>
-      <div className="panel stack">
+    <FeatureLayout
+      meta={meta}
+      footerHint="以 RFC4180 解析後修剪、去重。"
+      infoItems={[
+        { label: '功能', value: '修剪空白、移除空列、去除重複列' },
+        { label: '上傳', value: formatBytes(FILE_MAX) },
+      ]}
+      faq={[ftPrivacyLocal]}
+      toolbar={
+        <>
+          <FileDrop
+            accept=".csv,text/csv"
+            maxBytes={FILE_MAX}
+            disabled={busy}
+            label="拖放 CSV 到此，或點擊選擇"
+            hint={`上限 ${formatBytes(FILE_MAX)}`}
+            onFiles={(files) => {
+              void (async () => {
+                const f = files[0]
+                if (!f) return
+                setBusy(true)
+                try {
+                  setInput(limitText(await f.text(), MAX))
+                  setError('')
+                } catch {
+                  setError('讀取失敗')
+                } finally {
+                  setBusy(false)
+                }
+              })()
+            }}
+          />
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <label className="row" style={{ gap: 6 }}>
+              <input type="checkbox" checked={trimCells} onChange={(e) => setTrimCells(e.target.checked)} />
+              修剪儲存格空白
+            </label>
+            <label className="row" style={{ gap: 6 }}>
+              <input type="checkbox" checked={dropEmpty} onChange={(e) => setDropEmpty(e.target.checked)} />
+              移除空列
+            </label>
+            <label className="row" style={{ gap: 6 }}>
+              <input type="checkbox" checked={dedupe} onChange={(e) => setDedupe(e.target.checked)} />
+              去除重複列
+            </label>
+          </div>
+          <ActionButton className="btn accent" onClick={clean} disabled={!isNonEmpty(input) || busy} icon="none">
+            清理
+          </ActionButton>
+        </>
+      }
+      actions={
+        <>
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!out}
+            onClick={async () => {
+              await copyText(out)
+              setCopied(true)
+            }}
+            icon="copy"
+          >
+            {copied ? '已複製' : '複製'}
+          </ActionButton>
+          <ActionButton
+            className="btn sm accent"
+            disabled={!out}
+            onClick={() => downloadText('cleaned.csv', out, 'text/csv')}
+            icon="download"
+          >
+            下載
+          </ActionButton>
+        </>
+      }
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🧹"
+          title={stats || 'CSV 清理'}
+          subtitle={out ? `輸出 ${charCount(out).toLocaleString()} 字元` : '設定選項後按「清理」'}
+          badge={out ? <span className="tag">已清理</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="輸入字元" value={`${charCount(input).toLocaleString()} / ${MAX.toLocaleString()}`} mono />
+          <FtMetric label="修剪" value={trimCells ? '開' : '關'} />
+          <FtMetric label="去空列" value={dropEmpty ? '開' : '關'} />
+          <FtMetric label="去重" value={dedupe ? '開' : '關'} />
+        </FtMetricGrid>
         <label className="stack">
           <span className="label">輸入 CSV</span>
           <textarea
@@ -84,74 +168,17 @@ export default function Page() {
             disabled={busy}
             onChange={(e) => setInput(limitText(e.target.value, MAX))}
           />
-          <div className="field-meta">
-            <span>
-              {charCount(input).toLocaleString()} / {MAX.toLocaleString()}
-            </span>
-          </div>
         </label>
-        <FileDrop
-          accept=".csv,text/csv"
-          maxBytes={FILE_MAX}
-          disabled={busy}
-          label="拖放 CSV 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(FILE_MAX)}`}
-          onFiles={(files) => {
-            void (async () => {
-              const f = files[0]
-              if (!f) return
-              setBusy(true)
-              try {
-                setInput(limitText(await f.text(), MAX))
-                setError('')
-              } catch {
-                setError('讀取失敗')
-              } finally {
-                setBusy(false)
-              }
-            })()
-          }}
-        />
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <label className="row" style={{ gap: 6 }}>
-            <input type="checkbox" checked={trimCells} onChange={(e) => setTrimCells(e.target.checked)} />
-            修剪儲存格空白
-          </label>
-          <label className="row" style={{ gap: 6 }}>
-            <input type="checkbox" checked={dropEmpty} onChange={(e) => setDropEmpty(e.target.checked)} />
-            移除空列
-          </label>
-          <label className="row" style={{ gap: 6 }}>
-            <input type="checkbox" checked={dedupe} onChange={(e) => setDedupe(e.target.checked)} />
-            去除重複列
-          </label>
-        </div>
-        <div className="row">
-          <button type="button" className="btn accent" onClick={clean} disabled={!isNonEmpty(input) || busy}>
-            清理
-          </button>
-          <ActionButton
-            className="btn ghost"
-            disabled={!out}
-            onClick={async () => {
-              await copyText(out)
-              setCopied(true)
-            }}
-            icon="copy">
-            {copied ? '已複製' : '複製'}
-          </ActionButton>
-          <button type="button" className="btn ghost" disabled={!out} onClick={() => downloadText('cleaned.csv', out, 'text/csv')}>
-            下載
-          </button>
-        </div>
         {error && <p className="field-error">{error}</p>}
-        {stats && <p className="field-hint">{stats}</p>}
+        {stats && !error && <p className="field-hint">{stats}</p>}
         {out && (
-          <pre className="metric mono" style={{ whiteSpace: 'pre-wrap', maxHeight: 320, overflow: 'auto' }}>
-            {out}
-          </pre>
+          <FtSection title="清理結果">
+            <pre className="mono" style={{ whiteSpace: 'pre-wrap', maxHeight: 320, overflow: 'auto', margin: 0 }}>
+              {out}
+            </pre>
+          </FtSection>
         )}
-      </div>
-    </ProjectShell>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

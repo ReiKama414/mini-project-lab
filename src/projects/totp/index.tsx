@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { ActionButton } from '../../components/ActionButton'
 import { useEffect, useState } from 'react'
 import * as OTPAuth from 'otpauth'
@@ -98,8 +98,31 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      infoItems={[
+        { label: '規格', value: 'RFC 6238 TOTP：SHA1、6 碼、30 秒週期（otpauth）' },
+        { label: '驗證', value: '允許 ±1 時間視窗，以容忍輕微時鐘偏差' },
+      ]}
+      faq={[
+        { title: 'Secret 儲存', body: 'Secret 預設只在記憶體；勾選「記住」才寫入本機。' },
+        ftPrivacyLocal,
+        { title: '相關', body: 'TOTP QR（產生 otpauth URI／QR）' },
+      ]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            <span className="tag">SHA1 · 6 位 · 30s</span>
+            {code && <span className="tag">{remain}s</span>}
+          </div>
+          <div className="row xc-options">
+            <label className="xc-check">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+              記住 secret（寫入 localStorage）
+            </label>
+          </div>
+        </div>
+      }
       actions={
         <div className="row xc-shell-actions">
           <ActionButton
@@ -122,22 +145,6 @@ export default function Page() {
       }
     >
       <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              <span className="tag">SHA1 · 6 位 · 30s</span>
-              {code && <span className="tag">{remain}s</span>}
-            </div>
-          </div>
-          <div className="row xc-options">
-            <label className="xc-check">
-              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-              記住 secret（寫入 localStorage）
-            </label>
-          </div>
-        </div>
-
         <div className="xc-main xc-view-split">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -219,14 +226,9 @@ export default function Page() {
                       }}
                       style={{ flex: 1 }}
                     />
-                    <button
-                      type="button"
-                      className="btn teal"
-                      onClick={verify}
-                      disabled={!isNonEmpty(check)}
-                    >
+                    <ActionButton className="btn teal" onClick={verify} disabled={!isNonEmpty(check)} icon="none">
                       驗證
-                    </button>
+                    </ActionButton>
                   </div>
                   {ok === true && <p className="field-hint">驗證通過（±1 視窗）</p>}
                   {ok === false && <p className="field-error">驗證失敗</p>}
@@ -240,28 +242,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">規格</span>
-              <strong>RFC 6238 TOTP：SHA1、6 碼、30 秒週期（otpauth）</strong>
-            </li>
-            <li>
-              <span className="muted">驗證</span>
-              <strong>允許 ±1 時間視窗，以容忍輕微時鐘偏差</strong>
-            </li>
-            <li>
-              <span className="muted">隱私</span>
-              <strong>Secret 預設只在記憶體；勾選「記住」才寫入本機</strong>
-            </li>
-            <li>
-              <span className="muted">相關</span>
-              <strong>TOTP QR（產生 otpauth URI／QR）</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

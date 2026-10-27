@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useEffect, useRef, useState } from 'react'
@@ -177,36 +179,44 @@ export default function Page() {
   const actionsDisabled = !file || busy || loadingThumbs || !order.length
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={actionsDisabled} onClick={() => void run()}>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={actionsDisabled}
+          onClick={() => void run()}
+        >
           下載
-        </button>
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機預覽縮圖後可拖曳／上移／下移／刪除／反轉頁序單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多{' '}
-        {PDF_MAX_PAGES} 頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={PDF_ACCEPT}
           maxBytes={PDF_MAX_BYTES}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${PDF_MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · 原 {pageCount} 頁 · 目前保留 {order.length} 頁
-            {loadingThumbs && progress ? ` · ${progress}` : ''}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+      infoItems={ftPdfInfoItems()}
+      faq={ftPdfFaq}
+      footerHint="可拖曳列調整順序，或使用上移／下移／刪除／整份反轉。"
+    >
+      <div className="stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={[
+            ...(order.length ? [{ label: '保留', value: `${order.length} 頁` }] : []),
+            ...((loadingThumbs || busy) && progress ? [{ label: '狀態', value: progress }] : []),
+          ]}
+        />
         {error && <p className="field-error">{error}</p>}
         {loadingThumbs && <p className="field-hint">{progress || '載入縮圖中…'}</p>}
-        <div className="stack" style={{ maxHeight: 480, overflow: 'auto', gap: 10 }}>
+        <div className="stack" style={{ flex: 1, minHeight: 0, overflow: 'auto', gap: 10 }}>
           {order.map((pageIndex, i) => (
             <div
               key={`${pageIndex}-${i}`}
@@ -307,11 +317,8 @@ export default function Page() {
           >
             整份反轉
           </button>
-          <button type="button" className="btn accent" disabled={actionsDisabled} onClick={() => void run()}>
-            {busy ? progress || '處理中…' : '套用並下載'}
-          </button>
         </div>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

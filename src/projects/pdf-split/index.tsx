@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
 import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useState } from 'react'
@@ -150,66 +152,41 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!file || busy} onClick={() => void run()}>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={!file || busy}
+          onClick={() => void run()}
+        >
           {busy ? '處理中…' : '下載'}
-        </button>
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機分割 PDF，支援範圍與逐頁 ZIP單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES}{' '}
-        頁點擊縮圖可將頁碼加入範圍
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={PDF_ACCEPT}
           maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${PDF_MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
-            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+      infoItems={ftPdfInfoItems()}
+      faq={ftPdfFaq}
+      footerHint="範圍模式下點擊縮圖可將頁碼加入輸入框。"
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={busy && progress ? [{ label: '狀態', value: progress }] : []}
+        />
         {error && <p className="field-error">{error}</p>}
-        <div className="row">
-          <button
-            type="button"
-            className={`btn sm ${mode === 'range' ? 'accent' : 'ghost'}`}
-            disabled={busy}
-            onClick={() => setMode('range')}
-          >
-            頁碼範圍
-          </button>
-          <button
-            type="button"
-            className={`btn sm ${mode === 'each' ? 'accent' : 'ghost'}`}
-            disabled={busy}
-            onClick={() => setMode('each')}
-          >
-            逐頁分割
-          </button>
-        </div>
-        {mode === 'range' && (
-          <label className="stack">
-            <span className="label">頁碼（例：1-3,5；點縮圖可加入）</span>
-            <input
-              className="field"
-              value={range}
-              maxLength={200}
-              disabled={busy}
-              onChange={(e) => setRange(limitText(e.target.value, 200))}
-            />
-          </label>
-        )}
-        {file && pageCount > 0 && (
+        {file && pageCount > 0 ? (
           <>
             {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
             <PdfThumbGrid
@@ -220,11 +197,46 @@ export default function Page() {
               onToggle={mode === 'range' ? appendPageToRange : undefined}
             />
           </>
+        ) : (
+          <p className="muted">上傳 PDF 後可在此預覽頁面縮圖。</p>
         )}
-        <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
-          {busy ? progress || '處理中…' : '分割並下載'}
-        </button>
+        {file && (
+          <FtSection title="分割設定" hint="逐頁模式會打包成 ZIP；多段範圍亦可能輸出 ZIP。">
+            <div className="stack">
+              <div className="row">
+                <button
+                  type="button"
+                  className={`btn sm ${mode === 'range' ? 'accent' : 'ghost'}`}
+                  disabled={busy}
+                  onClick={() => setMode('range')}
+                >
+                  頁碼範圍
+                </button>
+                <button
+                  type="button"
+                  className={`btn sm ${mode === 'each' ? 'accent' : 'ghost'}`}
+                  disabled={busy}
+                  onClick={() => setMode('each')}
+                >
+                  逐頁分割
+                </button>
+              </div>
+              {mode === 'range' && (
+                <label className="stack">
+                  <span className="label">頁碼（例：1-3,5；點縮圖可加入）</span>
+                  <input
+                    className="field"
+                    value={range}
+                    maxLength={200}
+                    disabled={busy}
+                    onChange={(e) => setRange(limitText(e.target.value, 200))}
+                  />
+                </label>
+              )}
+            </div>
+          </FtSection>
+        )}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

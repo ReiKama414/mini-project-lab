@@ -1,13 +1,20 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
-import { useEffect, useState } from 'react'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, isNonEmpty, limitText } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import { FtMetric, FtMetricGrid, FtToolHero, FtToolRoot, FtToolSearch } from '../../components/FeatureToolUI'
 
 const meta = getProject('ip-lookup')!
 
 const QUERY_MAX = 45
+
+const SAMPLE_IPS = [
+  { label: 'Google DNS', ip: '8.8.8.8' },
+  { label: 'Cloudflare', ip: '1.1.1.1' },
+  { label: '本機公開', ip: '' },
+]
 
 type IpInfo = {
   ip: string
@@ -21,6 +28,12 @@ type IpInfo = {
   latitude?: number
   longitude?: number
   postal?: string
+  currency?: string
+  country_calling_code?: string
+  languages?: string
+  utc_offset?: string
+  network?: string
+  version?: string
   source?: string
 }
 
@@ -36,7 +49,24 @@ const MOCK: IpInfo = {
   latitude: 25.0375,
   longitude: 121.5637,
   postal: '100',
+  currency: 'TWD',
+  country_calling_code: '+886',
+  languages: 'zh-TW,zh',
+  utc_offset: '+0800',
+  network: '203.0.113.0/24',
+  version: 'IPv4',
   source: '示範資料（離線）',
+}
+
+function flagEmoji(code?: string) {
+  if (!code || code.length !== 2) return '🌐'
+  const u = code.toUpperCase()
+  return String.fromCodePoint(...[...u].map((c) => 127397 + c.charCodeAt(0)))
+}
+
+function mapUrl(lat?: number, lon?: number) {
+  if (lat == null || lon == null) return null
+  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=10/${lat}/${lon}`
 }
 
 async function fetchPublicIp(): Promise<string | null> {
@@ -59,7 +89,6 @@ async function fetchGeo(ip?: string): Promise<IpInfo> {
   return { ...data, source: 'ipapi.co' }
 }
 
-/** 透過 WebRTC 嘗試取得本機區域網路候選 IP（瀏覽器支援度不一） */
 function probeLocalIps(timeoutMs = 2500): Promise<string[]> {
   return new Promise((resolve) => {
     const found = new Set<string>()
@@ -73,7 +102,6 @@ function probeLocalIps(timeoutMs = 2500): Promise<string[]> {
       resolve([...found])
     }
     const timer = window.setTimeout(finish, timeoutMs)
-
     try {
       pc = new RTCPeerConnection({ iceServers: [] })
       pc.createDataChannel('lab')
@@ -105,13 +133,14 @@ export default function Page() {
   const [probing, setProbing] = useState(false)
   const [error, setError] = useState('')
   const [usedMock, setUsedMock] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
 
   async function lookup(ip?: string) {
     setLoading(true)
     setError('')
     setUsedMock(false)
     try {
-      let target = ip?.trim() || ''
+      let target = ip?.trim() || query.trim()
       if (!target) {
         const publicIp = await fetchPublicIp()
         if (publicIp) {
@@ -125,9 +154,7 @@ export default function Page() {
     } catch (e) {
       setInfo(MOCK)
       setUsedMock(true)
-      setError(
-        (e instanceof Error ? e.message : '無法取得 IP 資訊') + ' · 已改用示範資料',
-      )
+      setError((e instanceof Error ? e.message : '無法取得 IP 資訊') + ' · 已改用示範資料')
       if (!ip) setQuery(MOCK.ip)
     } finally {
       setLoading(false)
@@ -136,113 +163,231 @@ export default function Page() {
 
   async function probeLan() {
     setProbing(true)
-    const ips = await probeLocalIps()
-    setLocalIps(ips)
+    setLocalIps(await probeLocalIps())
     setProbing(false)
   }
 
   useEffect(() => {
-    lookup()
+    void lookup()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const rows: { label: string; value: string }[] = info
+  const locationLine = useMemo(() => {
+    if (!info) return '—'
+    return [info.city, info.region, info.country_name].filter(Boolean).join(' · ') || '—'
+  }, [info])
+
+  const mapLink = info ? mapUrl(info.latitude, info.longitude) : null
+
+  const metrics = useMemo(() => {
+    if (!info) return []
+    return [
+      { k: '國家代碼', v: info.country_code || '—' },
+      { k: '時區', v: info.timezone || '—' },
+      { k: 'UTC 偏移', v: info.utc_offset || '—' },
+      { k: '郵遞區號', v: info.postal || '—' },
+      { k: '貨幣', v: info.currency || '—' },
+      { k: '電話區碼', v: info.country_calling_code || '—' },
+      { k: '語言', v: info.languages || '—' },
+      { k: 'ASN', v: info.asn || '—' },
+      { k: '網段', v: info.network || '—' },
+      { k: 'IP 版本', v: info.version || '—' },
+      { k: '資料來源', v: info.source || '—' },
+    ]
+  }, [info])
+
+  async function copyVal(text: string, key: string) {
+    await copyText(text)
+    setCopied(key)
+    window.setTimeout(() => setCopied(null), 1400)
+  }
+
+  const summary = info
     ? [
-        { label: 'IP', value: info.ip },
-        {
-          label: '地點',
-          value: [info.city, info.region, info.country_name].filter(Boolean).join(', ') || '—',
-        },
-        { label: '國家代碼', value: info.country_code || '—' },
-        { label: '組織', value: info.org || '—' },
-        { label: 'ASN', value: info.asn || '—' },
-        { label: '時區', value: info.timezone || '—' },
-        { label: '郵遞區號', value: info.postal || '—' },
-        {
-          label: '座標',
-          value:
-            info.latitude != null && info.longitude != null
-              ? `${info.latitude}, ${info.longitude}`
-              : '—',
-        },
-        { label: '來源', value: info.source || '—' },
+        info.ip,
+        locationLine,
+        info.org || '',
+        info.timezone || '',
+        mapLink || '',
       ]
-    : []
+        .filter(Boolean)
+        .join('\n')
+    : ''
 
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <p className="muted">
-          公開 IP 透過 ipify，地理位置透過 ipapi.co；失敗時改用示範資料區域網路 IP 為選用
-          WebRTC 探測
-        </p>
-        <div className="row">
-          <input
-            className="field"
-            style={{ flex: 1 }}
-            placeholder="輸入 IP，空白則查本機公開 IP"
-            value={query}
-            maxLength={QUERY_MAX}
-            onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
-            onKeyDown={(e) => e.key === 'Enter' && lookup(query)}
-          />
-          <button className="btn accent" disabled={loading} onClick={() => lookup(query)}>
-            {loading ? '查詢中…' : '查詢'}
-          </button>
-          <button className="btn ghost" disabled={loading} onClick={() => lookup()}>
-            本機公開 IP
-          </button>
-          <button className="btn teal" disabled={probing} onClick={probeLan}>
-            {probing ? '探測中…' : '本機網路'}
-          </button>
+    <FeatureLayout
+      meta={meta}
+      actions={
+        <div className="row ipl-shell-actions">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!info}
+            onClick={() => info && void copyVal(info.ip, 'ip')}
+            icon="copy"
+          >
+            {copied === 'ip' ? '已複製' : '複製 IP'}
+          </ActionButton>
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!summary}
+            onClick={() => void copyVal(summary, 'sum')}
+          >
+            {copied === 'sum' ? '已複製' : '複製摘要'}
+          </ActionButton>
+          {mapLink && (
+            <ActionButton
+              className="btn sm accent"
+              onClick={() => window.open(mapLink, '_blank', 'noopener,noreferrer')}
+            >
+              開啟地圖
+            </ActionButton>
+          )}
         </div>
-        <div className="field-meta">
-          <span className="field-hint">{isNonEmpty(query) ? '指定 IP' : '空白＝本機公開 IP'}</span>
-          <span>
-            {charCount(query)} / {QUERY_MAX}
-          </span>
-        </div>
-
-        {error && <p className="muted">{error}</p>}
-        {usedMock && <span className="tag">示範模式</span>}
-
-        {info && (
-          <div className="grid-2">
-            {rows.map((r) => (
-              <div key={r.label} className="metric">
-                <div className="muted">{r.label}</div>
-                <div className="row">
-                  <span className={r.label === 'IP' || r.label === '座標' ? 'mono' : undefined}>
-                    {r.value}
-                  </span>
-                  {r.value !== '—' && (
-                    <ActionButton className="btn sm ghost" onClick={() => copyText(r.value)} icon="copy" iconOnly tooltip="複製" />
-                  )}
-                </div>
-              </div>
-            ))}
+      }
+      infoItems={[
+        { label: '公開 IP', value: 'api.ipify.org' },
+        { label: '地理資訊', value: 'ipapi.co（免 API Key）' },
+        { label: '離線備援', value: 'API 失敗時顯示 RFC5737 示範 IP' },
+        { label: '本機儲存', value: '僅記住上次查詢字串' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: '本機網路 IP',
+          body: '「本機網路」透過 WebRTC ICE 候選位址探測，不等於路由器 WAN IP，僅供除錯。',
+        },
+        {
+          title: '準確度',
+          body: '地理定位為 ISP 註冊地近似值，VPN／行動網路可能與實際位置差距大。',
+        },
+        {
+          title: '速率限制',
+          body: '免費 geolocation 有每日上限；若頻繁失敗請稍後再試或手動輸入 IP。',
+        },
+      ]}
+    >
+      <FtToolRoot>
+        <FtToolSearch>
+          <div className="row ipl-search-row">
+            <input
+              className="field"
+              style={{ flex: 1 }}
+              placeholder="輸入 IPv4／IPv6，空白則查本機公開 IP"
+              value={query}
+              maxLength={QUERY_MAX}
+              onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
+              onKeyDown={(e) => e.key === 'Enter' && void lookup(query)}
+            />
+            <ActionButton className="btn accent" disabled={loading} onClick={() => lookup(query)} icon="search">
+              {loading ? '查詢中…' : '查詢'}
+            </ActionButton>
           </div>
-        )}
-
-        {localIps.length > 0 && (
-          <div className="stack" style={{ gap: 8 }}>
-            <span className="label">本機候選 IP（WebRTC）</span>
-            <ul className="list">
-              {localIps.map((ip) => (
-                <li key={ip} className="list-item">
-                  <span className="mono">{ip}</span>
-                  <ActionButton className="btn sm ghost" onClick={() => copyText(ip)} icon="copy" iconOnly tooltip="複製" />
-                  <button className="btn sm teal" onClick={() => { setQuery(ip); lookup(ip) }}>
-                    查詢
-                  </button>
-                </li>
+          <div className="field-meta">
+            <span className="field-hint">{isNonEmpty(query) ? '指定 IP' : '空白＝本機公開 IP'}</span>
+            <span>{charCount(query)} / {QUERY_MAX}</span>
+          </div>
+          <div className="ipl-actions row">
+            <ActionButton className="btn sm ghost" disabled={loading} onClick={() => lookup()}>
+              本機公開 IP
+            </ActionButton>
+            <ActionButton className="btn sm teal" disabled={probing} onClick={() => void probeLan()}>
+              {probing ? '探測中…' : '探測本機網路'}
+            </ActionButton>
+            <div className="ipl-samples">
+              {SAMPLE_IPS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className="btn sm ghost"
+                  disabled={loading}
+                  onClick={() => {
+                    if (s.ip) {
+                      setQuery(s.ip)
+                      void lookup(s.ip)
+                    } else void lookup()
+                  }}
+                >
+                  {s.label}
+                </button>
               ))}
-            </ul>
+            </div>
           </div>
-        )}
-        {!probing && localIps.length === 0 && (
-          <p className="muted">尚未探測本機網路；部分瀏覽器可能無法取得區域 IP</p>
-        )}
-      </div>
-    </ProjectShell>
+          {(usedMock || error) && (
+            <p className={usedMock ? 'field-hint' : 'field-error'} role="status">
+              {error || '目前為示範資料'}
+            </p>
+          )}
+        </FtToolSearch>
+
+          {loading && !info ? (
+            <p className="muted">正在查詢…</p>
+          ) : info ? (
+            <FtToolHero
+              emoji={flagEmoji(info.country_code)}
+              title={<span className="mono">{info.ip}</span>}
+              subtitle={locationLine}
+              meta={
+                <>
+                  {info.org || '—'}
+                  {info.latitude != null && info.longitude != null && (
+                    <>
+                      <br />
+                      <span className="mono">{info.latitude}, {info.longitude}</span>
+                    </>
+                  )}
+                </>
+              }
+              badge={usedMock ? <span className="tag">示範</span> : null}
+            />
+          ) : (
+            <p className="muted">輸入 IP 或按「本機公開 IP」開始</p>
+          )}
+
+          {info && (
+            <FtMetricGrid>
+              {metrics.map((m) => (
+                <FtMetric
+                  key={m.k}
+                  label={m.k}
+                  value={m.v}
+                  mono={m.k === 'ASN' || m.k === '網段'}
+                />
+              ))}
+            </FtMetricGrid>
+          )}
+
+          {localIps.length > 0 && (
+            <section className="ipl-lan">
+              <h3 className="pw-panel-title">本機候選 IP（WebRTC）</h3>
+              <p className="muted ipl-lan-hint">部分瀏覽器可能無法取得；通常為區域網路位址。</p>
+              <ul className="ipl-lan-list">
+                {localIps.map((ip) => (
+                  <li key={ip} className="ipl-lan-item">
+                    <span className="mono">{ip}</span>
+                    <div className="row">
+                      <ActionButton
+                        className="btn sm ghost"
+                        onClick={() => void copyVal(ip, ip)}
+                        icon="copy"
+                        iconOnly
+                        tooltip="複製"
+                      />
+                      <ActionButton
+                        className="btn sm teal"
+                        onClick={() => {
+                          setQuery(ip)
+                          void lookup(ip)
+                        }}
+                      >
+                        查詢
+                      </ActionButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

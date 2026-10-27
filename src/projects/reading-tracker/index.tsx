@@ -1,10 +1,18 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import { AddButton } from '../../components/AddButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('reading-tracker')!
 
@@ -38,6 +46,12 @@ const STATUS_LABEL: Record<Status, string> = {
   reading: '閱讀中',
   done: '已讀完',
 }
+
+const BOOK_SAMPLES = [
+  { label: '科幻', title: '沙丘', author: 'Frank Herbert', pages: 688 },
+  { label: '推理', title: '東方快車謀殺案', author: 'Agatha Christie', pages: 256 },
+  { label: '技術', title: '深入淺出設計模式', author: 'Eric Freeman', pages: 638 },
+]
 
 const MAX_ITEMS = 200
 const MAX_TITLE = 120
@@ -176,41 +190,78 @@ export default function Page() {
     downloadText('reading-tracker.csv', `${header}\n${body}`, 'text/csv;charset=utf-8')
   }
 
+  function applyBookSample(s: (typeof BOOK_SAMPLES)[0]) {
+    setTitle(s.title)
+    setAuthor(s.author)
+    setPagesStr(String(s.pages))
+  }
+
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
         <div className="row" style={{ gap: 8 }}>
-          <ActionButton className="btn ghost sm" disabled={!books.length} onClick={exportJson}>匯出 JSON
-    </ActionButton>
-          <ActionButton className="btn ghost sm" disabled={!books.length} onClick={exportCsv}>匯出 CSV
-     </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!books.length} onClick={exportJson} icon="download">
+            匯出 JSON
+          </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!books.length} onClick={exportCsv} icon="download">
+            匯出 CSV
+          </ActionButton>
         </div>
       }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">書名範例</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {BOOK_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyBookSample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">顯示 {visible.length} 本</span>
+            <span className="tag">共 {books.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '書籍上限', value: `${MAX_ITEMS} 本` },
+        { label: 'Open Library', value: '選填搜尋，由瀏覽器請求 openlibrary.org' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        { title: '進度', body: '滑桿調整目前頁數；設為「已讀完」會記錄完成日期。' },
+      ]}
     >
-      <div className="panel stack">
-        <div className="grid-3">
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              閱讀中
-            </div>
-            <div style={{ fontSize: 24 }}>{stats.reading}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              已讀完
-            </div>
-            <div style={{ fontSize: 24 }}>{stats.done}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              累計頁數
-            </div>
-            <div style={{ fontSize: 24 }}>{stats.pagesRead}</div>
-          </div>
-        </div>
+      <FtToolRoot>
+        <FtToolHero
+          emoji="📖"
+          title={stats.pagesRead.toLocaleString()}
+          subtitle="累計閱讀頁數"
+          meta={
+            <>
+              閱讀中 {stats.reading} 本 · 已讀完 {stats.done} 本
+              <br />
+              狀態篩選：{filter === 'all' ? '全部' : STATUS_LABEL[filter]}
+            </>
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="閱讀中" value={stats.reading} />
+          <FtMetric label="已讀完" value={stats.done} />
+          <FtMetric label="書單總數" value={`${books.length} / ${MAX_ITEMS}`} />
+          <FtMetric label="想讀" value={books.filter((b) => b.status === 'want').length} />
+        </FtMetricGrid>
+
+        <FtSection title="加入書籍" hint="Open Library 搜尋為選填">
         <div className="label" style={{ margin: 0 }}>
-          Open Library 搜尋（選填）
+          Open Library 搜尋
         </div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <div className="stack" style={{ flex: 1, minWidth: 160, gap: 0 }}>
@@ -232,9 +283,9 @@ export default function Page() {
               </span>
             </div>
           </div>
-          <button type="button" className="btn ghost" disabled={olLoading || !olQ.trim()} onClick={() => void searchOpenLibrary()}>
+          <ActionButton className="btn ghost" disabled={olLoading || !olQ.trim()} onClick={() => void searchOpenLibrary()} icon="search">
             {olLoading ? '搜尋中…' : '搜尋'}
-          </button>
+          </ActionButton>
         </div>
         {olError && <p className="field-error">{olError}</p>}
         {olResults.length > 0 && (
@@ -304,14 +355,14 @@ export default function Page() {
             />
             {!pagesOk && <p className="field-error">頁數須為 1–{MAX_PAGES.toLocaleString()}</p>}
           </div>
-          <button className="btn accent" onClick={add} disabled={!canAdd} style={{ alignSelf: 'end' }}>
+          <AddButton onClick={add} disabled={!canAdd} style={{ alignSelf: 'end' }}>
             加入書單
-          </button>
+          </AddButton>
         </div>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 本，請先刪除再新增</p>}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="書單與進度">
         <div className="row">
           {(['all', 'reading', 'want', 'done'] as const).map((f) => (
             <button key={f} className={`btn sm ${filter === f ? 'accent' : 'ghost'}`} onClick={() => setFilter(f)}>
@@ -380,7 +431,8 @@ export default function Page() {
           })}
           {!visible.length && <p className="muted">尚無書籍，開始追蹤閱讀進度吧</p>}
         </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

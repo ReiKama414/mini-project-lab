@@ -1,8 +1,18 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, parseNumber, uid } from '../../lib/utils'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtRowItem,
+  FtRowList,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('quiz-app')!
 
@@ -222,17 +232,105 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta}>
-      {phase === 'setup' && (
-        <div className="panel stack">
-          <div className="label">題庫分類（共 {pool.length} 題{customQs.length ? `，含自訂 ${customQs.length}` : ''}）</div>
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            {cats.map((c) => (
-              <button key={c} type="button" className={`btn sm ${category === c ? 'accent' : 'ghost'}`} onClick={() => setCategory(c)}>
-                {c}
-              </button>
-            ))}
+    <FeatureLayout
+      meta={meta}
+      variant="stacked"
+      actions={
+        <div className="row">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!history.length}
+            onClick={() => setHistory([])}
+          >
+            清除成績
+          </ActionButton>
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!customQs.length}
+            onClick={() => setCustomQs([])}
+          >
+            清除自訂題
+          </ActionButton>
+        </div>
+      }
+      toolbar={
+        phase === 'setup' ? (
+          <>
+            <div className="label">題庫分類</div>
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              {cats.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`btn sm ${category === c ? 'accent' : 'ghost'}`}
+                  onClick={() => setCategory(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : phase === 'quiz' ? (
+          <div className="progress">
+            <span style={{ width: `${((i + (picked != null ? 1 : 0)) / queue.length) * 100}%` }} />
           </div>
+        ) : null
+      }
+      aside={
+        phase === 'setup' && history.length > 0 ? (
+          <FtSection title="成績紀錄">
+            <FtRowList>
+              {history.map((h) => (
+                <FtRowItem key={h.id}>
+                  <div className="stack" style={{ flex: 1, gap: 2 }}>
+                    <strong>
+                      {h.score}/{h.total}（{Math.round((h.score / Math.max(1, h.total)) * 100)}%）
+                    </strong>
+                    <span className="muted">
+                      {new Date(h.at).toLocaleString('zh-TW')} · {h.category}
+                      {h.timed ? ` · 限時 ${h.secondsUsed}s` : ` · 用時 ${h.secondsUsed}s`}
+                    </span>
+                  </div>
+                </FtRowItem>
+              ))}
+            </FtRowList>
+          </FtSection>
+        ) : undefined
+      }
+      infoItems={[
+        { label: '題庫', value: `內建 ${BANK.length} 題 + 自訂最多 ${MAX_CUSTOM}` },
+        { label: '每次測驗', value: '隨機 1–50 題' },
+        { label: '計時', value: '選用 15–300 秒總限時' },
+        { label: '成績', value: '本機保留最近 20 次' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: '自訂題格式',
+          body: 'JSON 陣列，每題含 q、options、answer（0 起算索引），可選 category。',
+        },
+        {
+          title: '計時模式',
+          body: '時間到會自動交卷並記錄成績；未勾選計時則以實際作答秒數記錄。',
+        },
+      ]}
+    >
+      <FtToolRoot>
+      {phase === 'setup' && (
+        <>
+          <FtToolHero
+            emoji="❓"
+            title={`題庫 ${pool.length} 題`}
+            subtitle={`分類「${category}」${customQs.length ? ` · 自訂 ${customQs.length} 題` : ''}`}
+            badge={history.length ? <span className="tag">紀錄 {history.length}</span> : null}
+          />
+          <FtMetricGrid>
+            <FtMetric label="可測題數" value={pool.length} />
+            <FtMetric label="內建題庫" value={BANK.length} />
+            <FtMetric label="自訂題" value={customQs.length} />
+            <FtMetric label="每次抽取" value={Math.min(pickN, pool.length)} />
+          </FtMetricGrid>
+          <FtSection title="開始測驗">
           <label className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             <span>抽取題數</span>
             <input
@@ -274,9 +372,9 @@ export default function Page() {
             )}
             {useTimer && <span className="muted">秒</span>}
           </label>
-          <button type="button" className="btn accent" onClick={start} disabled={!pool.length || !limitOk}>
+          <ActionButton type="button" className="btn accent" onClick={start} disabled={!pool.length || !limitOk}>
             開始測驗（隨機 {Math.min(pickN, pool.length)} 題）
-          </button>
+          </ActionButton>
 
           <div className="stack" style={{ gap: 8 }}>
             <strong>匯入自訂題（JSON）</strong>
@@ -291,9 +389,9 @@ export default function Page() {
               onChange={(e) => setImportText(e.target.value)}
             />
             <div className="row" style={{ flexWrap: 'wrap' }}>
-              <button type="button" className="btn sm teal" onClick={doImport} disabled={!importText.trim()}>
+              <ActionButton type="button" className="btn sm teal" onClick={doImport} disabled={!importText.trim()}>
                 驗證並合併
-              </button>
+              </ActionButton>
               <label className="btn sm ghost" style={{ cursor: 'pointer' }}>
                 選檔
                 <input
@@ -308,55 +406,27 @@ export default function Page() {
                   }}
                 />
               </label>
-              {customQs.length > 0 && (
-                <button type="button" className="btn sm danger" onClick={() => setCustomQs([])}>
-                  清除自訂題
-                </button>
-              )}
             </div>
             {importMsg && <span className="tag">{importMsg}</span>}
           </div>
-
-          {history.length > 0 && (
-            <div className="stack">
-              <strong>成績紀錄</strong>
-              <ul className="list">
-                {history.map((h) => (
-                  <li key={h.id} className="list-item">
-                    <div className="stack" style={{ flex: 1, gap: 2 }}>
-                      <strong>
-                        {h.score}/{h.total}（{Math.round((h.score / Math.max(1, h.total)) * 100)}%）
-                      </strong>
-                      <span className="muted">
-                        {new Date(h.at).toLocaleString('zh-TW')} · {h.category}
-                        {h.timed ? ` · 限時用了 ${h.secondsUsed}s` : ` · 用時 ${h.secondsUsed}s`}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <button type="button" className="btn sm ghost" onClick={() => setHistory([])}>
-                清除紀錄
-              </button>
-            </div>
-          )}
-        </div>
+          </FtSection>
+        </>
       )}
 
       {phase === 'quiz' && q && (
-        <div className="panel stack">
-          <div className="row">
-            <span className="tag">
-              第 {i + 1}/{queue.length} 題 · {q.category}
-            </span>
-            <span className="muted" style={{ marginLeft: 'auto' }}>
-              得分 {score}
-              {useTimer && ` · 剩餘 ${left}s`}
-            </span>
-          </div>
-          <div className="progress">
-            <span style={{ width: `${((i + (picked != null ? 1 : 0)) / queue.length) * 100}%` }} />
-          </div>
+        <>
+          <FtToolHero
+            emoji="✏️"
+            title={`第 ${i + 1} / ${queue.length} 題`}
+            subtitle={`${q.category} · 得分 ${score}${useTimer ? ` · 剩餘 ${left}s` : ''}`}
+          />
+          <FtMetricGrid>
+            <FtMetric label="進度" value={`${i + 1}/${queue.length}`} />
+            <FtMetric label="得分" value={score} />
+            <FtMetric label="分類" value={q.category} />
+            {useTimer ? <FtMetric label="剩餘秒數" value={left} /> : <FtMetric label="計時" value="關閉" />}
+          </FtMetricGrid>
+          <FtSection title="題目">
           <h2 style={{ margin: 0 }}>{q.q}</h2>
           <div className="stack">
             {q.options.map((opt, oi) => {
@@ -373,54 +443,63 @@ export default function Page() {
             })}
           </div>
           {picked != null && (
-            <button type="button" className="btn accent" onClick={next}>
+            <ActionButton type="button" className="btn accent" onClick={next}>
               {i + 1 >= queue.length ? '看結果' : '下一題'}
-            </button>
+            </ActionButton>
           )}
-        </div>
+          </FtSection>
+        </>
       )}
 
       {phase === 'result' && (
-        <div className="panel stack">
-          <div className="stack" style={{ textAlign: 'center' }}>
-            <div className="metric" style={{ fontSize: 36 }}>
-              {score} / {queue.length}
-            </div>
-            <p className="muted">答對率 {queue.length ? Math.round((score / queue.length) * 100) : 0}%</p>
-          </div>
+        <>
+          <FtToolHero
+            emoji="🎯"
+            title={`${score} / ${queue.length}`}
+            subtitle={`答對率 ${queue.length ? Math.round((score / queue.length) * 100) : 0}%`}
+            badge={wrong.length ? <span className="tag">錯 {wrong.length} 題</span> : null}
+          />
+          <FtMetricGrid>
+            <FtMetric label="答對" value={score} />
+            <FtMetric label="總題數" value={queue.length} />
+            <FtMetric label="答對率" value={`${queue.length ? Math.round((score / queue.length) * 100) : 0}%`} />
+            <FtMetric label="錯題" value={wrong.length} />
+          </FtMetricGrid>
           {wrong.length > 0 && (
-            <div className="stack">
+            <FtSection title={`錯題複習（${wrong.length}）`} hint={review ? undefined : '按下方按鈕展開'}>
               <div className="row">
-                <strong>錯題複習（{wrong.length}）</strong>
-                <button type="button" className="btn sm ghost" onClick={() => setReview((r) => !r)}>
+                <ActionButton type="button" className="btn sm ghost" onClick={() => setReview((r) => !r)}>
                   {review ? '收合' : '展開'}
-                </button>
+                </ActionButton>
               </div>
               {review && (
-                <ul className="list">
+                <FtRowList>
                   {wrong.map(({ q: wq, picked: p }) => (
-                    <li key={wq.id} className="list-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
-                      <strong>{wq.q}</strong>
-                      <span className="muted" style={{ color: 'var(--rose)' }}>
-                        你的答案：{wq.options[p]}
-                      </span>
-                      <span style={{ color: 'var(--teal)' }}>正解：{wq.options[wq.answer]}</span>
-                    </li>
+                    <FtRowItem key={wq.id}>
+                      <div className="stack" style={{ gap: 6 }}>
+                        <strong>{wq.q}</strong>
+                        <span className="muted" style={{ color: 'var(--rose)' }}>
+                          你的答案：{wq.options[p]}
+                        </span>
+                        <span style={{ color: 'var(--teal)' }}>正解：{wq.options[wq.answer]}</span>
+                      </div>
+                    </FtRowItem>
                   ))}
-                </ul>
+                </FtRowList>
               )}
-            </div>
+            </FtSection>
           )}
           <div className="row" style={{ justifyContent: 'center' }}>
-            <button type="button" className="btn accent" onClick={start}>
+            <ActionButton type="button" className="btn accent" onClick={start}>
               再測一次
-            </button>
-            <button type="button" className="btn ghost" onClick={() => setPhase('setup')}>
+            </ActionButton>
+            <ActionButton type="button" className="btn ghost" onClick={() => setPhase('setup')}>
               回到設定
-            </button>
+            </ActionButton>
           </div>
-        </div>
+        </>
       )}
-    </ProjectShell>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

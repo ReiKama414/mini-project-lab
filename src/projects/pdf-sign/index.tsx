@@ -1,5 +1,6 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
 import { FileDrop } from '../../components/FileDrop'
 import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useEffect, useRef, useState } from 'react'
@@ -205,46 +206,42 @@ export default function Page() {
   const selectedPage = new Set([clamp(pageNum, 1, Math.max(1, pageCount)) - 1])
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="手寫簽名以影像嵌入；空白簽名板不會寫入。點擊縮圖可選簽署頁。"
+      infoItems={ftPdfInfoItems([
+        { label: '簽名', value: '手寫簽名與姓名以影像嵌入' },
+        { label: '中文', value: '姓名以中文字型 rasterize，避免 Helvetica 缺字' },
+      ])}
+      faq={ftPdfFaq}
       actions={
-        <button type="button" className="btn sm accent" disabled={!file || busy} onClick={() => void run()}>
-          下載
-        </button>
+        <ActionButton className="btn sm accent" icon="download" disabled={!file || busy} onClick={() => void run()}>
+          {busy ? '處理中…' : '下載'}
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        手寫簽名以影像嵌入；姓名以中文字型畫成圖片後嵌入（避免 Helvetica 無法顯示中文）單檔上限{' '}
-        {formatBytes(PDF_MAX_BYTES)}；空白簽名板不會寫入點擊縮圖可選擇簽署頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={PDF_ACCEPT}
           maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${PDF_MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
-            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
-          </p>
-        )}
+      }
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={[
+            ...(pageCount ? [{ label: '簽署頁', value: String(pageNum || 1) }] : []),
+            ...(thumbsLoading && thumbsProgress ? [{ label: '縮圖', value: thumbsProgress }] : []),
+          ]}
+        />
         {error && <p className="field-error">{error}</p>}
-        <label className="stack">
-          <span className="label">簽署頁碼（1–{pageCount || '—'}）</span>
-          <input
-            className="field"
-            type="number"
-            min={1}
-            max={Math.max(1, pageCount)}
-            value={pageNum || 1}
-            onChange={(e) => setPageNum(clamp(Number(e.target.value) || 1, 1, Math.max(1, pageCount)))}
-          />
-        </label>
-        {file && pageCount > 0 && (
+        {file && pageCount > 0 ? (
           <>
             {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
             <PdfThumbGrid
@@ -255,51 +252,64 @@ export default function Page() {
               onToggle={(i) => setPageNum(i + 1)}
             />
           </>
+        ) : (
+          <p className="muted">上傳 PDF 後點擊縮圖選擇簽署頁。</p>
         )}
-        <div className="field-wrap">
-          <label className="label">簽署人姓名</label>
-          <input
-            className="field"
-            value={name}
-            maxLength={NAME_MAX}
-            onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
-          />
-          <div className="field-meta">
-            <span> </span>
-            <span>
-              {charCount(name)} / {NAME_MAX}
-            </span>
+        <FtSection title="簽名">
+          <div className="stack">
+            <label className="stack">
+              <span className="label">簽署頁碼（1–{pageCount || '—'}）</span>
+              <input
+                className="field"
+                type="number"
+                min={1}
+                max={Math.max(1, pageCount)}
+                value={pageNum || 1}
+                onChange={(e) => setPageNum(clamp(Number(e.target.value) || 1, 1, Math.max(1, pageCount)))}
+              />
+            </label>
+            <div className="field-wrap">
+              <label className="label">簽署人姓名</label>
+              <input
+                className="field"
+                value={name}
+                maxLength={NAME_MAX}
+                onChange={(e) => setName(limitText(e.target.value, NAME_MAX))}
+              />
+              <div className="field-meta">
+                <span> </span>
+                <span>
+                  {charCount(name)} / {NAME_MAX}
+                </span>
+              </div>
+            </div>
+            <div className="label">簽名板</div>
+            <canvas
+              ref={padRef}
+              style={{
+                width: '100%',
+                maxWidth: 480,
+                height: 160,
+                border: '1px solid var(--line)',
+                borderRadius: 12,
+                touchAction: 'none',
+                cursor: 'crosshair',
+                background: '#fff',
+              }}
+              onPointerDown={(e) => {
+                ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+                startDraw(e.clientX, e.clientY)
+              }}
+              onPointerMove={(e) => moveDraw(e.clientX, e.clientY)}
+              onPointerUp={endDraw}
+              onPointerCancel={endDraw}
+            />
+            <ActionButton className="btn sm ghost" onClick={clearPad}>
+              清除簽名
+            </ActionButton>
           </div>
-        </div>
-        <div className="label">簽名板</div>
-        <canvas
-          ref={padRef}
-          style={{
-            width: '100%',
-            maxWidth: 480,
-            height: 160,
-            border: '1px solid var(--line)',
-            borderRadius: 12,
-            touchAction: 'none',
-            cursor: 'crosshair',
-            background: '#fff',
-          }}
-          onPointerDown={(e) => {
-            ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-            startDraw(e.clientX, e.clientY)
-          }}
-          onPointerMove={(e) => moveDraw(e.clientX, e.clientY)}
-          onPointerUp={endDraw}
-          onPointerCancel={endDraw}
-        />
-        <div className="row">
-          <ActionButton className="btn sm ghost" onClick={clearPad}>清除簽名
-     </ActionButton>
-          <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
-            {busy ? '處理中…' : '套用並下載'}
-          </button>
-        </div>
+        </FtSection>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

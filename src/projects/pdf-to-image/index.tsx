@@ -1,13 +1,15 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT, PDF_MAX_BYTES } from '../../lib/pdf'
 import { useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { downloadBlob, downloadCanvas } from '../../lib/imageCanvas'
 import * as pdfjs from 'pdfjs-dist'
 import JSZip from 'jszip'
-import { ActionButton } from '../../components/ActionButton'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
@@ -20,7 +22,6 @@ const fallback: ProjectMeta = {
   tags: ['utility'],
 }
 const meta = getProject('pdf-to-image') ?? fallback
-const PDF_MAX = 25 * 1024 * 1024
 const MAX_PAGES = 40
 
 export default function Page() {
@@ -45,8 +46,8 @@ export default function Page() {
       setError('請上傳 PDF 檔案')
       return
     }
-    if (f.size > PDF_MAX) {
-      setError(`檔案過大（上限 ${formatBytes(PDF_MAX)}）`)
+    if (f.size > PDF_MAX_BYTES) {
+      setError(`檔案過大（上限 ${formatBytes(PDF_MAX_BYTES)}）`)
       return
     }
     const id = ++runId.current
@@ -157,67 +158,85 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!file || busy} onClick={() => void downloadAll()}>
-          {busy ? '處理中…' : '下載全部 ZIP'}
-        </button>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={!file || busy}
+          onClick={() => void downloadAll()}
+        >
+          {busy ? '處理中…' : '下載 ZIP'}
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        使用 pdf.js 本機渲染單檔上限 {formatBytes(PDF_MAX)}，最多 {MAX_PAGES} 頁；預覽最多前 5 頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
-          accept="application/pdf"
-          maxBytes={PDF_MAX}
+          accept={PDF_ACCEPT}
+          maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${MAX_PAGES} 頁 · 預覽前 5 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+      infoItems={ftPdfInfoItems([{ label: '本工具頁數上限', value: `${MAX_PAGES} 頁` }])}
+      faq={ftPdfFaq}
+      footerHint="使用 pdf.js 本機渲染為 PNG。"
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={busy && progress ? [{ label: '狀態', value: progress }] : []}
+        />
         {error && <p className="field-error">{error}</p>}
-        <label className="stack">
-          <span className="label">解析度倍率 {scale.toFixed(1)}x</span>
-          <input
-            type="range"
-            min={5}
-            max={30}
-            disabled={busy}
-            value={Math.round(scale * 10)}
-            onChange={(e) => setScale(clamp(Number(e.target.value) / 10, 0.5, 3))}
-          />
-        </label>
-        <p className="field-hint">變更倍率後請重新上傳以更新預覽；下載會使用目前倍率</p>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          {busy && (
-            <ActionButton className="btn sm ghost" onClick={abort}>取消</ActionButton>
-          )}
-          <button type="button" className="btn ghost" disabled={!previews.length || busy} onClick={() => void downloadFirst()}>
-            下載第 1 頁
-          </button>
-          <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void downloadAll()}>
-            {busy ? progress || '處理中…' : '下載全部 PNG ZIP'}
-          </button>
-        </div>
-        <div className="stack">
-          {previews.map((src, i) => (
+        {previews.length ? (
+          previews.map((src, i) => (
             <img
               key={i}
               src={src}
               alt={`第 ${i + 1} 頁`}
               style={{ maxWidth: '100%', borderRadius: 12, border: '1px solid var(--line)' }}
             />
-          ))}
-        </div>
+          ))
+        ) : (
+          <p className="muted">上傳 PDF 後可在此預覽前幾頁渲染結果。</p>
+        )}
+        {file && (
+          <FtSection title="輸出設定" hint="變更倍率後請重新上傳以更新預覽；下載使用目前倍率。">
+            <div className="stack">
+              <label className="stack">
+                <span className="label">解析度倍率 {scale.toFixed(1)}x</span>
+                <input
+                  type="range"
+                  min={5}
+                  max={30}
+                  disabled={busy}
+                  value={Math.round(scale * 10)}
+                  onChange={(e) => setScale(clamp(Number(e.target.value) / 10, 0.5, 3))}
+                />
+              </label>
+              <div className="row" style={{ flexWrap: 'wrap' }}>
+                {busy && (
+                  <ActionButton className="btn sm ghost" onClick={abort}>
+                    取消
+                  </ActionButton>
+                )}
+                <ActionButton
+                  className="btn sm ghost"
+                  icon="download"
+                  disabled={!previews.length || busy}
+                  onClick={() => void downloadFirst()}
+                >
+                  下載第 1 頁
+                </ActionButton>
+              </div>
+            </div>
+          </FtSection>
+        )}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

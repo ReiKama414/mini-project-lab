@@ -86,8 +86,6 @@ export default function Page() {
   const [append, setAppend] = useLocalStorage('lab:file-size-analyzer:append', true)
   const [view, setView] = useLocalStorage<ViewMode>('lab:file-size-analyzer:view', 'split')
 
-  const total = useMemo(() => rows.reduce((s, r) => s + r.size, 0), [rows])
-
   const extOptions = useMemo(() => {
     const map = new Map<string, number>()
     for (const r of rows) map.set(r.ext, (map.get(r.ext) || 0) + 1)

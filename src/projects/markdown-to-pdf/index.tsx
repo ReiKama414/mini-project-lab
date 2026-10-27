@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
+import { FtSection } from '../../components/FeatureToolUI'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { limitText, charCount, isNonEmpty } from '../../lib/utils'
@@ -159,58 +161,63 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="本機將 Markdown 轉為消毒後 HTML，再以多分頁點陣匯出（支援中文）。"
+      infoItems={ftPdfInfoItems([
+        { label: '流程', value: 'Markdown → 消毒 HTML → 點陣 PDF' },
+        { label: '本工具頁數', value: `最多 ${MAX_PAGES} 頁` },
+      ])}
+      faq={ftPdfFaq}
       actions={
-        <button type="button" className="btn sm accent" disabled={!isNonEmpty(md) || busy} onClick={() => void run()}>
-          下載 PDF
-        </button>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={!isNonEmpty(md) || busy}
+          onClick={() => void run()}
+        >
+          {busy ? '轉換中…' : '下載 PDF'}
+        </ActionButton>
       }
     >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機將 Markdown 轉為消毒後 HTML，再以多分頁點陣匯出（支援中文）最多 {MAX_PAGES} 頁
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          {error && <p className="field-error">{error}</p>}
-          {pageHint && <p className="field-hint">{pageHint}</p>}
-          {busy && progress && <p className="field-hint">{progress}</p>}
-          <div className="field-wrap">
-            <label className="label">Markdown</label>
-            <textarea
-              className="field mono"
-              rows={16}
-              value={md}
-              maxLength={MD_MAX}
-              disabled={busy}
-              onChange={(e) => setMd(limitText(e.target.value, MD_MAX))}
-            />
-            <div className="field-meta">
-              <span> </span>
-              <span>
-                {charCount(md)} / {MD_MAX}
-              </span>
+      <div className="ft-pdf-stack">
+        {error && <p className="field-error">{error}</p>}
+        {pageHint && <p className="field-hint">{pageHint}</p>}
+        {busy && progress && <p className="field-hint">{progress}</p>}
+        <div className="grid-2" style={{ alignItems: 'start' }}>
+          <FtSection title="Markdown">
+            <div className="field-wrap">
+              <textarea
+                className="field mono"
+                rows={16}
+                value={md}
+                maxLength={MD_MAX}
+                disabled={busy}
+                onChange={(e) => setMd(limitText(e.target.value, MD_MAX))}
+              />
+              <div className="field-meta">
+                <span> </span>
+                <span>
+                  {charCount(md)} / {MD_MAX}
+                </span>
+              </div>
             </div>
-          </div>
-          <button type="button" className="btn accent" disabled={!isNonEmpty(md) || busy} onClick={() => void run()}>
-            {busy ? progress || '轉換中…' : '轉成 PDF'}
-          </button>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          <div
-            style={{
-              border: '1px solid var(--line)',
-              borderRadius: 12,
-              padding: 16,
-              minHeight: 200,
-              maxHeight: 480,
-              overflow: 'auto',
-            }}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+          </FtSection>
+          <FtSection title="HTML 預覽">
+            <div
+              style={{
+                border: '1px solid var(--line)',
+                borderRadius: 12,
+                padding: 16,
+                minHeight: 200,
+                maxHeight: 480,
+                overflow: 'auto',
+              }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          </FtSection>
         </div>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

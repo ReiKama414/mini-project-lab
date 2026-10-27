@@ -1,5 +1,5 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import { AddButton } from '../../components/AddButton'
 import type { ProjectMeta } from '../registry'
@@ -8,6 +8,7 @@ import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 import { parseCsv, stringifyCsv } from '../../lib/csv'
 import { ActionButton } from '../../components/ActionButton'
+import { FtMetric, FtMetricGrid, FtSection, FtToolHero, FtToolRoot } from '../../components/FeatureToolUI'
 
 const meta: ProjectMeta = getProject('csv-editor') ?? {
   slug: 'csv-editor',
@@ -41,8 +42,7 @@ export default function Page() {
   const [fileName, setFileName] = useState('edited.csv')
 
   const csv = useMemo(() => stringifyCsv(rows), [rows])
-  const visibleRows =
-    previewLimit === 'all' ? rows : rows.slice(0, previewLimit)
+  const visibleRows = previewLimit === 'all' ? rows : rows.slice(0, previewLimit)
   const truncated = previewLimit !== 'all' && rows.length > previewLimit
 
   useEffect(() => {
@@ -122,33 +122,76 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          支援引號、逗號與換行欄位（RFC4180）編輯表格會同步更新匯出內容載入上限 {ROW_MAX} 列 × {COL_MAX}{' '}
-          欄；預覽可限制顯示列數以免卡頓
-        </p>
-        <FileDrop
-          accept=".csv,text/csv,text/plain"
-          maxBytes={FILE_MAX}
-          label="拖放 CSV 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(FILE_MAX)}`}
-          onFiles={(files) => void onFile(files[0] ?? null)}
+    <FeatureLayout
+      meta={meta}
+      footerHint="編輯表格會同步更新匯出內容；預覽可限制顯示列數以免卡頓。"
+      infoItems={[
+        { label: '格式', value: 'RFC4180 引號、逗號與換行欄位' },
+        { label: '限制', value: `載入 ${ROW_MAX} 列 × ${COL_MAX} 欄` },
+      ]}
+      faq={[ftPrivacyLocal]}
+      toolbar={
+        <>
+          <FileDrop
+            accept=".csv,text/csv,text/plain"
+            maxBytes={FILE_MAX}
+            label="拖放 CSV 到此，或點擊選擇"
+            hint={`上限 ${formatBytes(FILE_MAX)}`}
+            onFiles={(files) => void onFile(files[0] ?? null)}
+          />
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+            <ActionButton className="btn accent" onClick={() => loadFromText(raw)} icon="none">
+              從文字載入
+            </ActionButton>
+            <AddButton type="button" className="ghost" onClick={addRow}>
+              新增列
+            </AddButton>
+            <AddButton type="button" className="ghost" onClick={addCol}>
+              新增欄
+            </AddButton>
+            <ActionButton
+              className="btn ghost"
+              onClick={async () => {
+                await copyText(csv)
+                setCopied(true)
+              }}
+              icon="copy"
+            >
+              {copied ? '已複製' : '複製'}
+            </ActionButton>
+            <ActionButton
+              className="btn teal"
+              onClick={() => downloadText(fileName, `\uFEFF${csv}`, 'text/csv')}
+              icon="download"
+            >
+              下載
+            </ActionButton>
+          </div>
+        </>
+      }
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="📊"
+          title={`${rows.length} 列 × ${rows[0]?.length ?? 0} 欄`}
+          subtitle={truncated ? `編輯區顯示前 ${previewLimit} 列（匯出含全部 ${rows.length} 列）` : '表格編輯與匯出同步'}
+          meta={`匯出檔名：${fileName}`}
         />
+        <FtMetricGrid>
+          <FtMetric label="列數" value={rows.length} />
+          <FtMetric label="欄數" value={rows[0]?.length ?? 0} />
+          <FtMetric label="字元" value={`${charCount(raw).toLocaleString()} / ${MAX.toLocaleString()}`} mono />
+          <FtMetric label="預覽" value={previewLimit === 'all' ? '全部' : `前 ${previewLimit}`} />
+        </FtMetricGrid>
         <label className="stack">
           <span className="label">原始 CSV</span>
           <textarea
             className={`field mono${error ? ' is-invalid' : ''}`}
-            rows={5}
+            rows={4}
             value={raw}
             maxLength={MAX}
             onChange={(e) => setRaw(limitText(e.target.value, MAX))}
           />
-          <div className="field-meta">
-            <span>
-              {charCount(raw).toLocaleString()} / {MAX.toLocaleString()}
-            </span>
-          </div>
         </label>
         <label className="stack">
           <span className="label">預覽列數</span>
@@ -166,64 +209,41 @@ export default function Page() {
             <option value="all">全部（可能卡頓）</option>
           </select>
         </label>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button type="button" className="btn accent" onClick={() => loadFromText(raw)}>
-            從文字載入
-          </button>
-          <AddButton type="button"  className="ghost" onClick={addRow}>
-            新增列</AddButton>
-          <AddButton type="button"  className="ghost" onClick={addCol}>
-            新增欄</AddButton>
-          <ActionButton
-            className="btn ghost"
-            onClick={async () => {
-              await copyText(csv)
-              setCopied(true)
-            }}
-            icon="copy">
-            {copied ? '已複製' : '複製'}
-          </ActionButton>
-          <button type="button" className="btn teal" onClick={() => downloadText(fileName, `\uFEFF${csv}`, 'text/csv')}>
-            下載
-          </button>
-        </div>
         {error && <p className="field-error">{error}</p>}
-        <p className="field-hint">
-          {rows.length} 列 × {rows[0]?.length ?? 0} 欄
-          {truncated && ` · 僅顯示前 ${previewLimit} 列供編輯`}
-        </p>
-        <div style={{ overflow: 'auto', maxHeight: 420 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              {visibleRows.map((r, ri) => (
-                <tr key={ri}>
-                  {r.map((c, ci) => (
-                    <td key={ci} style={{ border: '1px solid var(--border)', padding: 4 }}>
-                      <input
-                        className="field"
-                        style={{ margin: 0, minWidth: 80 }}
-                        value={c}
-                        maxLength={CELL_MAX}
-                        onChange={(e) => setCell(ri, ci, e.target.value)}
-                      />
+        <FtSection title="表格">
+          <div style={{ overflow: 'auto', maxHeight: 420 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                {visibleRows.map((r, ri) => (
+                  <tr key={ri}>
+                    {r.map((c, ci) => (
+                      <td key={ci} style={{ border: '1px solid var(--border)', padding: 4 }}>
+                        <input
+                          className="field"
+                          style={{ margin: 0, minWidth: 80 }}
+                          value={c}
+                          maxLength={CELL_MAX}
+                          onChange={(e) => setCell(ri, ci, e.target.value)}
+                        />
+                      </td>
+                    ))}
+                    <td style={{ padding: 4 }}>
+                      <ActionButton className="btn sm ghost" onClick={() => deleteRow(ri)} disabled={rows.length <= 1} icon="trash">
+                        刪
+                      </ActionButton>
                     </td>
-                  ))}
-                  <td style={{ padding: 4 }}>
-                    <button type="button" className="btn sm ghost" onClick={() => deleteRow(ri)} disabled={rows.length <= 1}>
-                      刪
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {truncated && (
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            為避免卡頓，目前僅顯示前 {previewLimit} 列（共 {rows.length} 列仍保留於匯出）切換為「全部」可編輯其餘列
-          </p>
-        )}
-      </div>
-    </ProjectShell>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {truncated && (
+            <p className="muted" style={{ margin: '8px 0 0', fontSize: 13 }}>
+              為避免卡頓，目前僅顯示前 {previewLimit} 列（共 {rows.length} 列仍保留於匯出）切換為「全部」可編輯其餘列
+            </p>
+          )}
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

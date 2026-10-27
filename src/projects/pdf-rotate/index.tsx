@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
 import { PdfThumbGrid } from '../../components/PdfThumbGrid'
 import { useState } from 'react'
@@ -8,7 +10,6 @@ import { downloadBlob } from '../../lib/imageCanvas'
 import { PDF_ACCEPT, PDF_MAX_BYTES, PDF_MAX_PAGES } from '../../lib/pdf'
 import { usePdfThumbs } from '../../lib/usePdfThumbs'
 import { PDFDocument, degrees } from 'pdf-lib'
-import { ActionButton } from '../../components/ActionButton'
 
 const fallback: ProjectMeta = {
   slug: 'pdf-rotate',
@@ -118,69 +119,36 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!file || busy} onClick={() => void run()}>
+        <ActionButton className="btn sm accent" icon="download" disabled={!file || busy} onClick={() => void run()}>
           下載
-        </button>
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機旋轉 PDF 頁面單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {PDF_MAX_PAGES} 頁未選取時旋轉全部
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={PDF_ACCEPT}
           maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${PDF_MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
-            {thumbsLoading && thumbsProgress ? ` · ${thumbsProgress}` : ''}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+      infoItems={ftPdfInfoItems()}
+      faq={ftPdfFaq}
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={busy && progress ? [{ label: '狀態', value: progress }] : []}
+        />
         {error && <p className="field-error">{error}</p>}
-        <div className="row">
-          {([90, 180, 270] as const).map((a) => (
-            <button
-              key={a}
-              type="button"
-              className={`btn sm ${angle === a ? 'accent' : 'ghost'}`}
-              disabled={busy}
-              onClick={() => setAngle(a)}
-            >
-              旋轉 {a}°
-            </button>
-          ))}
-        </div>
-        {file && pageCount > 0 && (
+        {file && pageCount > 0 ? (
           <>
-            <div className="row" style={{ flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-              <span className="label" style={{ margin: 0 }}>
-                選取頁面：{selectedToLabel(selected)}
-              </span>
-              <button
-                type="button"
-                className="btn sm ghost"
-                disabled={busy || !pageCount}
-                onClick={() => setSelected(new Set(Array.from({ length: pageCount }, (_, i) => i)))}
-              >
-                全選
-              </button>
-              <ActionButton
-                className="btn sm ghost"
-                disabled={busy || selected.size === 0}
-                onClick={() => setSelected(new Set())}
-              >
-                清除
-              </ActionButton>
-            </div>
             {thumbsLoading && <p className="field-hint">{thumbsProgress || '載入縮圖中…'}</p>}
             <PdfThumbGrid
               pageCount={pageCount}
@@ -190,11 +158,49 @@ export default function Page() {
               onToggle={togglePage}
             />
           </>
+        ) : (
+          <p className="muted">上傳 PDF 後可在此選取要旋轉的頁面。</p>
         )}
-        <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
-          {busy ? progress || '處理中…' : '套用並下載'}
-        </button>
+        {file && pageCount > 0 && (
+          <FtSection title="旋轉設定" hint="未選取任何頁面時，將旋轉全部頁面。">
+            <div className="stack">
+              <div className="row">
+                {([90, 180, 270] as const).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    className={`btn sm ${angle === a ? 'accent' : 'ghost'}`}
+                    disabled={busy}
+                    onClick={() => setAngle(a)}
+                  >
+                    旋轉 {a}°
+                  </button>
+                ))}
+              </div>
+              <div className="row" style={{ flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                <span className="label" style={{ margin: 0 }}>
+                  選取頁面：{selectedToLabel(selected)}
+                </span>
+                <button
+                  type="button"
+                  className="btn sm ghost"
+                  disabled={busy || !pageCount}
+                  onClick={() => setSelected(new Set(Array.from({ length: pageCount }, (_, i) => i)))}
+                >
+                  全選
+                </button>
+                <ActionButton
+                  className="btn sm ghost"
+                  disabled={busy || selected.size === 0}
+                  onClick={() => setSelected(new Set())}
+                >
+                  清除
+                </ActionButton>
+              </div>
+            </div>
+          </FtSection>
+        )}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

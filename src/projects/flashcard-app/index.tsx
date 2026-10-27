@@ -1,11 +1,21 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { EditButton } from '../../components/EditButton'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtRowItem,
+  FtRowList,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('flashcard-app')!
 
@@ -297,76 +307,145 @@ export default function Page() {
     setTimeout(() => setCsvMsg(''), 2500)
   }
 
+  const csvInputRef = useRef<HTMLInputElement>(null)
+
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
+    <FeatureLayout
+      meta={meta}
+      actions={
         <div className="row">
-          <select
-            className="field"
-            style={{ maxWidth: 220 }}
-            value={activeDeckId}
-            onChange={(e) => selectDeck(e.target.value)}
-          >
-            {decks.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}（{d.cards.length}）
-              </option>
-            ))}
-          </select>
-          <div className="field-wrap" style={{ flex: 1, minWidth: 100 }}>
-            <input
-              className={`field${newDeckName.length > 0 && !deckNameOk ? ' is-invalid' : ''}`}
-              style={{ width: '100%' }}
-              placeholder="新牌組名稱…"
-              value={newDeckName}
-              maxLength={MAX_NAME}
-              onChange={(e) => setNewDeckName(limitText(e.target.value, MAX_NAME))}
-            />
-            <div className="field-meta">
-              <span className={decks.length >= MAX_DECKS ? 'warn' : undefined}>
-                {decks.length >= MAX_DECKS ? `牌組上限 ${MAX_DECKS}` : '\u00a0'}
-              </span>
-              <span>
-                {charCount(newDeckName)} / {MAX_NAME}
-              </span>
-            </div>
-          </div>
-          <AddButton type="button"  className="sm teal" onClick={addDeck} disabled={!canAddDeck}>
-            新增牌組</AddButton>
-          <button type="button"
-            className={`btn sm ${mode === 'study' ? 'accent' : 'ghost'}`}
-            onClick={() => {
-              setMode('study')
-              if (deck) ensureOrder(deck)
-            }}
-          >
-            複習
-          </button>
-          <button type="button"
-            className={`btn sm ${mode === 'manage' ? 'accent' : 'ghost'}`}
-            onClick={() => setMode('manage')}
-          >
-            管理卡片
-          </button>
-        </div>
-        <div className="row">
-          <span className="tag">認識 {stats.know}</span>
-          <span className="tag" style={{ background: 'var(--rose-soft)', color: '#9a1f45' }}>
-            再練 {stats.again}
-          </span>
-          <span className="tag">到期 {stats.due}</span>
-          {deck && deck.cards.length > 0 && (
-            <button type="button" className="btn sm ghost" style={{ marginLeft: 'auto' }} onClick={() => ensureOrder(deck, true)}>
+          {deck && deck.cards.length > 0 && mode === 'study' && (
+            <ActionButton className="btn sm ghost" onClick={() => ensureOrder(deck, true)}>
               洗牌
-            </button>
+            </ActionButton>
+          )}
+          {mode === 'manage' && (
+            <>
+              <ActionButton className="btn sm ghost" onClick={() => csvInputRef.current?.click()}>
+                匯入 CSV
+              </ActionButton>
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv,text/plain"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!file) return
+                  void file.text().then(importCsv)
+                }}
+              />
+            </>
           )}
         </div>
-      </div>
-
+      }
+      toolbar={
+        <>
+          <div className="row">
+            <select
+              className="field"
+              style={{ maxWidth: 220 }}
+              value={activeDeckId}
+              onChange={(e) => selectDeck(e.target.value)}
+            >
+              {decks.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}（{d.cards.length}）
+                </option>
+              ))}
+            </select>
+            <div className="field-wrap" style={{ flex: 1, minWidth: 100 }}>
+              <input
+                className={`field${newDeckName.length > 0 && !deckNameOk ? ' is-invalid' : ''}`}
+                style={{ width: '100%' }}
+                placeholder="新牌組名稱…"
+                value={newDeckName}
+                maxLength={MAX_NAME}
+                onChange={(e) => setNewDeckName(limitText(e.target.value, MAX_NAME))}
+              />
+              <div className="field-meta">
+                <span className={decks.length >= MAX_DECKS ? 'warn' : undefined}>
+                  {decks.length >= MAX_DECKS ? `牌組上限 ${MAX_DECKS}` : '\u00a0'}
+                </span>
+                <span>
+                  {charCount(newDeckName)} / {MAX_NAME}
+                </span>
+              </div>
+            </div>
+            <AddButton type="button" className="sm teal" onClick={addDeck} disabled={!canAddDeck}>
+              新增牌組
+            </AddButton>
+          </div>
+          <div className="row">
+            <ActionButton
+              type="button"
+              className={`btn sm ${mode === 'study' ? 'accent' : 'ghost'}`}
+              onClick={() => {
+                setMode('study')
+                if (deck) ensureOrder(deck)
+              }}
+            >
+              複習
+            </ActionButton>
+            <ActionButton
+              type="button"
+              className={`btn sm ${mode === 'manage' ? 'accent' : 'ghost'}`}
+              onClick={() => setMode('manage')}
+            >
+              管理卡片
+            </ActionButton>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存', value: '本機 localStorage（牌組與 SM-2 進度）' },
+        { label: '上限', value: `${MAX_DECKS} 牌組、每組 ${MAX_CARDS} 張` },
+        { label: '演算法', value: '簡易 SM-2 間隔複習' },
+        { label: 'CSV', value: '正面,背面 或 Tab 分隔' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: '到期卡片',
+          body: '複習模式優先顯示 nextReview 已到期的卡片，再練會約 10 分鐘後重排。',
+        },
+        {
+          title: '舊版資料',
+          body: '若 localStorage 存的是扁平卡片陣列，會自動遷移成「我的牌組」。',
+        },
+      ]}
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🃏"
+          title={deck?.name ?? '牌組'}
+          subtitle={
+            mode === 'study'
+              ? card
+                ? `第 ${pos + 1}/${studyIds.length} 張 · 到期 ${stats.due} 張`
+                : '此牌組尚無卡片'
+              : `管理 · ${deck?.cards.length ?? 0} 張`
+          }
+          badge={
+            mode === 'study' ? (
+              <span className="tag">{stats.due > 0 ? `${stats.due} 到期` : '無到期'}</span>
+            ) : null
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="卡片數" value={deck?.cards.length ?? 0} />
+          <FtMetric label="認識次數" value={stats.know} />
+          <FtMetric label="再練次數" value={stats.again} />
+          <FtMetric label="到期" value={stats.due} />
+          <FtMetric label="牌組數" value={decks.length} />
+          <FtMetric label="模式" value={mode === 'study' ? '複習' : '管理'} />
+        </FtMetricGrid>
       {mode === 'study' ? (
-        <div className="panel stack">
+        <>
           {card ? (
             <>
+              <FtSection title="複習卡片">
               <div
                 className="metric"
                 style={{
@@ -392,26 +471,28 @@ export default function Page() {
                 {' · '}間隔 {card.interval} 天 · ease {card.ease.toFixed(1)} · {formatNext(card.nextReview)}
               </p>
               <div className="row" style={{ justifyContent: 'center' }}>
-                <button type="button" className="btn ghost" onClick={() => go(-1)}>
+                <ActionButton type="button" className="btn ghost" onClick={() => go(-1)}>
                   上一張
-                </button>
-                <button type="button" className="btn danger" onClick={() => score('again')}>
+                </ActionButton>
+                <ActionButton type="button" className="btn danger" onClick={() => score('again')}>
                   再練一次
-                </button>
-                <button type="button" className="btn teal" onClick={() => score('know')}>
+                </ActionButton>
+                <ActionButton type="button" className="btn teal" onClick={() => score('know')}>
                   認識
-                </button>
-                <button type="button" className="btn ghost" onClick={() => go(1)}>
+                </ActionButton>
+                <ActionButton type="button" className="btn ghost" onClick={() => go(1)}>
                   下一張
-                </button>
+                </ActionButton>
               </div>
+              </FtSection>
             </>
           ) : (
             <p className="muted">此牌組尚無卡片，切換到「管理卡片」新增</p>
           )}
-        </div>
+        </>
       ) : (
-        <div className="panel stack">
+        <>
+          <FtSection title="新增 / 編輯卡片">
           <div className="grid-2">
             <div className="stack" style={{ gap: 0 }}>
               <input
@@ -465,20 +546,6 @@ export default function Page() {
                 取消編輯
               </button>
             )}
-            <label className="btn sm ghost" style={{ cursor: 'pointer', marginLeft: 'auto' }}>
-              匯入 CSV
-              <input
-                type="file"
-                accept=".csv,text/csv,text/plain"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ''
-                  if (!file) return
-                  void file.text().then(importCsv)
-                }}
-              />
-            </label>
             {deck && decks.length > 1 && (
               <DeleteButton
                 onClick={() => {
@@ -494,9 +561,11 @@ export default function Page() {
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>
             CSV 格式：每列「正面,背面」（或 Tab 分隔）舊卡會自動補上複習欄位
           </p>
-          <ul className="list">
+          </FtSection>
+          <FtSection title="卡片列表">
+          <FtRowList>
             {(deck?.cards ?? []).map((c) => (
-              <li key={c.id} className="list-item">
+              <FtRowItem key={c.id}>
                 <div className="stack" style={{ flex: 1, gap: 2 }}>
                   <strong>{c.front}</strong>
                   <span className="muted">{c.back}</span>
@@ -511,12 +580,14 @@ export default function Page() {
                 <button type="button" className="btn sm ghost" onClick={() => deleteCard(c.id)}>
                   刪
                 </button>
-              </li>
+              </FtRowItem>
             ))}
+          </FtRowList>
             {!deck?.cards.length && <p className="muted">尚無卡片</p>}
-          </ul>
-        </div>
+          </FtSection>
+        </>
       )}
-    </ProjectShell>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

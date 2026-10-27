@@ -1,10 +1,18 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import { AddButton } from '../../components/AddButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('workout-tracker')!
 
@@ -38,6 +46,8 @@ const MAX_EXERCISE = 40
 const MAX_SETS = 100
 const MAX_REPS = 500
 const MAX_WEIGHT = 1000
+
+const WORKOUT_SAMPLES = ['深蹲', '臥推', '跑步']
 
 function isValidDate(iso: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
@@ -98,6 +108,11 @@ export default function Page() {
     return [...set].sort((a, b) => a.localeCompare(b, 'zh-Hant'))
   }, [items])
 
+  const totalVolume = useMemo(() => items.reduce((s, w) => s + volume(w), 0), [items])
+  const prCount = useMemo(() => Object.keys(prMap).filter((k) => prMap[k]! > 0).length, [prMap])
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const todaySessions = useMemo(() => items.filter((w) => w.date === todayKey).length, [items, todayKey])
+
   function add() {
     if (!canAdd || !Number.isFinite(sets) || !Number.isFinite(reps) || !Number.isFinite(weight)) return
     setItems([
@@ -133,18 +148,77 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
         <div className="row">
-          <ActionButton className="btn ghost sm" disabled={!items.length} onClick={exportCsv}>匯出 CSV
-     </ActionButton>
-          <ActionButton className="btn ghost sm" disabled={!items.length} onClick={exportJson}>匯出 JSON
-    </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!items.length} onClick={exportCsv} icon="download">
+            匯出 CSV
+          </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!items.length} onClick={exportJson} icon="download">
+            匯出 JSON
+          </ActionButton>
         </div>
       }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">動作範例</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {WORKOUT_SAMPLES.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className="btn sm ghost"
+                onClick={() => {
+                  setExercise(p)
+                  setCustomEx('')
+                }}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">顯示 {filtered.length} 筆</span>
+            <span className="tag">共 {items.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '筆數上限', value: `${MAX_ITEMS} 筆` },
+        { label: '容量', value: '組數 × 次數 × 重量（kg）' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        { title: 'PR 標記', body: '同一動作在目前紀錄中的最高重量會標示 PR；刪除紀錄可能改變 PR。' },
+      ]}
     >
-      <div className="panel stack">
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🏋️"
+          title={<span className="mono">{totalVolume.toLocaleString()}</span>}
+          subtitle="累計訓練容量（kg·次）"
+          meta={
+            <>
+              今日 {todaySessions} 組紀錄 · PR 動作 {prCount} 種
+              <br />
+              篩選：{filterEx === 'all' ? '全部動作' : filterEx}
+            </>
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="紀錄筆數" value={items.length} />
+          <FtMetric label="動作種類" value={exerciseNames.length} />
+          <FtMetric label="今日組數" value={todaySessions} />
+          <FtMetric label="PR 動作" value={prCount} />
+        </FtMetricGrid>
+
+        <FtSection title="記錄訓練" hint="點選下方動作庫或自訂名稱">
         <div className="label">動作庫（點選預設）</div>
         <div className="row">
           {PRESETS.map((p) => (
@@ -234,14 +308,14 @@ export default function Page() {
             />
             {!weightOk && <p className="field-error">重量須 ≥ 0</p>}
           </label>
-          <button className="btn accent" onClick={add} style={{ alignSelf: 'end' }} disabled={!canAdd}>
+          <AddButton onClick={add} style={{ alignSelf: 'end' }} disabled={!canAdd}>
             記錄訓練
-          </button>
+          </AddButton>
         </div>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="訓練紀錄">
         <div className="row">
           <span className="muted">篩選動作</span>
           <select className="field" style={{ maxWidth: 200 }} value={filterEx} onChange={(e) => setFilterEx(e.target.value)}>
@@ -291,7 +365,8 @@ export default function Page() {
           </div>
         ))}
         {!byDate.length && <p className="muted">尚無訓練紀錄，從動作庫開始吧</p>}
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

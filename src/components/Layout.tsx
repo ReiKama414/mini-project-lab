@@ -25,6 +25,7 @@ export function Layout() {
 
   useEffect(() => {
     setMobileOpen(false)
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior })
   }, [location.pathname])
 
   useEffect(() => {

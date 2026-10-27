@@ -1,11 +1,19 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, canvasFromImage, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { ActionButton } from '../../components/ActionButton'
+import { FtSection, FtToolRoot } from '../../components/FeatureToolUI'
+import {
+  FtAsidePreview,
+  FtCanvasAside,
+  FtImageHero,
+  FtImageMetrics,
+  ftImageLocalFaq,
+} from '../../components/FtImageToolUI'
 
 const fallback: ProjectMeta = {
   slug: 'image-mosaic',
@@ -23,6 +31,9 @@ export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const srcRef = useRef<HTMLCanvasElement | null>(null)
   const [fileName, setFileName] = useState('')
+  const [fileSize, setFileSize] = useState(0)
+  const [imgW, setImgW] = useState(0)
+  const [imgH, setImgH] = useState(0)
   const [error, setError] = useState('')
   const [hasImage, setHasImage] = useState(false)
   const [block, setBlock] = useLocalStorage('lab:image-mosaic:block', 16)
@@ -120,15 +131,27 @@ export default function Page() {
     }
     try {
       setError('')
-      srcRef.current = canvasFromImage(await loadImageFromFile(file)).canvas
+      const { canvas } = canvasFromImage(await loadImageFromFile(file))
+      srcRef.current = canvas
       setFileName(file.name)
+      setFileSize(file.size)
+      setImgW(canvas.width)
+      setImgH(canvas.height)
       setStrokes([])
       setHasImage(true)
     } catch {
       setError('無法讀取圖片')
       setHasImage(false)
+      setFileSize(0)
+      setImgW(0)
+      setImgH(0)
     }
   }
+
+  const imageMeta = useMemo(
+    () => ({ fileName, fileSize, width: imgW, height: imgH }),
+    [fileName, fileSize, imgW, imgH],
+  )
 
   function download() {
     if (!canvasRef.current || !hasImage) return
@@ -137,37 +160,64 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      variant="stacked"
+      toolbar={
+        <FileDrop
+          accept={IMAGE_ACCEPT}
+          maxBytes={IMAGE_MAX_BYTES}
+          label="拖放圖片到此，或點擊選擇"
+          hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)} · 僅本機處理`}
+          onFiles={(files) => void onFile(files[0] ?? null)}
+        />
+      }
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes((s) => s.slice(0, -1))}>
+          <ActionButton className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes((s) => s.slice(0, -1))}>
             復原
-          </button>
-          <ActionButton className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes([])}>
-            清除
           </ActionButton>
-          <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載 PNG
-     </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!strokes.length} onClick={() => setStrokes([])}>
+            清除筆劃
+          </ActionButton>
+          <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download} icon="download">
+            下載 PNG
+          </ActionButton>
         </div>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>按住拖曳塗抹（支援觸控，已節流）；可復原筆劃僅本機處理</p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={IMAGE_ACCEPT}
-            maxBytes={IMAGE_MAX_BYTES}
-            label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
-            onFiles={(files) => void onFile(files[0] ?? null)}
+      infoItems={[
+        { label: '單檔上限', value: formatBytes(IMAGE_MAX_BYTES) },
+        { label: '操作', value: '拖曳塗抹馬賽克（支援觸控）' },
+        { label: '輸出', value: 'PNG' },
+      ]}
+      faq={[ftPrivacyLocal, ftImageLocalFaq()]}
+      aside={
+        <FtAsidePreview
+          title="塗抹預覽"
+          tag={hasImage ? <span className="tag">{strokes.length} 筆劃</span> : null}
+        >
+          <FtCanvasAside
+            canvasRef={canvasRef}
+            hasImage={hasImage}
+            empty="上傳後在畫布上塗抹馬賽克"
+            canvasStyle={{ cursor: 'crosshair', touchAction: 'none' }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
           />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName} · {strokes.length} 筆劃
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
+        </FtAsidePreview>
+      }
+    >
+      <FtToolRoot>
+        <FtImageHero
+          emoji="▦"
+          meta={imageMeta}
+          metaLine={hasImage ? `${strokes.length} 筆馬賽克筆劃 · 筆刷 ${brush}px · 格 ${block}px` : undefined}
+        />
+        <FtImageMetrics meta={imageMeta} extra={[{ label: '筆劃', value: strokes.length }]} />
+        {error && <p className="field-error">{error}</p>}
+        <FtSection title="筆刷設定" hint="在右側預覽區拖曳塗抹">
           <label className="stack">
             <span className="label">筆刷 {brush}px</span>
             <input type="range" min={8} max={200} value={brush} onChange={(e) => setBrush(clamp(Number(e.target.value), 8, 200))} />
@@ -176,35 +226,11 @@ export default function Page() {
             <span className="label">馬賽克格 {block}px</span>
             <input type="range" min={4} max={64} value={block} onChange={(e) => setBlock(clamp(Number(e.target.value), 4, 64))} />
           </label>
-          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
-         </ActionButton>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          {hasImage ? (
-            <canvas
-              ref={canvasRef}
-              style={{
-                display: 'block',
-                width: '100%',
-                height: 'auto',
-                border: '1px solid var(--line)',
-                borderRadius: 12,
-                cursor: 'crosshair',
-                touchAction: 'none',
-              }}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-            />
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </FtSection>
+        <ActionButton className="btn accent" disabled={!hasImage} onClick={download} icon="download">
+          下載 PNG
+        </ActionButton>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

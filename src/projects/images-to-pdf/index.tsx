@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
 import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -135,18 +137,19 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!files.length || busy} onClick={() => void run()}>
-          下載 PDF
-        </button>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={!files.length || busy}
+          onClick={() => void run()}
+        >
+          {busy ? '轉換中…' : '下載 PDF'}
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        支援 JPG／PNG；WebP／GIF 會先轉成 PNG 再嵌入最多 {MAX_FILES} 張，單張上限 {formatBytes(IMAGE_MAX_BYTES)}可拖曳列表調整順序
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={IMAGE_ACCEPT}
           maxBytes={IMAGE_MAX_BYTES}
@@ -154,27 +157,46 @@ export default function Page() {
           maxFiles={MAX_FILES}
           disabled={busy}
           label="拖放圖片到此，或點擊選擇（可多選）"
-          hint={`單張上限 ${formatBytes(IMAGE_MAX_BYTES)} · 最多 ${MAX_FILES} 張`}
+          hint={`單張上限 ${formatBytes(IMAGE_MAX_BYTES)} · 最多 ${MAX_FILES} 張 · JPG／PNG／WebP／GIF`}
           onFiles={(picked) => onFiles(picked)}
         />
-        {files.length > 0 && (
-          <p className="muted" style={{ margin: 0 }}>
-            已選 {files.length} 張 · {formatBytes(files.reduce((n, f) => n + f.size, 0))}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+      infoItems={ftPdfInfoItems([
+        { label: '單張大小上限', value: formatBytes(IMAGE_MAX_BYTES) },
+        { label: '圖片數量', value: `最多 ${MAX_FILES} 張` },
+        { label: '輸出', value: '單一 PDF（每圖一頁）' },
+      ])}
+      faq={ftPdfFaq}
+      footerHint="可拖曳列表調整頁面順序。"
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          extra={
+            files.length
+              ? [
+                  { label: '圖片數', value: `${files.length} 張` },
+                  { label: '總大小', value: formatBytes(files.reduce((n, f) => n + f.size, 0)) },
+                  ...(busy && progress ? [{ label: '狀態', value: progress }] : []),
+                ]
+              : []
+          }
+        />
         {error && <p className="field-error">{error}</p>}
-        <label className="stack">
-          <span className="label">邊距 {margin}px</span>
-          <input
-            type="range"
-            min={0}
-            max={80}
-            disabled={busy}
-            value={margin}
-            onChange={(e) => setMargin(clamp(Number(e.target.value), 0, 80))}
-          />
-        </label>
+        {files.length > 0 && (
+          <FtSection title="版面" hint="WebP／GIF 會先轉成 PNG 再嵌入 PDF。">
+            <label className="stack">
+              <span className="label">頁面邊距 {margin}px</span>
+              <input
+                type="range"
+                min={0}
+                max={80}
+                disabled={busy}
+                value={margin}
+                onChange={(e) => setMargin(clamp(Number(e.target.value), 0, 80))}
+              />
+            </label>
+          </FtSection>
+        )}
         <div className="stack" style={{ gap: 8 }}>
           {files.map((f, i) => (
             <div
@@ -261,10 +283,7 @@ export default function Page() {
             </div>
           ))}
         </div>
-        <button type="button" className="btn accent" disabled={!files.length || busy} onClick={() => void run()}>
-          {busy ? progress || '轉換中…' : '轉成 PDF'}
-        </button>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

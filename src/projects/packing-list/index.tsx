@@ -1,10 +1,17 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { loadJSON, useLocalStorage } from '../../lib/storage'
 import { charCount, isNonEmpty, limitText, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('packing-list')!
 
@@ -178,8 +185,75 @@ export default function Page() {
   ] as const).filter(([, list]) => list.length)
 
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
+    <FeatureLayout
+      variant="unified"
+      meta={meta}
+      actions={
+        active ? (
+          <div className="row">
+            <ActionButton className="btn sm ghost" onClick={() => toggleAll(true)}>
+              全部勾選
+            </ActionButton>
+            <ActionButton className="btn sm ghost" onClick={() => toggleAll(false)}>
+              全部取消
+            </ActionButton>
+          </div>
+        ) : null
+      }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">旅程預設範本</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {Object.keys(TEMPLATES).map((k) => (
+              <button key={k} type="button" className={`btn sm ${tripType === k ? 'teal' : 'ghost'}`} onClick={() => applyTemplate(k)}>
+                {k}
+              </button>
+            ))}
+          </div>
+          {active && (
+            <div className="ft-stats-row">
+              <span className="tag">{active.name}</span>
+              <span className="tag">已打包 {packed}/{items.length}（{pct}%）</span>
+            </div>
+          )}
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '旅程上限', value: `${MAX_TRIPS} 個` },
+        { label: '項目上限', value: `每旅程 ${MAX_ITEMS} 項` },
+      ]}
+      faq={[ftPrivacyLocal, { title: '合併模式', body: '勾選「合併既有項目」時套用預設不會刪除已打勾或自訂項目。' }]}
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🧳"
+          title={`${pct}%`}
+          subtitle={active ? `${active.name} 打包進度` : '尚未選擇旅程'}
+          meta={
+            <>
+              {packed}/{items.length} 項已勾選
+              {tripType ? (
+                <>
+                  <br />
+                  預設：{tripType}
+                </>
+              ) : null}
+            </>
+          }
+          badge={pct === 100 && items.length > 0 ? <span className="tag">完成</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="旅程數" value={`${trips.length} / ${MAX_TRIPS}`} />
+          <FtMetric label="清單項目" value={`${items.length} / ${MAX_ITEMS}`} />
+          <FtMetric label="已打包" value={packed} />
+          <FtMetric label="合併模式" value={merge ? '開' : '關'} />
+        </FtMetricGrid>
+
+        <FtSection title="旅程管理">
         <div className="label">已儲存旅程（{trips.length}/{MAX_TRIPS}）</div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {trips.map((t) => (
@@ -225,14 +299,6 @@ export default function Page() {
           </div>
         )}
 
-        <div className="label">旅程類型預設</div>
-        <div className="row">
-          {Object.keys(TEMPLATES).map((k) => (
-            <button key={k} className={`btn sm ${tripType === k ? 'teal' : 'ghost'}`} onClick={() => applyTemplate(k)}>
-              {k}
-            </button>
-          ))}
-        </div>
         <label className="row" style={{ gap: 8 }}>
           <input type="checkbox" checked={merge} onChange={(e) => setMerge(e.target.checked)} />
           <span className="muted">套用預設時合併既有項目（不重複）</span>
@@ -291,9 +357,9 @@ export default function Page() {
             </div>
           </>
         )}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="打包清單">
         {grouped.map(([cat, list]) => (
           <div key={cat} className="stack" style={{ gap: 6 }}>
             <strong>
@@ -329,7 +395,8 @@ export default function Page() {
           </div>
         ))}
         {!items.length && <p className="muted">選擇旅程類型或新增自訂項目開始打包</p>}
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

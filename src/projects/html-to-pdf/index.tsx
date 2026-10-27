@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
+import { FtSection } from '../../components/FeatureToolUI'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { limitText, charCount, isNonEmpty } from '../../lib/utils'
@@ -124,77 +126,76 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="本機消毒 HTML 後以 SVG 點陣匯出（不執行 script／外連）。"
+      infoItems={ftPdfInfoItems([
+        { label: '安全', value: '消毒 HTML，不執行 script／外連' },
+        { label: '本工具頁數', value: `最多約 ${MAX_PAGES} 頁` },
+      ])}
+      faq={ftPdfFaq}
       actions={
-        <button type="button" className="btn sm accent" disabled={!isNonEmpty(html) || busy} onClick={() => void run()}>
-          下載 PDF
-        </button>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={!isNonEmpty(html) || busy}
+          onClick={() => void run()}
+        >
+          {busy ? '轉換中…' : '下載 PDF'}
+        </ActionButton>
       }
     >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機消毒 HTML 後以 SVG 點陣匯出（不執行 script／外連）支援中文，最多約 {MAX_PAGES} 頁
-      </p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          {error && <p className="field-error">{error}</p>}
-          {pageHint && <p className="field-hint">{pageHint}</p>}
-          {busy && progress && <p className="field-hint">{progress}</p>}
-          <div className="field-wrap">
-            <label className="label">HTML</label>
-            <textarea
-              className="field mono"
-              rows={16}
-              value={html}
-              maxLength={HTML_MAX}
-              disabled={busy}
-              onChange={(e) => setHtml(limitText(e.target.value, HTML_MAX))}
-            />
-            <div className="field-meta">
-              <span> </span>
-              <span>
-                {charCount(html)} / {HTML_MAX}
-              </span>
+      <div className="ft-pdf-stack">
+        {error && <p className="field-error">{error}</p>}
+        {pageHint && <p className="field-hint">{pageHint}</p>}
+        {busy && progress && <p className="field-hint">{progress}</p>}
+        <div className="grid-2" style={{ alignItems: 'start' }}>
+          <FtSection title="HTML 原始碼">
+            <div className="field-wrap">
+              <textarea
+                className="field mono"
+                rows={16}
+                value={html}
+                maxLength={HTML_MAX}
+                disabled={busy}
+                onChange={(e) => setHtml(limitText(e.target.value, HTML_MAX))}
+              />
+              <div className="field-meta">
+                <span> </span>
+                <span>
+                  {charCount(html)} / {HTML_MAX}
+                </span>
+              </div>
             </div>
-          </div>
-          <button type="button" className="btn accent" disabled={!isNonEmpty(html) || busy} onClick={() => void run()}>
-            {busy ? progress || '轉換中…' : '轉成 PDF'}
-          </button>
-        </div>
-        <div className="panel stack">
-          <div className="label">消毒後預覽</div>
-          <div
-            style={{
-              border: '1px solid var(--line)',
-              borderRadius: 12,
-              padding: 16,
-              minHeight: 160,
-              maxHeight: 320,
-              overflow: 'auto',
-              background: '#fff',
-              color: '#111',
-            }}
-            dangerouslySetInnerHTML={{ __html: safeHtml }}
-          />
-          <div className="label">匯出預覽</div>
-          {preview ? (
-            <img src={preview} alt="預覽" style={{ maxWidth: '100%', borderRadius: 12, border: '1px solid var(--line)' }} />
-          ) : (
+          </FtSection>
+          <FtSection title="預覽">
             <div
-              className="muted"
               style={{
-                minHeight: 120,
-                display: 'grid',
-                placeItems: 'center',
-                border: '1px dashed var(--line)',
+                border: '1px solid var(--line)',
                 borderRadius: 12,
+                padding: 16,
+                minHeight: 160,
+                maxHeight: 320,
+                overflow: 'auto',
+                background: '#fff',
+                color: '#111',
               }}
-            >
-              產生後顯示
-            </div>
-          )}
+              dangerouslySetInnerHTML={{ __html: safeHtml }}
+            />
+            {preview ? (
+              <img
+                src={preview}
+                alt="匯出預覽"
+                style={{ maxWidth: '100%', marginTop: 12, borderRadius: 12, border: '1px solid var(--line)' }}
+              />
+            ) : (
+              <p className="muted" style={{ marginTop: 12 }}>
+                下載後顯示第一頁預覽
+              </p>
+            )}
+          </FtSection>
         </div>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

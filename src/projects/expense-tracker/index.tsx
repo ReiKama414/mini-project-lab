@@ -1,11 +1,18 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('expense-tracker')!
 
@@ -19,6 +26,13 @@ type Expense = {
 }
 
 const CATS = ['餐飲', '交通', '購物', '娛樂', '居住', '醫療', '其他']
+
+const EXPENSE_SAMPLES = [
+  { label: '午餐', title: '午餐', amount: 120, category: '餐飲' },
+  { label: '捷運', title: '捷運', amount: 45, category: '交通' },
+  { label: '咖啡', title: '咖啡', amount: 85, category: '餐飲' },
+  { label: '房租', title: '房租', amount: 15000, category: '居住' },
+]
 const MAX_ITEMS = 500
 const MAX_TITLE = 80
 const MAX_NOTE = 200
@@ -99,6 +113,8 @@ export default function Page() {
   }, [filtered])
 
   const maxCat = byCat[0]?.[1] || 1
+  const topCat = byCat[0]?.[0] ?? '—'
+  const avgEntry = filtered.length ? Math.round(total / filtered.length) : 0
 
   function add() {
     if (!canAdd || !Number.isFinite(amount)) return
@@ -130,28 +146,90 @@ export default function Page() {
     downloadText(`expenses-${month}.csv`, rows.join('\n'), 'text/csv;charset=utf-8')
   }
 
-  return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <label className="stack" style={{ gap: 4 }}>
-            <span className="label">月份</span>
-            <select className="field" value={month} onChange={(e) => setMonth(e.target.value)}>
-              {months.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="metric" style={{ flex: 1 }}>
-            <div className="muted">{month} 支出</div>
-            <div style={{ fontSize: 28 }}>${total.toLocaleString()}</div>
-          </div>
-          <ActionButton className="btn teal" onClick={exportCsv} disabled={!filtered.length}>匯出 CSV
-     </ActionButton>
-        </div>
+  function applySample(s: (typeof EXPENSE_SAMPLES)[0]) {
+    setTitle(s.title)
+    setAmountStr(String(s.amount))
+    setCategory(s.category)
+  }
 
+  return (
+    <FeatureLayout
+      variant="unified"
+      meta={meta}
+      actions={
+        <ActionButton className="btn sm teal" onClick={exportCsv} disabled={!filtered.length} icon="download">
+          匯出 CSV
+        </ActionButton>
+      }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">月份與範例</h2>
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <label className="stack" style={{ gap: 4 }}>
+              <span className="label">檢視月份</span>
+              <select className="field" value={month} onChange={(e) => setMonth(e.target.value)}>
+                {months.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="ft-stats-row">
+              <span className="tag">顯示 {filtered.length} 筆</span>
+              <span className="tag">共 {items.length} / {MAX_ITEMS}</span>
+            </div>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {EXPENSE_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applySample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '筆數上限', value: `${MAX_ITEMS} 筆` },
+        { label: '匯出', value: '依目前月份與分類篩選匯出 CSV' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        {
+          title: '分類合計',
+          body: '長條圖與列表依上方月份與分類篩選顯示；新增時會自動切換到該筆日期所屬月份。',
+        },
+      ]}
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="💸"
+          title={<span className="mono">${total.toLocaleString()}</span>}
+          subtitle={`${month} 支出總計`}
+          meta={
+            <>
+              分類篩選：{filterCat}
+              {byCat[0] ? (
+                <>
+                  <br />
+                  最高：{byCat[0][0]} ${byCat[0][1].toLocaleString()}
+                </>
+              ) : null}
+            </>
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="本篩平均" value={`$${avgEntry.toLocaleString()}`} mono />
+          <FtMetric label="最大分類" value={topCat} />
+          <FtMetric label="本月筆數" value={filtered.length} />
+          <FtMetric label="資料庫" value={`${items.length} / ${MAX_ITEMS}`} />
+        </FtMetricGrid>
+
+        <FtSection title="新增支出">
         <div className="grid-2">
           <div className="stack" style={{ gap: 0 }}>
             <input
@@ -222,13 +300,15 @@ export default function Page() {
             </div>
           </div>
         </div>
-        <AddButton  onClick={add} disabled={!canAdd}>
-          新增支出</AddButton>
+        <AddButton onClick={add} disabled={!canAdd}>
+          新增支出
+        </AddButton>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
+        </FtSection>
 
         {byCat.length > 0 && (
+          <FtSection title="分類分布" hint="依目前月份與分類篩選">
           <div className="stack" style={{ gap: 10 }}>
-            <span className="label">分類長條圖</span>
             {byCat.map(([c, v]) => (
               <div key={c} className="stack" style={{ gap: 4 }}>
                 <div className="row">
@@ -243,8 +323,10 @@ export default function Page() {
               </div>
             ))}
           </div>
+          </FtSection>
         )}
 
+        <FtSection title="明細">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {['全部', ...CATS].map((c) => (
             <button
@@ -273,7 +355,8 @@ export default function Page() {
           ))}
           {!filtered.length && <p className="muted">此月份尚無支出</p>}
         </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

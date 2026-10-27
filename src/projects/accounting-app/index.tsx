@@ -1,11 +1,18 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 import { ActionButton } from '../../components/ActionButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('accounting-app')!
 
@@ -24,6 +31,12 @@ const MAX_ITEMS = 500
 const MAX_TITLE = 80
 const MAX_SEARCH = 80
 const MAX_AMOUNT = 1_000_000_000
+
+const ENTRY_SAMPLES = [
+  { label: '薪資', type: 'income' as const, title: '月薪', amount: 45000, category: '薪資' },
+  { label: '午餐', type: 'expense' as const, title: '午餐', amount: 120, category: '餐飲' },
+  { label: '房租', type: 'expense' as const, title: '房租', amount: 12000, category: '居住' },
+]
 
 function isValidDate(iso: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
@@ -125,40 +138,76 @@ export default function Page() {
     downloadText(`accounting-${filterMonth}.csv`, `\uFEFF${csv}`, 'text/csv;charset=utf-8')
   }
 
+  function applySample(s: (typeof ENTRY_SAMPLES)[0]) {
+    setType(s.type)
+    setTitle(s.title)
+    setAmountStr(String(s.amount))
+    setCategory(s.category)
+  }
+
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
-        <ActionButton className="btn ghost sm" onClick={exportCsv} disabled={!monthEntries.length}>匯出 CSV
-     </ActionButton>
+        <ActionButton className="btn sm ghost" onClick={exportCsv} disabled={!monthEntries.length} icon="download">
+          匯出 CSV
+        </ActionButton>
       }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">快速帶入</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {ENTRY_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applySample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">{filterMonth} 列表 {monthEntries.length} 筆</span>
+            <span className="tag">資料庫 {entries.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '筆數上限', value: `${MAX_ITEMS} 筆` },
+        { label: '匯出', value: '依篩選月份之 CSV（含 BOM）' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '結餘', body: '上方指標與長條圖依日曆月份計算；列表可再依類型與關鍵字篩選。' }]}
     >
-      <div className="panel stack">
-        <div className="grid-3">
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              本月收入
-            </div>
-            <div style={{ color: 'var(--teal)', fontSize: 24 }}>${income.toLocaleString()}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              本月支出
-            </div>
-            <div style={{ color: 'var(--rose)', fontSize: 24 }}>${expense.toLocaleString()}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              結餘
-            </div>
-            <div style={{ fontSize: 24, color: balance >= 0 ? 'var(--teal)' : 'var(--rose)' }}>
+      <FtToolRoot>
+        <FtToolHero
+          emoji="📒"
+          title={
+            <span style={{ color: balance >= 0 ? 'var(--teal)' : 'var(--rose)' }} className="mono">
               ${balance.toLocaleString()}
-            </div>
-          </div>
-        </div>
+            </span>
+          }
+          subtitle={`${filterMonth} 結餘`}
+          meta={
+            <>
+              收入 ${income.toLocaleString()} · 支出 ${expense.toLocaleString()}
+              <br />
+              篩選：{filterType === 'all' ? '全部類型' : filterType === 'income' ? '僅收入' : '僅支出'}
+              {search.trim() ? ` · 搜尋「${search.trim()}」` : ''}
+            </>
+          }
+          badge={balance < 0 ? <span className="tag">赤字</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="本月收入" value={`$${income.toLocaleString()}`} mono />
+          <FtMetric label="本月支出" value={`$${expense.toLocaleString()}`} mono />
+          <FtMetric label="列表筆數" value={monthEntries.length} />
+          <FtMetric label="總紀錄" value={`${entries.length} / ${MAX_ITEMS}`} />
+        </FtMetricGrid>
 
+        <FtSection title="近 6 個月收支" hint="收入／支出／結餘長條">
         <div>
-          <div className="label">近 6 個月收支長條</div>
           <div className="row" style={{ alignItems: 'flex-end', gap: 12, minHeight: 120, padding: '8px 0' }}>
             {chartMonths.map((m) => (
               <div key={m.key} className="stack" style={{ flex: 1, gap: 4, alignItems: 'center' }}>
@@ -210,9 +259,9 @@ export default function Page() {
             </span>
           </div>
         </div>
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="記一筆">
         <div className="row">
           <button type="button" className={`btn sm ${type === 'income' ? 'teal' : 'ghost'}`} onClick={() => switchType('income')}>
             收入
@@ -276,13 +325,13 @@ export default function Page() {
             {!dateOk && <p className="field-error">請選擇有效日期</p>}
           </div>
         </div>
-        <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
+        <ActionButton className="btn accent" onClick={add} disabled={!canAdd}>
           記一筆
-        </button>
+        </ActionButton>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 筆，請先刪除再新增</p>}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="明細與篩選">
         <div className="row">
           <input
             className="field"
@@ -338,7 +387,8 @@ export default function Page() {
             ))}
           {!monthEntries.length && <p className="muted">此篩選條件下尚無紀錄</p>}
         </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

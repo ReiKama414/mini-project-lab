@@ -1,5 +1,5 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import type { ProjectMeta } from '../registry'
 import { useMemo, useState } from 'react'
@@ -8,6 +8,7 @@ import { useLocalStorage } from '../../lib/storage'
 import { clamp, copyText, downloadText, formatBytes, parseNumber, limitText } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
 import { ActionButton } from '../../components/ActionButton'
+import { FtMetric, FtMetricGrid, FtSection, FtToolHero, FtToolRoot } from '../../components/FeatureToolUI'
 
 const meta: ProjectMeta = getProject('batch-rename') ?? {
   slug: 'batch-rename',
@@ -95,6 +96,8 @@ export default function Page() {
     }))
   }, [files, opts])
 
+  const totalSize = useMemo(() => files.reduce((s, f) => s + f.size, 0), [files])
+
   function onFiles(list: File[] | FileList | null) {
     if (!list?.length) return
     const arr = Array.from(list)
@@ -129,103 +132,130 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="瀏覽器無法直接改寫磁碟檔名；選取檔案後依規則重新命名，再以 ZIP 下載。"
+      infoItems={[
+        { label: '輸出', value: '重新命名後打包 ZIP 下載' },
+        { label: '限制', value: `最多 ${MAX_FILES} 檔、合計 ${formatBytes(MAX_TOTAL)}` },
+      ]}
+      faq={[
+        { title: '命名規則', body: '支援前後綴、尋找取代、序號補零與副檔名小寫。' },
+        ftPrivacyLocal,
+      ]}
+      toolbar={
+        <FileDrop
+          multiple
+          maxFiles={MAX_FILES}
+          label="拖放檔案到此，或點擊選擇（可多選）"
+          hint={`最多 ${MAX_FILES} 檔 · 合計 ${formatBytes(MAX_TOTAL)}`}
+          onFiles={(picked) => onFiles(picked)}
+        />
+      }
       actions={
-        <button type="button" className="btn sm accent" disabled={!rows.length || busy} onClick={() => void downloadZip()}>
+        <ActionButton
+          className="btn sm accent"
+          disabled={!rows.length || busy}
+          onClick={() => void downloadZip()}
+          icon="download"
+        >
           {busy ? '打包中…' : 'ZIP 下載'}
-        </button>
+        </ActionButton>
       }
     >
-      <div className="grid-2">
-        <div className="panel stack">
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            瀏覽器無法直接改寫磁碟檔名選取檔案後依規則重新命名，再以 ZIP 下載
-          </p>
-          <FileDrop
-            multiple
-            maxFiles={MAX_FILES}
-            label="拖放檔案到此，或點擊選擇（可多選）"
-            hint={`最多 ${MAX_FILES} 檔 · 合計 ${formatBytes(MAX_TOTAL)}`}
-            onFiles={(files) => onFiles(files)}
-          />
-          <div className="grid-2">
-            <label className="stack">
-              <span className="label">前綴</span>
-              <input className="field" value={prefix} maxLength={PATTERN_MAX} onChange={(e) => setPrefix(limitText(e.target.value, PATTERN_MAX))} />
+      <FtToolRoot>
+        <FtToolHero
+          emoji="📁"
+          title={rows.length ? `已選 ${rows.length} 個檔案` : '尚未選擇檔案'}
+          subtitle={rows.length ? `合計 ${formatBytes(totalSize)} · 序號自 ${opts.start} 起、補零 ${opts.pad} 位` : '選檔後即時預覽新檔名'}
+          badge={busy ? <span className="tag">打包中</span> : rows.length ? <span className="tag">可下載</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="檔案數" value={rows.length || '—'} />
+          <FtMetric label="總大小" value={rows.length ? formatBytes(totalSize) : '—'} mono />
+          <FtMetric label="前綴／後綴" value={`${prefix || '—'} … ${suffix || '—'}`} />
+          <FtMetric label="輸出" value="ZIP 打包" />
+        </FtMetricGrid>
+        {error && <p className="field-error">{error}</p>}
+        <div className="grid-2">
+          <FtSection title="命名規則">
+            <div className="grid-2">
+              <label className="stack">
+                <span className="label">前綴</span>
+                <input className="field" value={prefix} maxLength={PATTERN_MAX} onChange={(e) => setPrefix(limitText(e.target.value, PATTERN_MAX))} />
+              </label>
+              <label className="stack">
+                <span className="label">後綴</span>
+                <input className="field" value={suffix} maxLength={PATTERN_MAX} onChange={(e) => setSuffix(limitText(e.target.value, PATTERN_MAX))} />
+              </label>
+              <label className="stack">
+                <span className="label">尋找</span>
+                <input className="field" value={find} maxLength={PATTERN_MAX} onChange={(e) => setFind(limitText(e.target.value, PATTERN_MAX))} />
+              </label>
+              <label className="stack">
+                <span className="label">取代</span>
+                <input className="field" value={replace} maxLength={PATTERN_MAX} onChange={(e) => setReplace(limitText(e.target.value, PATTERN_MAX))} />
+              </label>
+              <label className="stack">
+                <span className="label">起始編號</span>
+                <input className="field" type="number" value={start} onChange={(e) => setStart(parseNumber(e.target.value, 1))} />
+              </label>
+              <label className="stack">
+                <span className="label">補零位數</span>
+                <input
+                  className="field"
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={pad}
+                  onChange={(e) => setPad(clamp(parseNumber(e.target.value, 3), 1, 8))}
+                />
+              </label>
+            </div>
+            <label className="row" style={{ gap: 6 }}>
+              <input type="checkbox" checked={lowerExt} onChange={(e) => setLowerExt(e.target.checked)} />
+              副檔名小寫
             </label>
-            <label className="stack">
-              <span className="label">後綴</span>
-              <input className="field" value={suffix} maxLength={PATTERN_MAX} onChange={(e) => setSuffix(limitText(e.target.value, PATTERN_MAX))} />
-            </label>
-            <label className="stack">
-              <span className="label">尋找</span>
-              <input className="field" value={find} maxLength={PATTERN_MAX} onChange={(e) => setFind(limitText(e.target.value, PATTERN_MAX))} />
-            </label>
-            <label className="stack">
-              <span className="label">取代</span>
-              <input className="field" value={replace} maxLength={PATTERN_MAX} onChange={(e) => setReplace(limitText(e.target.value, PATTERN_MAX))} />
-            </label>
-            <label className="stack">
-              <span className="label">起始編號</span>
-              <input className="field" type="number" value={start} onChange={(e) => setStart(parseNumber(e.target.value, 1))} />
-            </label>
-            <label className="stack">
-              <span className="label">補零位數</span>
-              <input
-                className="field"
-                type="number"
-                min={1}
-                max={8}
-                value={pad}
-                onChange={(e) => setPad(clamp(parseNumber(e.target.value, 3), 1, 8))}
-              />
-            </label>
-          </div>
-          <label className="row" style={{ gap: 6 }}>
-            <input type="checkbox" checked={lowerExt} onChange={(e) => setLowerExt(e.target.checked)} />
-            副檔名小寫
-          </label>
-          {error && <p className="field-error">{error}</p>}
-          <div className="row" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="btn accent" disabled={!rows.length || busy} onClick={() => void downloadZip()}>
-              {busy ? '打包中…' : '以新檔名打包 ZIP'}
-            </button>
-            <ActionButton
-              className="btn ghost"
-              disabled={!rows.length}
-              onClick={async () => {
-                await copyText(rows.map((r) => r.to).join('\n'))
-                setCopied(true)
-              }}
-              icon="copy">
-              {copied ? '已複製' : '複製新檔名'}
-            </ActionButton>
-            <button
-              type="button"
-              className="btn ghost"
-              disabled={!rows.length}
-              onClick={() => downloadText('rename-map.txt', rows.map((r) => `${r.from}\t${r.to}`).join('\n'))}
-            >
-              下載對照表
-            </button>
-          </div>
+          </FtSection>
+          <FtSection title={`預覽（${rows.length}）`}>
+            <ul className="list">
+              {rows.map((r) => (
+                <li key={r.from + r.to} className="list-item stack">
+                  <span className="mono muted" style={{ fontSize: 12 }}>
+                    {r.from} · {formatBytes(r.size)}
+                  </span>
+                  <span className="mono">→ {r.to}</span>
+                </li>
+              ))}
+              {!rows.length && <p className="muted">請選取檔案</p>}
+            </ul>
+          </FtSection>
         </div>
-        <div className="panel stack">
-          <h3 style={{ margin: 0 }}>預覽（{rows.length}）</h3>
-          <ul className="list">
-            {rows.map((r) => (
-              <li key={r.from + r.to} className="list-item stack">
-                <span className="mono muted" style={{ fontSize: 12 }}>
-                  {r.from} · {formatBytes(r.size)}
-                </span>
-                <span className="mono">→ {r.to}</span>
-              </li>
-            ))}
-            {!rows.length && <p className="muted">請選取檔案</p>}
-          </ul>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <ActionButton className="btn accent" disabled={!rows.length || busy} onClick={() => void downloadZip()} icon="download">
+            {busy ? '打包中…' : '以新檔名打包 ZIP'}
+          </ActionButton>
+          <ActionButton
+            className="btn ghost"
+            disabled={!rows.length}
+            onClick={async () => {
+              await copyText(rows.map((r) => r.to).join('\n'))
+              setCopied(true)
+            }}
+            icon="copy"
+          >
+            {copied ? '已複製' : '複製新檔名'}
+          </ActionButton>
+          <ActionButton
+            className="btn ghost"
+            disabled={!rows.length}
+            onClick={() => downloadText('rename-map.txt', rows.map((r) => `${r.from}\t${r.to}`).join('\n'))}
+            icon="download"
+          >
+            下載對照表
+          </ActionButton>
         </div>
-      </div>
-    </ProjectShell>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

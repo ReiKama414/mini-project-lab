@@ -1,11 +1,19 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { loadImageFromFile, downloadCanvas, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 import { ActionButton } from '../../components/ActionButton'
+import { FtSection, FtToolRoot } from '../../components/FeatureToolUI'
+import {
+  FtAsidePreview,
+  FtCanvasAside,
+  FtImageHero,
+  FtImageMetrics,
+  ftImageLocalFaq,
+} from '../../components/FtImageToolUI'
 
 const fallback: ProjectMeta = {
   slug: 'social-cropper',
@@ -32,6 +40,9 @@ export default function Page() {
   const imgRef = useRef<HTMLImageElement | null>(null)
   const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null)
   const [fileName, setFileName] = useState('')
+  const [fileSize, setFileSize] = useState(0)
+  const [imgW, setImgW] = useState(0)
+  const [imgH, setImgH] = useState(0)
   const [error, setError] = useState('')
   const [hasImage, setHasImage] = useState(false)
   const [preset, setPreset] = useLocalStorage('lab:social-cropper:preset', 'ig-sq')
@@ -91,16 +102,35 @@ export default function Page() {
     }
     try {
       setError('')
-      imgRef.current = await loadImageFromFile(file)
+      const img = await loadImageFromFile(file)
+      imgRef.current = img
       setFileName(file.name)
+      setFileSize(file.size)
+      setImgW(img.naturalWidth)
+      setImgH(img.naturalHeight)
       setOffsetX(0.5)
       setOffsetY(0.5)
       setHasImage(true)
     } catch {
       setError('無法讀取圖片')
       setHasImage(false)
+      setFileSize(0)
+      setImgW(0)
+      setImgH(0)
     }
   }
+
+  const imageMeta = useMemo(
+    () => ({ fileName, fileSize, width: imgW, height: imgH }),
+    [fileName, fileSize, imgW, imgH],
+  )
+
+  const presetLabel = PRESETS.find((p) => p.id === preset)?.label ?? preset
+  const cropOut = useMemo(() => {
+    if (!imgW || !imgH) return { w: 0, h: 0 }
+    const r = cropRect(imgW, imgH)
+    return { w: Math.round(r.w), h: Math.round(r.h) }
+  }, [imgW, imgH, offsetX, offsetY, ratio])
 
   function clientToCanvas(clientX: number, clientY: number) {
     const c = viewRef.current
@@ -146,37 +176,70 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download}>下載裁切
-       </ActionButton>
-      }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>依社群比例裁切；可拖曳預覽或用滑桿分別調整水平／垂直位置</p>
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
+      variant="stacked"
+      toolbar={
+        <>
           <FileDrop
             accept={IMAGE_ACCEPT}
             maxBytes={IMAGE_MAX_BYTES}
             label="拖放圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)}`}
+            hint={`上限 ${formatBytes(IMAGE_MAX_BYTES)} · 僅本機處理`}
             onFiles={(files) => void onFile(files[0] ?? null)}
           />
-          {fileName && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
-          <div className="label">比例預設</div>
-          <div className="row" style={{ flexWrap: 'wrap' }}>
+          <div className="ft-samples">
+            <span className="muted">比例預設：</span>
             {PRESETS.map((p) => (
               <button key={p.id} type="button" className={`btn sm ${preset === p.id ? 'accent' : 'ghost'}`} onClick={() => setPreset(p.id)}>
                 {p.label}
               </button>
             ))}
           </div>
+        </>
+      }
+      actions={
+        <ActionButton className="btn sm accent" disabled={!hasImage} onClick={download} icon="download">
+          下載裁切
+        </ActionButton>
+      }
+      infoItems={[
+        { label: '單檔上限', value: formatBytes(IMAGE_MAX_BYTES) },
+        { label: '操作', value: '拖曳或滑桿調整裁切框' },
+        { label: '輸出', value: 'PNG' },
+      ]}
+      faq={[ftPrivacyLocal, ftImageLocalFaq()]}
+      aside={
+        <FtAsidePreview
+          title="裁切預覽"
+          tag={cropOut.w ? <span className="tag mono">{cropOut.w}×{cropOut.h}</span> : null}
+        >
+          <FtCanvasAside
+            canvasRef={viewRef}
+            hasImage={hasImage}
+            empty="上傳後拖曳調整裁切框"
+            canvasStyle={{ cursor: 'grab', touchAction: 'none' }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          />
+        </FtAsidePreview>
+      }
+    >
+      <FtToolRoot>
+        <FtImageHero
+          emoji="📱"
+          meta={imageMeta}
+          metaLine={hasImage ? `預設：${presetLabel}` : undefined}
+          subtitle={hasImage && cropOut.w ? `輸出約 ${cropOut.w} × ${cropOut.h} px` : undefined}
+        />
+        <FtImageMetrics
+          meta={imageMeta}
+          extra={[{ label: '裁切輸出', value: cropOut.w ? `${cropOut.w} × ${cropOut.h}` : '—', mono: true }]}
+        />
+        {error && <p className="field-error">{error}</p>}
+        <FtSection title="裁切位置" hint="也可在右側預覽直接拖曳">
           <label className="stack">
             <span className="label">水平位置</span>
             <input type="range" min={0} max={100} value={Math.round(offsetX * 100)} onChange={(e) => setOffsetX(clamp(Number(e.target.value) / 100, 0, 1))} />
@@ -185,27 +248,11 @@ export default function Page() {
             <span className="label">垂直位置</span>
             <input type="range" min={0} max={100} value={Math.round(offsetY * 100)} onChange={(e) => setOffsetY(clamp(Number(e.target.value) / 100, 0, 1))} />
           </label>
-          <ActionButton className="btn accent" disabled={!hasImage} onClick={download}>下載
-         </ActionButton>
-        </div>
-        <div className="panel stack">
-          <div className="label">預覽（可拖曳）</div>
-          {hasImage ? (
-            <canvas
-              ref={viewRef}
-              style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, border: '1px solid var(--line)', cursor: 'grab', touchAction: 'none' }}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-            />
-          ) : (
-            <div className="muted" style={{ minHeight: 240, display: 'grid', placeItems: 'center', border: '1px dashed var(--line)', borderRadius: 12 }}>
-              上傳後預覽
-            </div>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+        </FtSection>
+        <ActionButton className="btn accent" disabled={!hasImage} onClick={download} icon="download">
+          下載 PNG
+        </ActionButton>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

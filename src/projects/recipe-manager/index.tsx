@@ -1,10 +1,17 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('recipe-manager')!
 
@@ -19,6 +26,27 @@ type Recipe = {
 }
 
 const CATEGORIES = ['家常', '湯品', '主食', '甜點', '飲品', '素食', '其他']
+
+const RECIPE_SAMPLES = [
+  {
+    label: '蛋炒飯',
+    title: '蛋炒飯',
+    category: '主食',
+    ingredients: '白飯 2 碗\n雞蛋 2 顆\n蔥 1 根\n醬油 1 大匙',
+    steps: '1. 蛋打散快炒\n2. 加入白飯拌炒\n3. 加醬油與蔥花',
+    time: 15,
+    baseServings: 2,
+  },
+  {
+    label: '味噌湯',
+    title: '味噌湯',
+    category: '湯品',
+    ingredients: '味噌 2 大匙\n豆腐 1 盒\n海帶 適量\n水 600ml',
+    steps: '1. 煮開水\n2. 下豆腐與海帶\n3. 關火溶味噌',
+    time: 10,
+    baseServings: 2,
+  },
+]
 const MAX_ITEMS = 200
 const MAX_TITLE = 80
 const MAX_INGREDIENTS = 2000
@@ -132,6 +160,11 @@ export default function Page() {
     })
   }, [recipes, catFilter, search])
 
+  const avgTime = useMemo(() => {
+    if (!recipes.length) return 0
+    return Math.round(recipes.reduce((s, r) => s + r.time, 0) / recipes.length)
+  }, [recipes])
+
   const current = recipes.find((r) => r.id === active)
   const currentIngredients = current
     ? Array.isArray(current.ingredients)
@@ -223,15 +256,27 @@ export default function Page() {
     downloadText(`${safe}-scaled.txt`, body)
   }
 
+  function applyRecipeSample(s: (typeof RECIPE_SAMPLES)[0]) {
+    setTitle(s.title)
+    setCategory(s.category)
+    setIngredients(s.ingredients)
+    setSteps(s.steps)
+    setTimeStr(String(s.time))
+    setBaseServingsStr(String(s.baseServings))
+  }
+
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
         <div className="row">
-          <ActionButton className="btn ghost sm" disabled={!recipes.length} onClick={exportJson}>匯出 JSON</ActionButton>
-          <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
+          <ActionButton className="btn sm ghost" disabled={!recipes.length} onClick={exportJson} icon="download">
+            匯出 JSON
+          </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={() => importRef.current?.click()}>
             匯入 JSON
-          </button>
+          </ActionButton>
           <input
             ref={importRef}
             type="file"
@@ -244,9 +289,59 @@ export default function Page() {
           />
         </div>
       }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">食譜範例</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {RECIPE_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyRecipeSample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">顯示 {filtered.length} 則</span>
+            <span className="tag">共 {recipes.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '食譜上限', value: `${MAX_ITEMS} 則` },
+        { label: '份量縮放', value: '右側可調整倍率並勾選採買食材' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '食材格式', body: '每行一項；匯入 JSON 可合併既有食譜。' }]}
     >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🍳"
+          title={recipes.length}
+          subtitle="收藏食譜"
+          meta={
+            <>
+              平均約 {avgTime || '—'} 分鐘 · 分類篩選：{catFilter === 'all' ? '全部' : catFilter}
+              {current ? (
+                <>
+                  <br />
+                  檢視中：{current.title}
+                </>
+              ) : null}
+            </>
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="食譜數" value={`${recipes.length} / ${MAX_ITEMS}`} />
+          <FtMetric label="符合篩選" value={filtered.length} />
+          <FtMetric label="平均時間" value={avgTime ? `${avgTime} 分` : '—'} />
+          <FtMetric label="目前份量" value={current ? `${servings} 人份` : '—'} />
+        </FtMetricGrid>
+
       <div className="grid-2">
-        <div className="panel stack">
+        <div className="stack">
+          <FtSection title="新增食譜">
           {importMsg && <p className="muted" style={{ fontSize: 13 }}>{importMsg}</p>}
           <div className="stack" style={{ gap: 0 }}>
             <input
@@ -340,7 +435,9 @@ export default function Page() {
           </div>
           <ActionButton className="btn accent" onClick={add} disabled={!canAdd}>收藏食譜</ActionButton>
           {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 則食譜</p>}
+          </FtSection>
 
+          <FtSection title="瀏覽食譜">
           <div className="stack" style={{ gap: 0 }}>
             <input
               className="field"
@@ -385,9 +482,11 @@ export default function Page() {
             ))}
             {!filtered.length && <p className="muted">尚無符合的食譜</p>}
           </ul>
+          </FtSection>
         </div>
 
-        <div className="panel stack">
+        <div className="stack">
+          <FtSection title="食譜詳情">
           {current ? (
             <>
               <div className="row">
@@ -450,8 +549,10 @@ export default function Page() {
           ) : (
             <p className="muted">選擇一則食譜查看，並調整份量與勾選食材</p>
           )}
+          </FtSection>
         </div>
       </div>
-    </ProjectShell>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

@@ -730,7 +730,7 @@ input[type='file'].field {
   align-items: center;
 }
 
-/* ÃÂ¥ÃÂÃÂÃÂ¥ÃÂÃÂ§ÃÂ¦ÃÂÃÂÃÂ¥ÃÂ­ÃÂÃÂ¦ÃÂÃÂ¸ÃÂ¦ÃÂÃÂÃÂ§ÃÂ¤ÃÂºÃÂ¦ÃÂÃÂÃÂ¦ÃÂÃÂ¹ÃÂ©ÃÂ ÃÂÃÂ¥ÃÂ°ÃÂÃÂ©ÃÂ½ÃÂÃÂ¯ÃÂ¼ÃÂÃÂ©ÃÂÃÂ¿ÃÂ¥ÃÂÃÂÃÂ¦ÃÂÃÂÃÂ©ÃÂÃÂÃÂ§ÃÂÃÂ¸ÃÂ¥ÃÂ°ÃÂÃÂ¨ÃÂ¼ÃÂ¸ÃÂ¥ÃÂÃÂ¥ÃÂ¦ÃÂ¡ÃÂÃÂ£ÃÂÃÂÃÂ¦ÃÂµÃÂ®ÃÂ¨ÃÂµÃÂ·ÃÂ¤ÃÂ¾ÃÂÃÂ£ÃÂÃÂ */
+/* ÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ¥ÃÂÃÂÃÂÃÂ§ÃÂÃÂ¦ÃÂÃÂÃÂÃÂÃÂÃÂ¥ÃÂÃÂ­ÃÂÃÂÃÂÃÂ¦ÃÂÃÂÃÂÃÂ¸ÃÂÃÂ¦ÃÂÃÂÃÂÃÂÃÂÃÂ§ÃÂÃÂ¤ÃÂÃÂºÃÂÃÂ¦ÃÂÃÂÃÂÃÂÃÂÃÂ¦ÃÂÃÂÃÂÃÂ¹ÃÂÃÂ©ÃÂÃÂ ÃÂÃÂÃÂÃÂ¥ÃÂÃÂ°ÃÂÃÂÃÂÃÂ©ÃÂÃÂ½ÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¼ÃÂÃÂÃÂÃÂ©ÃÂÃÂÃÂÃÂ¿ÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ¦ÃÂÃÂÃÂÃÂÃÂÃÂ©ÃÂÃÂÃÂÃÂÃÂÃÂ§ÃÂÃÂÃÂÃÂ¸ÃÂÃÂ¥ÃÂÃÂ°ÃÂÃÂÃÂÃÂ¨ÃÂÃÂ¼ÃÂÃÂ¸ÃÂÃÂ¥ÃÂÃÂÃÂÃÂ¥ÃÂÃÂ¦ÃÂÃÂ¡ÃÂÃÂÃÂÃÂ£ÃÂÃÂÃÂÃÂÃÂÃÂ¦ÃÂÃÂµÃÂÃÂ®ÃÂÃÂ¨ÃÂÃÂµÃÂÃÂ·ÃÂÃÂ¤ÃÂÃÂ¾ÃÂÃÂÃÂÃÂ£ÃÂÃÂÃÂÃÂ */
 .row:has(.field-meta),
 .row:has(.field-wrap) {
   align-items: flex-start;
@@ -747,7 +747,7 @@ input[type='file'].field {
   margin-top: 0;
 }
 
-/* ÃÂ¥ÃÂ·ÃÂ¥ÃÂ¥ÃÂÃÂ·ÃÂ¥ÃÂÃÂÃÂ¯ÃÂ¼ÃÂÃÂ¥ÃÂ­ÃÂÃÂ¦ÃÂÃÂ¸ÃÂ¥ÃÂÃÂÃÂ¤ÃÂ¸ÃÂÃÂ¥ÃÂÃÂÃÂ¨ÃÂÃÂÃÂ¥ÃÂ°ÃÂÃÂ©ÃÂ½ÃÂÃÂ¥ÃÂÃÂºÃÂ¦ÃÂºÃÂÃÂ¯ÃÂ¼ÃÂÃÂ¦ÃÂÃÂÃÂ©ÃÂÃÂÃÂ©ÃÂ«ÃÂÃÂ¥ÃÂºÃÂ¦ÃÂ¥ÃÂ°ÃÂÃÂ©ÃÂ½ÃÂÃÂ¨ÃÂ¼ÃÂ¸ÃÂ¥ÃÂÃÂ¥ÃÂ¦ÃÂ¡ÃÂ */
+/* ÃÂÃÂ¥ÃÂÃÂ·ÃÂÃÂ¥ÃÂÃÂ¥ÃÂÃÂÃÂÃÂ·ÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¼ÃÂÃÂÃÂÃÂ¥ÃÂÃÂ­ÃÂÃÂÃÂÃÂ¦ÃÂÃÂÃÂÃÂ¸ÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ¤ÃÂÃÂ¸ÃÂÃÂÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ¨ÃÂÃÂÃÂÃÂÃÂÃÂ¥ÃÂÃÂ°ÃÂÃÂÃÂÃÂ©ÃÂÃÂ½ÃÂÃÂÃÂÃÂ¥ÃÂÃÂÃÂÃÂºÃÂÃÂ¦ÃÂÃÂºÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¼ÃÂÃÂÃÂÃÂ¦ÃÂÃÂÃÂÃÂÃÂÃÂ©ÃÂÃÂÃÂÃÂÃÂÃÂ©ÃÂÃÂ«ÃÂÃÂÃÂÃÂ¥ÃÂÃÂºÃÂÃÂ¦ÃÂÃÂ¥ÃÂÃÂ°ÃÂÃÂÃÂÃÂ©ÃÂÃÂ½ÃÂÃÂÃÂÃÂ¨ÃÂÃÂ¼ÃÂÃÂ¸ÃÂÃÂ¥ÃÂÃÂÃÂÃÂ¥ÃÂÃÂ¦ÃÂÃÂ¡ÃÂÃÂ */
 .row:has(.field-meta) > .btn,
 .row:has(.field-wrap) > .btn,
 .row:has(.field-meta) > .btn.sm,
@@ -813,7 +813,7 @@ input[type='file'].field {
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
-/* ÃÂ¥ÃÂÃÂÃÂ¤ÃÂ¸ÃÂÃÂ¥ÃÂÃÂÃÂ§ÃÂÃÂÃÂ¦ÃÂÃÂ§ÃÂ¥ÃÂÃÂ¶ÃÂ©ÃÂ ÃÂÃÂ©ÃÂ«ÃÂÃÂ¥ÃÂºÃÂ¦ÃÂ¥ÃÂ°ÃÂÃÂ©ÃÂ½ÃÂ */
+/* ÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ¤ÃÂÃÂ¸ÃÂÃÂÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ§ÃÂÃÂÃÂÃÂÃÂÃÂ¦ÃÂÃÂÃÂÃÂ§ÃÂÃÂ¥ÃÂÃÂÃÂÃÂ¶ÃÂÃÂ©ÃÂÃÂ ÃÂÃÂÃÂÃÂ©ÃÂÃÂ«ÃÂÃÂÃÂÃÂ¥ÃÂÃÂºÃÂÃÂ¦ÃÂÃÂ¥ÃÂÃÂ°ÃÂÃÂÃÂÃÂ©ÃÂÃÂ½ÃÂÃÂ */
 .row > .field,
 .row > select.field,
 .row > input.field,
@@ -877,7 +877,7 @@ textarea.field {
   font-size: 0.9rem;
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Select ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Select ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 select.field,
 select {
   appearance: none;
@@ -887,7 +887,7 @@ select {
   background-position: right 0.75rem center;
   background-size: 1rem 1rem;
   background-repeat: no-repeat;
-  /* ÃÂ¥ÃÂÃÂ³ÃÂ¥ÃÂÃÂ´ÃÂ§ÃÂ®ÃÂ­ÃÂ©ÃÂ ÃÂ­ÃÂ¥ÃÂÃÂ + ÃÂ¤ÃÂ¸ÃÂ­ÃÂ¦ÃÂÃÂÃÂ¦ÃÂ¨ÃÂÃÂ§ÃÂ±ÃÂ¤ÃÂ¯ÃÂ¼ÃÂÃÂ¥ÃÂ¦ÃÂÃÂ£ÃÂÃÂÃÂ©ÃÂ«ÃÂÃÂ¥ÃÂÃÂªÃÂ¥ÃÂÃÂÃÂ£ÃÂÃÂÃÂ¯ÃÂ¼ÃÂÃÂ¤ÃÂ¸ÃÂÃÂ¥ÃÂÃÂ¯ÃÂ¨ÃÂ¢ÃÂ«ÃÂ¨ÃÂ£ÃÂÃÂ¥ÃÂÃÂ */
+  /* ÃÂÃÂ¥ÃÂÃÂÃÂÃÂ³ÃÂÃÂ¥ÃÂÃÂÃÂÃÂ´ÃÂÃÂ§ÃÂÃÂ®ÃÂÃÂ­ÃÂÃÂ©ÃÂÃÂ ÃÂÃÂ­ÃÂÃÂ¥ÃÂÃÂÃÂÃÂ + ÃÂÃÂ¤ÃÂÃÂ¸ÃÂÃÂ­ÃÂÃÂ¦ÃÂÃÂÃÂÃÂÃÂÃÂ¦ÃÂÃÂ¨ÃÂÃÂÃÂÃÂ§ÃÂÃÂ±ÃÂÃÂ¤ÃÂÃÂ¯ÃÂÃÂ¼ÃÂÃÂÃÂÃÂ¥ÃÂÃÂ¦ÃÂÃÂÃÂÃÂ£ÃÂÃÂÃÂÃÂÃÂÃÂ©ÃÂÃÂ«ÃÂÃÂÃÂÃÂ¥ÃÂÃÂÃÂÃÂªÃÂÃÂ¥ÃÂÃÂÃÂÃÂÃÂÃÂ£ÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¼ÃÂÃÂÃÂÃÂ¤ÃÂÃÂ¸ÃÂÃÂÃÂÃÂ¥ÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¨ÃÂÃÂ¢ÃÂÃÂ«ÃÂÃÂ¨ÃÂÃÂ£ÃÂÃÂÃÂÃÂ¥ÃÂÃÂÃÂÃÂ */
   padding-right: 2.4rem;
   min-width: 7.75rem;
   max-width: 100%;
@@ -917,7 +917,7 @@ select option {
   color: var(--ink);
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Checkbox ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Checkbox ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
@@ -983,7 +983,7 @@ input[type="checkbox"]:disabled {
   color: var(--ink);
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Range / slider ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Range / slider ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 input[type="range"] {
   appearance: none;
   -webkit-appearance: none;
@@ -1071,7 +1071,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   box-shadow: 0 0 0 3px var(--accent-soft), 0 2px 8px rgba(240, 115, 74, 0.35);
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Date / time ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Date / time ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 input[type="date"].field,
 input[type="time"].field,
 input[type="datetime-local"].field {
@@ -1328,7 +1328,7 @@ button[data-tooltip]:not([data-tooltip='']):disabled:hover::after {
   color: var(--ink-muted);
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Todo list ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Todo list ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .todo-page {
   gap: var(--space-3);
 }
@@ -1797,7 +1797,7 @@ button[data-tooltip]:not([data-tooltip='']):disabled:hover::after {
   border-radius: inherit;
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ BMI Calculator ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ BMI Calculator ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .bmi-calc {
   display: flex;
   flex-direction: column;
@@ -2109,7 +2109,7 @@ button[data-tooltip]:not([data-tooltip='']):disabled:hover::after {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Currency Converter ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Currency Converter ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .fx-calc {
   display: flex;
   flex-direction: column;
@@ -2517,7 +2517,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Pomodoro ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Pomodoro ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .pomo {
   --pomo: var(--accent);
   --pomo-soft: color-mix(in srgb, var(--accent) 16%, #fff);
@@ -2866,7 +2866,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Countdown ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Countdown ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .cd {
   --cd: var(--accent);
   --cd-soft: color-mix(in srgb, var(--accent) 16%, #fff);
@@ -3273,7 +3273,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Stopwatch ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Stopwatch ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .sw {
   --sw: var(--accent);
   --sw-soft: color-mix(in srgb, var(--accent) 16%, #fff);
@@ -3828,7 +3828,7 @@ select.field.export-select-field {
   color: var(--ink-muted);
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Unit Converter ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Unit Converter ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .uc-calc {
   display: flex;
   flex-direction: column;
@@ -4208,7 +4208,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Age Calculator ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Age Calculator ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .age-calc {
   display: flex;
   flex-direction: column;
@@ -4587,7 +4587,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Tip Calculator ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Tip Calculator ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .tip-calc {
   display: flex;
   flex-direction: column;
@@ -4948,7 +4948,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Password Generator ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Password Generator ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .pw-calc {
   display: flex;
   flex-direction: column;
@@ -5352,7 +5352,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ QR Generator ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ QR Generator ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .qr-calc {
   display: flex;
   flex-direction: column;
@@ -5621,7 +5621,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ UUID Generator ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ UUID Generator ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .uuid-calc {
   display: flex;
   flex-direction: column;
@@ -5745,7 +5745,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Lorem Ipsum ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Lorem Ipsum ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .lorem-calc {
   display: flex;
   flex-direction: column;
@@ -5849,7 +5849,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Random Name ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Random Name ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .rn-calc {
   display: flex;
   flex-direction: column;
@@ -5976,7 +5976,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Random Number ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Random Number ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .rnd-calc {
   display: flex;
   flex-direction: column;
@@ -6134,7 +6134,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Color Converter ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Color Converter ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .cc-calc {
   display: flex;
   flex-direction: column;
@@ -6425,7 +6425,7 @@ select.field.export-select-field {
   }
 }
 
-/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ HEX / RGB / HSL ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+/* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ HEX / RGB / HSL ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
 .hrh-calc {
   display: flex;
   flex-direction: column;
@@ -6778,7 +6778,7 @@ select.field.export-select-field {
 }
 
 
-/* ÃÂ¢wÃÂ¢w Markdown Previewer ÃÂ¢wÃÂ¢w */
+/* ÃÂÃÂ¢wÃÂÃÂ¢w Markdown Previewer ÃÂÃÂ¢wÃÂÃÂ¢w */
 .mdp-calc {
   display: flex;
   flex-direction: column;
@@ -7061,7 +7061,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w JSON Formatter Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w JSON Formatter ÃÂ¢wÃÂ¢w */
 .jf-calc {
   display: flex;
   flex-direction: column;
@@ -7213,7 +7213,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w JSON Â¡Ã· CSV Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w JSON ÃÂ¡ÃÂ· CSV ÃÂ¢wÃÂ¢w */
 .j2c-calc {
   display: flex;
   flex-direction: column;
@@ -7476,7 +7476,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w Base64 Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w Base64 ÃÂ¢wÃÂ¢w */
 .b64-calc {
   display: flex;
   flex-direction: column;
@@ -7609,7 +7609,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w URL Codec Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w URL Codec ÃÂ¢wÃÂ¢w */
 .uc-calc {
   display: flex;
   flex-direction: column;
@@ -7790,7 +7790,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w Timestamp Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w Timestamp ÃÂ¢wÃÂ¢w */
 .ts-calc {
   display: flex;
   flex-direction: column;
@@ -7845,7 +7845,7 @@ select.field.export-select-field {
   grid-template-columns: 1fr;
 }
 
-/* ä¸¦æï¼é«åº¦è·å·¦å´è½æåï¼æ¹æ¬¡è¶åºææ»¾ */
+/* Ã¤Â¸Â¦Ã¦ÂÂÃ¯Â¼ÂÃ©Â«ÂÃ¥ÂºÂ¦Ã¨Â·ÂÃ¥Â·Â¦Ã¥ÂÂ´Ã¨Â½ÂÃ¦ÂÂÃ¥ÂÂÃ¯Â¼ÂÃ¦ÂÂ¹Ã¦Â¬Â¡Ã¨Â¶ÂÃ¥ÂÂºÃ¦ÂÂÃ¦Â»Â¾ */
 .ts-main.ts-view-split {
   position: relative;
   display: block;
@@ -7929,7 +7929,7 @@ select.field.export-select-field {
   gap: 0.5rem;
 }
 
-/* ä¸¦æï¼æ¨é¡ï¼è¼¸å¥åºå®ï¼åªæçµæåè¡¨æ»¾ */
+/* Ã¤Â¸Â¦Ã¦ÂÂÃ¯Â¼ÂÃ¦Â¨ÂÃ©Â¡ÂÃ¯Â¼ÂÃ¨Â¼Â¸Ã¥ÂÂ¥Ã¥ÂÂºÃ¥Â®ÂÃ¯Â¼ÂÃ¥ÂÂªÃ¦ÂÂÃ§ÂµÂÃ¦ÂÂÃ¥ÂÂÃ¨Â¡Â¨Ã¦Â»Â¾ */
 .ts-main.ts-view-split .ts-batch-list {
   flex: 1 1 auto;
   min-height: 0;
@@ -7994,7 +7994,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w Cron Generator Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w Cron Generator ÃÂ¢wÃÂ¢w */
 .cg-calc {
   display: flex;
   flex-direction: column;
@@ -8142,7 +8142,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w Regex Tester Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w Regex Tester ÃÂ¢wÃÂ¢w */
 .rx-calc {
   display: flex;
   flex-direction: column;
@@ -8360,7 +8360,7 @@ select.field.export-select-field {
   }
 }
 
-/* Â¢wÂ¢w Image Workbench (shared) Â¢wÂ¢w */
+/* ÃÂ¢wÃÂ¢w Image Workbench (shared) ÃÂ¢wÃÂ¢w */
 .iw-calc {
   display: flex;
   flex-direction: column;
@@ -8467,7 +8467,7 @@ select.field.export-select-field {
 }
 
 
-/* ââ Text â PDF ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Text Ã¢ÂÂ PDF Ã¢ÂÂÃ¢ÂÂ */
 .ttp-calc {
   display: flex;
   flex-direction: column;
@@ -8609,7 +8609,7 @@ select.field.export-select-field {
 }
 
 
-/* ── Filename Cleaner ── */
+/* ââ Filename Cleaner ââ */
 .fnc-calc {
   display: flex;
   flex-direction: column;
@@ -8788,7 +8788,7 @@ select.field.export-select-field {
 }
 
 
-/* ── File Size Analyzer ── */
+/* ââ File Size Analyzer ââ */
 .fsa-calc {
   display: flex;
   flex-direction: column;
@@ -8953,7 +8953,7 @@ select.field.export-select-field {
 }
 
 
-/* ── MIME Type Lookup ── */
+/* ââ MIME Type Lookup ââ */
 .mime-calc {
   display: flex;
   flex-direction: column;
@@ -9147,7 +9147,7 @@ select.field.export-select-field {
 }
 
 
-/* ── CSV Viewer ── */
+/* ââ CSV Viewer ââ */
 .csvv-calc {
   display: flex;
   flex-direction: column;
@@ -9324,7 +9324,7 @@ select.field.export-select-field {
 }
 
 
-/* ── Format converters (CSV/JSON/YAML) ── */
+/* ââ Format converters (CSV/JSON/YAML) ââ */
 .xc-calc {
   display: flex;
   flex-direction: column;
@@ -9447,7 +9447,7 @@ select.field.export-select-field {
   }
 }
 
-/* �X�X Weather dashboard �X�X */
+/* ¡X¡X Weather dashboard ¡X¡X */
 .wd-calc {
   display: flex;
   flex-direction: column;
@@ -9778,5 +9778,843 @@ select.field.export-select-field {
 
   .wd-hero-temp {
     font-size: 2.5rem;
+  }
+}
+
+/* ¡X¡X GitHub tools (profile + repo search) ¡X¡X */
+.gh-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.gh-shell-actions {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.gh-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.gh-search-row {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.gh-check {
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.gh-rate {
+  font-size: 0.75rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gh-samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.gh-main {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 0.85rem;
+  align-items: stretch;
+  min-height: min(55vh, 520px);
+}
+
+.gh-calc > .panel,
+.gh-main > .panel,
+.gh-calc > .panel + .panel,
+.gh-main > .panel + .panel {
+  margin: 0;
+  min-width: 0;
+}
+
+.gh-main > .panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+}
+
+.gh-profile-panel,
+.gh-repos-panel {
+  overflow: hidden;
+}
+
+.gh-profile-body,
+.gh-repos-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.gh-profile-head {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.gh-avatar {
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--line);
+}
+
+.gh-profile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.gh-login {
+  font-size: 0.92rem;
+}
+
+.gh-bio {
+  margin: 0.25rem 0 0;
+  line-height: 1.45;
+}
+
+.gh-meta-line {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.gh-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.gh-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 96%, #f3f0ea);
+}
+
+.gh-stat .muted {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.gh-stat strong {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.gh-dates {
+  margin: 0;
+}
+
+.gh-lang-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.gh-repo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.gh-repo-list-full {
+  width: 100%;
+}
+
+.gh-repo-card {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 98%, #faf8f5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gh-repo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.gh-repo-name {
+  font-weight: 650;
+  margin-right: auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.gh-repo-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.gh-repo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+.gh-repo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.gh-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gh-event {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.86rem;
+}
+
+.gh-event-repo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gh-event-time {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.gh-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.gh-filter {
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.gh-star-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.gh-query-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--line);
+  font-size: 0.86rem;
+}
+
+.gh-query-preview code {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.gh-result-count {
+  margin-left: auto;
+}
+
+.gh-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.gh-favs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gh-fav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gh-fav-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.gh-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.gh-empty {
+  margin: 0;
+}
+
+.gh-info .pw-info-list {
+  margin-bottom: 0.75rem;
+}
+
+.gh-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.gh-faq p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.gh-faq strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+  font-size: 0.84rem;
+}
+
+.gh-faq code {
+  font-size: 0.82em;
+}
+
+@media (max-width: 960px) {
+  .gh-main {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .gh-main > .panel {
+    height: auto;
+  }
+
+  .gh-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gh-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gh-results-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.gh-favs-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* —— Feature tier (日常應用) shared layout —— */
+.ft-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ft-calc > .panel,
+.ft-main > .panel,
+.ft-calc > .panel + .panel,
+.ft-main > .panel + .panel {
+  margin: 0;
+  min-width: 0;
+}
+
+.ft-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ft-main {
+  display: grid;
+  gap: 0.85rem;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.ft-main-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ft-main-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.ft-main > .panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+}
+
+.ft-content,
+.ft-aside {
+  overflow: auto;
+}
+
+.ft-info .pw-info-list {
+  margin-bottom: 0.75rem;
+}
+
+.ft-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.ft-faq p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.ft-faq strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+  font-size: 0.84rem;
+}
+
+.ft-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.84rem;
+}
+
+.ft-samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ft-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+@media (max-width: 960px) {
+  .ft-main {
+    min-height: 0;
+  }
+
+  .ft-main-split {
+    grid-template-columns: 1fr;
+  }
+
+  .ft-main > .panel {
+    height: auto;
+  }
+}
+
+/* —— Feature tool UI (日常應用共用) —— */
+.ft-ui-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* PDF 工具：預覽在上、控制項在下（單欄，避免 aside 多層 panel） */
+.ft-pdf-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ft-ui-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ft-ui-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.ft-ui-hero {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 8%, var(--panel)),
+    color-mix(in srgb, #7eb8da 10%, var(--panel))
+  );
+  position: relative;
+}
+
+.ft-ui-hero-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ft-ui-hero-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ft-ui-hero-title {
+  font-size: 1.5rem;
+  font-weight: 750;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.ft-ui-hero-sub {
+  font-size: 1.02rem;
+  font-weight: 650;
+  margin-top: 0.2rem;
+}
+
+.ft-ui-hero-meta {
+  margin-top: 0.35rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.ft-ui-hero-badge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+}
+
+.ft-ui-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ft-ui-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 96%, #f3f0ea);
+  min-width: 0;
+}
+
+.ft-ui-metric .muted {
+  font-size: 0.76rem;
+}
+
+.ft-ui-metric strong {
+  font-size: 0.9rem;
+  font-weight: 650;
+  word-break: break-word;
+}
+
+.ft-ui-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ft-ui-section-hint {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.ft-ui-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ft-ui-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 98%, #faf8f5);
+}
+
+.ft-ui-aside .pw-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.iw-canvas-wrap.ft-ui-checker {
+  background:
+    repeating-conic-gradient(color-mix(in srgb, var(--ink) 8%, transparent) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+}
+
+.ft-content > .grid-2 .metric,
+.ft-content > .grid-3 .metric {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 96%, #f3f0ea);
+}
+
+.ft-content > .grid-2 .metric .muted,
+.ft-content > .grid-3 .metric .muted {
+  font-size: 0.76rem;
+  margin-bottom: 0.15rem;
+}
+
+.ft-content > .grid-2 .metric > div:last-child,
+.ft-content > .grid-3 .metric > div:last-child {
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+@media (max-width: 720px) {
+  .ft-ui-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* —— IP Lookup (aliases) —— */
+.ipl-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ipl-shell-actions {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ipl-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.ipl-search-row {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ipl-actions {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ipl-samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+.ipl-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ipl-hero {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 8%, var(--panel)),
+    color-mix(in srgb, #7eb8da 10%, var(--panel))
+  );
+  position: relative;
+}
+
+.ipl-hero-flag {
+  font-size: 2.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ipl-hero-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ipl-hero-ip {
+  font-size: 1.85rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.ipl-hero-loc {
+  font-size: 1.05rem;
+  font-weight: 650;
+  margin-top: 0.25rem;
+}
+
+.ipl-hero-org {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.ipl-hero-coord {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+}
+
+.ipl-mock-tag {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+}
+
+.ipl-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ipl-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--panel) 96%, #f3f0ea);
+  min-width: 0;
+}
+
+.ipl-metric .muted {
+  font-size: 0.76rem;
+}
+
+.ipl-metric strong {
+  font-size: 0.9rem;
+  font-weight: 650;
+  word-break: break-word;
+}
+
+.ipl-lan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--line);
+}
+
+.ipl-lan-hint {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.ipl-lan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ipl-lan-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 720px) {
+  .ipl-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ipl-samples {
+    margin-left: 0;
+    width: 100%;
   }
 }

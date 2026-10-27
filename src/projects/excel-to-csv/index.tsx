@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import { ActionButton } from '../../components/ActionButton'
 import { useState } from 'react'
@@ -145,35 +145,23 @@ export default function Page() {
   const preview = csv.length > PREVIEW_MAX ? `${csv.slice(0, PREVIEW_MAX)}\n…` : csv
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <div className="row xc-shell-actions">
-          <ActionButton className="btn sm ghost" disabled={!csv} onClick={() => void copyVal(csv, 'out')} icon="copy">
-            {copied === 'out' ? '已複製' : '複製'}
-          </ActionButton>
-          <ActionButton
-            className="btn sm accent"
-            disabled={!csv}
-            onClick={() => downloadText(`${sheet || 'sheet'}.csv`, exportBody, 'text/csv;charset=utf-8')}
-            icon="download"
-          >
-            下載 CSV
-          </ActionButton>
-        </div>
-      }
-    >
-      <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              {info && <span className="tag">{info}</span>}
-              {dims && <span className="tag">{dims}</span>}
-              {sheets.length > 0 && <span className="tag">{sheets.length} 工作表</span>}
-              {busy && <span className="tag">讀取中…</span>}
-              {error && <span className="tag xc-tag-warn">讀取失敗</span>}
-            </div>
+      infoItems={[
+        { label: '引擎', value: 'ExcelJS 本機讀取（已移除有 high CVE 的 SheetJS xlsx 套件）' },
+        { label: '格式', value: '僅支援 .xlsx；舊版 .xls 請另存為 xlsx' },
+        { label: '儲存格', value: '公式取結果值；富文字合併為純文字；日期輸出 ISO' },
+        { label: 'BOM', value: '下載可加 UTF-8 BOM，方便 Excel 辨識中文' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '相關工具', body: 'CSV Editor、CSV → JSON' }]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            {info && <span className="tag">{info}</span>}
+            {dims && <span className="tag">{dims}</span>}
+            {sheets.length > 0 && <span className="tag">{sheets.length} 工作表</span>}
+            {busy && <span className="tag">讀取中…</span>}
+            {error && <span className="tag xc-tag-warn">讀取失敗</span>}
           </div>
           {sheets.length > 0 && (
             <div className="pw-block">
@@ -199,7 +187,24 @@ export default function Page() {
             </label>
           </div>
         </div>
-
+      }
+      actions={
+        <div className="row xc-shell-actions">
+          <ActionButton className="btn sm ghost" disabled={!csv} onClick={() => void copyVal(csv, 'out')} icon="copy">
+            {copied === 'out' ? '已複製' : '複製'}
+          </ActionButton>
+          <ActionButton
+            className="btn sm accent"
+            disabled={!csv}
+            onClick={() => downloadText(`${sheet || 'sheet'}.csv`, exportBody, 'text/csv;charset=utf-8')}
+            icon="download"
+          >
+            下載 CSV
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="xc-calc">
         <div className="xc-main">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -256,32 +261,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">引擎</span>
-              <strong>ExcelJS 本機讀取（已移除有 high CVE 的 SheetJS xlsx 套件）</strong>
-            </li>
-            <li>
-              <span className="muted">格式</span>
-              <strong>僅支援 .xlsx；舊版 .xls 請先用試算表另存為 xlsx</strong>
-            </li>
-            <li>
-              <span className="muted">儲存格</span>
-              <strong>公式取結果值；富文字合併為純文字；日期輸出 ISO</strong>
-            </li>
-            <li>
-              <span className="muted">BOM</span>
-              <strong>開啟後下載會加 UTF-8 BOM，方便 Excel 正確辨識中文</strong>
-            </li>
-            <li>
-              <span className="muted">隱私</span>
-              <strong>本機解析，不上傳；相關：CSV Editor、CSV → JSON</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

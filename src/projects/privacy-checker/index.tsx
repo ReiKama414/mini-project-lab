@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { ActionButton } from '../../components/ActionButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -64,8 +64,45 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      infoItems={[
+        { label: '範圍', value: '簡易正則啟發式（Email、電話樣式、可能卡號），可能誤判或漏判' },
+        { label: '限制', value: '不能取代正式個資審查或合規稽核' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '相關', body: 'Tracking URL Cleaner、EXIF Cleaner' }]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            {isNonEmpty(text) && (
+              <span className={`tag${findings.length ? ' xc-tag-warn' : ''}`}>發現 {findings.length} 項</span>
+            )}
+            {byType.map(([t, n]) => (
+              <span key={t} className="tag">
+                {t} ×{n}
+              </span>
+            ))}
+          </div>
+          <div className="pw-block">
+            <div className="label">範例</div>
+            <div className="pw-chips">
+              {SAMPLES.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className="btn sm ghost"
+                  onClick={() => {
+                    setText(s.body)
+                    setHint(`已套用「${s.label}」`)
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      }
       actions={
         <div className="row xc-shell-actions">
           <ActionButton
@@ -88,40 +125,6 @@ export default function Page() {
       }
     >
       <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              {isNonEmpty(text) && (
-                <span className={`tag${findings.length ? ' xc-tag-warn' : ''}`}>發現 {findings.length} 項</span>
-              )}
-              {byType.map(([t, n]) => (
-                <span key={t} className="tag">
-                  {t} ×{n}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="pw-block">
-            <div className="label">範例</div>
-            <div className="pw-chips">
-              {SAMPLES.map((s) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  className="btn sm ghost"
-                  onClick={() => {
-                    setText(s.body)
-                    setHint(`已套用「${s.label}」`)
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
         <div className="xc-main xc-view-split">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -185,28 +188,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">範圍</span>
-              <strong>簡易正則啟發式（Email、電話樣式、可能卡號），可能誤判或漏判</strong>
-            </li>
-            <li>
-              <span className="muted">限制</span>
-              <strong>不能取代正式個資審查或合規稽核</strong>
-            </li>
-            <li>
-              <span className="muted">隱私</span>
-              <strong>文字僅在本機處理</strong>
-            </li>
-            <li>
-              <span className="muted">相關</span>
-              <strong>Tracking URL Cleaner、EXIF Cleaner</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

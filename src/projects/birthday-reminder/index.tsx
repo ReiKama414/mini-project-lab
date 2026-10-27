@@ -1,10 +1,17 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { AddButton } from '../../components/AddButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('birthday-reminder')!
 
@@ -20,6 +27,11 @@ type Person = {
 const MAX_ITEMS = 200
 const MAX_NAME = 60
 const CURRENT_YEAR = new Date().getFullYear()
+
+const BIRTHDAY_SAMPLES = [
+  { label: '範例甲', name: '王小明', month: 3, day: 15, birthYear: 1995 },
+  { label: '範例乙', name: '陳小華', month: 12, day: 25 },
+]
 
 function nextBirthday(month: number, day: number, from = new Date()) {
   const y = from.getFullYear()
@@ -216,17 +228,28 @@ export default function Page() {
     setRemindMsg(`已排程「${p.name}」提醒（約 ${mins} 分鐘後）`)
   }
 
+  function applyBirthdaySample(s: (typeof BIRTHDAY_SAMPLES)[0]) {
+    setName(s.name)
+    setMonth(s.month)
+    setDay(s.day)
+    setBirthYear(s.birthYear != null ? String(s.birthYear) : '')
+  }
+
+  const nextPerson = upcoming[0]
+  const within7 = people.map(withAge).filter((p) => p.days <= 7).length
+
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
         <div className="row">
-          <button type="button" className="btn ghost sm" disabled={!people.length} onClick={exportJson}>
+          <ActionButton className="btn sm ghost" disabled={!people.length} onClick={exportJson} icon="download">
             備份 JSON
-          </button>
-          <button type="button" className="btn ghost sm" onClick={() => importRef.current?.click()}>
+          </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={() => importRef.current?.click()}>
             還原 JSON
-          </button>
+          </ActionButton>
           <input
             ref={importRef}
             type="file"
@@ -239,33 +262,64 @@ export default function Page() {
           />
         </div>
       }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">填寫範例</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {BIRTHDAY_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyBirthdaySample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">聯絡人 {people.length} / {MAX_ITEMS}</span>
+            <span className="tag">本月 {thisMonth.length} 位</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '人數上限', value: `${MAX_ITEMS} 人` },
+        { label: '提醒', value: '24 小時內可排程本機通知' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '排序', body: '預設依「距離下次生日」由近到遠；可篩選月份。' }]}
     >
-      <div className="panel stack">
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🎂"
+          title={nextPerson ? (nextPerson.days === 0 ? '今天！' : `${nextPerson.days} 天`) : '—'}
+          subtitle={nextPerson ? `最近：${nextPerson.name}` : '尚無生日提醒'}
+          meta={
+            nextPerson ? (
+              <>
+                {nextPerson.month}/{nextPerson.day} · 下次 {nextPerson.next.toLocaleDateString('zh-TW')}
+                {nextPerson.turningAge != null ? ` · 滿 ${nextPerson.turningAge} 歲` : ''}
+                <br />
+                月份篩選：{monthFilter === 'all' ? '全部' : `${monthFilter} 月`}
+              </>
+            ) : (
+              '新增聯絡人開始追蹤'
+            )
+          }
+          badge={nextPerson?.days === 0 ? <span className="tag">壽星</span> : null}
+        />
+        <FtMetricGrid>
+          <FtMetric label="聯絡人" value={`${people.length} / ${MAX_ITEMS}`} />
+          <FtMetric label="本月壽星" value={thisMonth.length} />
+          <FtMetric label="7 天內" value={within7} />
+          <FtMetric label="已排程提醒" value={Object.keys(scheduled).length} />
+        </FtMetricGrid>
+
+        <FtSection title="新增生日">
         {(importMsg || remindMsg) && (
           <p className="muted" style={{ fontSize: 13 }}>
             {importMsg || remindMsg}
           </p>
         )}
-        <div className="grid-3">
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              聯絡人
-            </div>
-            <div style={{ fontSize: 24 }}>{people.length}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              本月壽星
-            </div>
-            <div style={{ fontSize: 24 }}>{thisMonth.length}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              7 天內
-            </div>
-            <div style={{ fontSize: 24 }}>{people.map(withAge).filter((p) => p.days <= 7).length}</div>
-          </div>
-        </div>
         <div className="grid-2">
           <div className="stack" style={{ gap: 0 }}>
             <input
@@ -338,9 +392,9 @@ export default function Page() {
           新增生日
         </AddButton>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 人</p>}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="即將到來">
         <div className="row">
           <span className="muted">月份篩選</span>
           <button
@@ -400,7 +454,8 @@ export default function Page() {
           })}
           {!upcoming.length && <p className="muted">尚無生日提醒</p>}
         </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

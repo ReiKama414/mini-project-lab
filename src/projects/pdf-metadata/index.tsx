@@ -1,6 +1,9 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT } from '../../lib/pdf'
 import { useState } from 'react'
 import { formatBytes, limitText, charCount, copyText } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -98,37 +101,42 @@ export default function Page() {
   const summary = JSON.stringify({ title, author, subject, keywords, creator, pageCount }, null, 2)
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="本機讀寫 PDF Info 字典（標題、作者等）。"
+      infoItems={ftPdfInfoItems([
+        { label: '欄位', value: '標題、作者、主旨、關鍵字、建立者' },
+        { label: '單檔上限', value: formatBytes(PDF_MAX) },
+      ])}
+      faq={ftPdfFaq}
       actions={
         <div className="row">
-          <button type="button" className="btn sm ghost" disabled={!file || busy} onClick={() => void copyText(summary)}>
+          <ActionButton className="btn sm ghost" disabled={!file || busy} onClick={() => void copyText(summary)} icon="copy">
             複製 JSON
-          </button>
-          <button type="button" className="btn sm accent" disabled={!file || busy} onClick={() => void run()}>
-            下載
-          </button>
+          </ActionButton>
+          <ActionButton className="btn sm accent" icon="download" disabled={!file || busy} onClick={() => void run()}>
+            {busy ? '處理中…' : '下載'}
+          </ActionButton>
         </div>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機讀寫 PDF Info 字典單檔上限 {formatBytes(PDF_MAX)}
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
-          accept="application/pdf"
+          accept={PDF_ACCEPT}
           maxBytes={PDF_MAX}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
           hint={`上限 ${formatBytes(PDF_MAX)}`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁 · {formatBytes(file.size)}
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
+      }
+    >
+      <div className="stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={file?.size}
+          pageCount={pageCount}
+          extra={busy && progress ? [{ label: '狀態', value: progress }] : []}
+        />
         {error && <p className="field-error">{error}</p>}
         {(
           [
@@ -156,10 +164,7 @@ export default function Page() {
             </div>
           </div>
         ))}
-        <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
-          {busy ? progress || '處理中…' : '儲存中繼資料並下載'}
-        </button>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

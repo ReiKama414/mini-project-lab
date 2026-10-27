@@ -1,6 +1,9 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfLocal, ftPrivacyLocal, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT, PDF_MAX_BYTES } from '../../lib/pdf'
 import { useState } from 'react'
 import { formatBytes, limitText, charCount, isNonEmpty } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -15,7 +18,6 @@ const fallback: ProjectMeta = {
   tags: ['utility', 'security'],
 }
 const meta = getProject('pdf-encrypt') ?? fallback
-const PDF_MAX = 25 * 1024 * 1024
 const PW_MAX = 64
 const MAGIC = 'MPLPDFv1'
 
@@ -46,8 +48,8 @@ export default function Page() {
       setError('請上傳 PDF 檔案')
       return
     }
-    if (f.size > PDF_MAX) {
-      setError(`檔案過大（上限 ${formatBytes(PDF_MAX)}）`)
+    if (f.size > PDF_MAX_BYTES) {
+      setError(`檔案過大（上限 ${formatBytes(PDF_MAX_BYTES)}）`)
       return
     }
     setFile(f)
@@ -57,8 +59,8 @@ export default function Page() {
 
   async function onEnc(f: File | null) {
     if (!f) return
-    if (f.size > PDF_MAX * 2) {
-      setError(`封裝檔過大（上限 ${formatBytes(PDF_MAX * 2)}）`)
+    if (f.size > PDF_MAX_BYTES * 2) {
+      setError(`封裝檔過大（上限 ${formatBytes(PDF_MAX_BYTES * 2)}）`)
       return
     }
     setEncFile(f)
@@ -136,101 +138,112 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!file || !isNonEmpty(userPw) || busy} onClick={() => void encrypt()}>
-          加密下載
-        </button>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={!file || !isNonEmpty(userPw) || busy}
+          onClick={() => void encrypt()}
+        >
+          {busy ? '處理中…' : '加密下載'}
+        </ActionButton>
       }
+      toolbar={
+        <div className="stack">
+          <FileDrop
+            accept={PDF_ACCEPT}
+            maxBytes={PDF_MAX_BYTES}
+            disabled={busy}
+            label="拖放 PDF 到此（加密用），或點擊選擇"
+            hint={`上限 ${formatBytes(PDF_MAX_BYTES)}`}
+            onFiles={(files) => void onPdf(files[0] ?? null)}
+          />
+          <FileDrop
+            accept=".enc,application/octet-stream"
+            maxBytes={PDF_MAX_BYTES * 2}
+            disabled={busy}
+            label="拖放 .pdf.enc 到此（解密用），或點擊選擇"
+            hint={`上限 ${formatBytes(PDF_MAX_BYTES * 2)}`}
+            onFiles={(files) => void onEnc(files[0] ?? null)}
+          />
+        </div>
+      }
+      infoItems={ftPdfInfoItems([
+        { label: '.pdf.enc 上限', value: formatBytes(PDF_MAX_BYTES * 2) },
+        { label: '密碼長度', value: `最多 ${PW_MAX} 字元` },
+      ])}
+      faq={[
+        ftPrivacyLocal,
+        ftPdfLocal,
+        {
+          title: '非標準 PDF 密碼',
+          body: '輸出為本機 AES-GCM 容器（.pdf.enc），Adobe／瀏覽器無法直接開啟；需用本頁解密還原。',
+        },
+        {
+          title: '與 PDF 開啟密碼的差異',
+          body: '標準 PDF 使用者密碼仍須在產生 PDF 時由其他工具設定；本頁只做額外封裝。',
+        },
+      ]}
+      footerHint="密碼僅用於本機 Web Crypto，不會上傳。"
     >
-      <p
-        className="field-hint"
-        role="status"
-        style={{
-          marginBottom: 12,
-          padding: '10px 12px',
-          border: '1px solid var(--line)',
-          borderRadius: 10,
-          background: 'color-mix(in srgb, var(--panel) 85%, var(--accent) 8%)',
-        }}
-      >
-        本機 AES-GCM 容器封裝（.pdf.enc），非標準 PDF 開啟密碼
-      </p>
-      <p className="muted" style={{ marginBottom: 12 }}>
-        這<strong>不是</strong> Adobe／瀏覽器可直接開啟的標準 PDF 密碼保護，而是本機 AES-GCM 容器（.pdf.enc）需用同頁解密還原為一般 PDF單檔上限{' '}
-        {formatBytes(PDF_MAX)}；密碼不會上傳
-      </p>
-      <div className="panel stack">
-        <FileDrop
-          accept="application/pdf"
-          maxBytes={PDF_MAX}
-          disabled={busy}
-          label="拖放 PDF 到此（加密用），或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
-          onFiles={(files) => void onPdf(files[0] ?? null)}
-        />
+      <div className="ft-pdf-stack">
         {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {formatBytes(file.size)}
-          </p>
+          <FtPdfFileMetrics fileName={file.name} sizeBytes={file.size} extra={[{ label: '用途', value: '加密來源' }]} />
         )}
-        <FileDrop
-          accept=".enc,application/octet-stream"
-          maxBytes={PDF_MAX * 2}
-          disabled={busy}
-          label="拖放 .pdf.enc 到此（解密用），或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX * 2)}`}
-          onFiles={(files) => void onEnc(files[0] ?? null)}
-        />
         {encFile && (
-          <p className="muted" style={{ margin: 0 }}>
-            {encFile.name} · {formatBytes(encFile.size)}
-          </p>
+          <FtPdfFileMetrics fileName={encFile.name} sizeBytes={encFile.size} extra={[{ label: '用途', value: '解密來源' }]} />
         )}
         {error && <p className="field-error">{error}</p>}
         {note && <p className="field-hint">{note}</p>}
-        <div className="field-wrap">
-          <label className="label">密碼</label>
-          <input
-            className={`field${!isNonEmpty(userPw) ? ' is-invalid' : ''}`}
-            type="password"
-            value={userPw}
-            maxLength={PW_MAX}
-            onChange={(e) => setUserPw(limitText(e.target.value, PW_MAX))}
-          />
-          <div className="field-meta">
-            <span> </span>
-            <span>
-              {charCount(userPw)} / {PW_MAX}
-            </span>
+        {!file && !encFile && !error && !note && (
+          <p className="muted">選擇 PDF 加密或 .pdf.enc 解密，並設定密碼後操作。</p>
+        )}
+        <FtSection title="密碼">
+          <div className="stack">
+            <div className="field-wrap">
+              <label className="label">密碼</label>
+              <input
+                className={`field${!isNonEmpty(userPw) ? ' is-invalid' : ''}`}
+                type="password"
+                value={userPw}
+                maxLength={PW_MAX}
+                onChange={(e) => setUserPw(limitText(e.target.value, PW_MAX))}
+              />
+              <div className="field-meta">
+                <span> </span>
+                <span>
+                  {charCount(userPw)} / {PW_MAX}
+                </span>
+              </div>
+            </div>
+            <div className="field-wrap">
+              <label className="label">確認密碼（加密時）</label>
+              <input
+                className="field"
+                type="password"
+                value={confirmPw}
+                maxLength={PW_MAX}
+                onChange={(e) => setConfirmPw(limitText(e.target.value, PW_MAX))}
+              />
+              <div className="field-meta">
+                <span> </span>
+                <span>
+                  {charCount(confirmPw)} / {PW_MAX}
+                </span>
+              </div>
+            </div>
+            <ActionButton
+              className="btn sm ghost"
+              disabled={!encFile || !isNonEmpty(userPw) || busy}
+              onClick={() => void decrypt()}
+            >
+              解密還原 PDF
+            </ActionButton>
           </div>
-        </div>
-        <div className="field-wrap">
-          <label className="label">確認密碼（加密時）</label>
-          <input
-            className="field"
-            type="password"
-            value={confirmPw}
-            maxLength={PW_MAX}
-            onChange={(e) => setConfirmPw(limitText(e.target.value, PW_MAX))}
-          />
-          <div className="field-meta">
-            <span> </span>
-            <span>
-              {charCount(confirmPw)} / {PW_MAX}
-            </span>
-          </div>
-        </div>
-        <div className="row">
-          <button type="button" className="btn accent" disabled={!file || !isNonEmpty(userPw) || busy} onClick={() => void encrypt()}>
-            {busy ? '處理中…' : '加密並下載 .enc'}
-          </button>
-          <button type="button" className="btn ghost" disabled={!encFile || !isNonEmpty(userPw) || busy} onClick={() => void decrypt()}>
-            解密還原 PDF
-          </button>
-        </div>
+        </FtSection>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

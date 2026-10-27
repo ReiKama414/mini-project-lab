@@ -1,6 +1,8 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT } from '../../lib/pdf'
 import { useEffect, useRef, useState } from 'react'
 import { formatBytes } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
@@ -240,51 +242,61 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      footerHint="本機擷取內嵌點陣圖；找不到或數量偏少時可改用「頁面渲染擷圖」。"
+      infoItems={ftPdfInfoItems([
+        { label: '模式', value: '內嵌擷取或 pdf.js 逐頁渲染 PNG' },
+        { label: '本工具頁數', value: `最多 ${MAX_PAGES} 頁` },
+      ])}
+      faq={ftPdfFaq}
       actions={
-        <button type="button" className="btn sm accent" disabled={!images.length || busy} onClick={() => void downloadZip()}>
-          下載 ZIP
-        </button>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={!images.length || busy}
+          onClick={() => void downloadZip()}
+        >
+          {busy ? '處理中…' : '下載 ZIP'}
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機擷取內嵌點陣圖；若找不到或數量偏少，可改用「頁面渲染擷圖」單檔上限 {formatBytes(PDF_MAX)}，最多{' '}
-        {MAX_PAGES} 頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
-          accept="application/pdf"
+          accept={PDF_ACCEPT}
           maxBytes={PDF_MAX}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX)} · 最多 ${MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {fileName && (
-          <p className="muted" style={{ margin: 0 }}>
-            {fileName}
-            {pageCount ? ` · ${pageCount} 頁` : ''}
-            {` · ${mode === 'embedded' ? '內嵌擷取' : '頁面渲染'} · 找到 ${images.length} 張`}
-            {busy && progress ? ` · ${progress}` : busy ? ' · 處理中…' : ''}
-          </p>
-        )}
+      }
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={fileName || undefined}
+          pageCount={pageCount}
+          extra={
+            fileName
+              ? [
+                  { label: '模式', value: mode === 'embedded' ? '內嵌擷取' : '頁面渲染' },
+                  { label: '圖片', value: `${images.length} 張` },
+                  ...(busy && progress ? [{ label: '狀態', value: progress }] : []),
+                ]
+              : []
+          }
+        />
         {error && <p className="field-error">{error}</p>}
         {showRenderOffer && !busy && (
-          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <button type="button" className="btn accent" disabled={!file} onClick={() => void switchToRender()}>
+          <FtSection title="擷取方式" hint="將每一頁以 pdf.js 渲染成 PNG（非內嵌圖）。">
+            <button type="button" className="btn sm accent" disabled={!file} onClick={() => void switchToRender()}>
               頁面渲染擷圖
             </button>
-            <span className="field-hint" style={{ margin: 0 }}>
-              將每一頁以 pdf.js 渲染成 PNG（非內嵌圖）
-            </span>
-          </div>
+          </FtSection>
         )}
         {busy && (
-          <div className="row">
-            <ActionButton className="btn sm ghost" onClick={abortBusy}>取消</ActionButton>
-            <span className="muted">{progress || '處理中…'}</span>
-          </div>
+          <ActionButton className="btn sm ghost" onClick={abortBusy}>
+            取消
+          </ActionButton>
         )}
         <div className="row" style={{ flexWrap: 'wrap', gap: 12 }}>
           {images.map((im) => (
@@ -304,10 +316,8 @@ export default function Page() {
             </a>
           ))}
         </div>
-        <button type="button" className="btn accent" disabled={!images.length || busy} onClick={() => void downloadZip()}>
-          {busy ? progress || '處理中…' : '打包下載'}
-        </button>
+        {!fileName && !busy && <p className="muted">上傳 PDF 後擷取內嵌或渲染圖片。</p>}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

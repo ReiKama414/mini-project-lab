@@ -1,13 +1,15 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics, FtSection } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
+import { PDF_ACCEPT, PDF_MAX_BYTES } from '../../lib/pdf'
 import { useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { clamp, formatBytes } from '../../lib/utils'
 import { downloadBlob } from '../../lib/imageCanvas'
 import { PDFDocument } from 'pdf-lib'
 import * as pdfjs from 'pdfjs-dist'
-import { ActionButton } from '../../components/ActionButton'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
@@ -20,7 +22,6 @@ const fallback: ProjectMeta = {
   tags: ['utility'],
 }
 const meta = getProject('pdf-compressor') ?? fallback
-const PDF_MAX = 25 * 1024 * 1024
 const MAX_PAGES = 40
 
 export default function Page() {
@@ -41,8 +42,8 @@ export default function Page() {
       setError('請上傳 PDF 檔案')
       return
     }
-    if (f.size > PDF_MAX) {
-      setError(`檔案過大（上限 ${formatBytes(PDF_MAX)}）`)
+    if (f.size > PDF_MAX_BYTES) {
+      setError(`檔案過大（上限 ${formatBytes(PDF_MAX_BYTES)}）`)
       return
     }
     runId.current += 1
@@ -144,80 +145,80 @@ export default function Page() {
     origSize > 0 && outSize > 0 ? Math.round((outSize / origSize) * 100) : null
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={!file || busy} onClick={() => void run()}>
+        <ActionButton className="btn sm accent" icon="download" disabled={!file || busy} onClick={() => void run()}>
           {busy ? '壓縮中…' : '下載'}
-        </button>
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        以頁面點陣化方式壓縮文字與向量會變成圖片，無法再選取文字單檔上限 {formatBytes(PDF_MAX)}，最多{' '}
-        {MAX_PAGES} 頁
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
-          accept="application/pdf"
-          maxBytes={PDF_MAX}
+          accept={PDF_ACCEPT}
+          maxBytes={PDF_MAX_BYTES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇"
-          hint={`上限 ${formatBytes(PDF_MAX)}`}
+          hint={`上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${MAX_PAGES} 頁`}
           onFiles={(files) => void onFile(files[0] ?? null)}
         />
-        {file && (
-          <p className="muted" style={{ margin: 0 }}>
-            {file.name} · {pageCount} 頁
-            {busy && progress ? ` · ${progress}` : ''}
-          </p>
-        )}
-        {(origSize > 0 || outSize > 0) && (
-          <p className="field-hint" style={{ margin: 0 }}>
-            壓縮前：{formatBytes(origSize)}
-            {outSize > 0 ? (
-              <>
-                {' '}
-                → 壓縮後：{formatBytes(outSize)}
-                {ratio != null ? `（約為原本的 ${ratio}%）` : ''}
-              </>
-            ) : (
-              ' → 壓縮後：尚未產生'
-            )}
-          </p>
-        )}
+      }
+      infoItems={ftPdfInfoItems([{ label: '本工具頁數上限', value: `${MAX_PAGES} 頁` }])}
+      faq={[
+        ...ftPdfFaq,
+        {
+          title: '壓縮原理',
+          body: '以 pdf.js 將每頁點陣化後以 JPG 重建 PDF，向量與文字會變成影像。',
+        },
+      ]}
+    >
+      <div className="ft-pdf-stack">
+        <FtPdfFileMetrics
+          fileName={file?.name}
+          sizeBytes={origSize || file?.size}
+          pageCount={pageCount}
+          extra={[
+            ...(busy && progress ? [{ label: '狀態', value: progress }] : []),
+            ...(outSize > 0
+              ? [{ label: '壓縮後', value: ratio != null ? `${formatBytes(outSize)}（${ratio}%）` : formatBytes(outSize) }]
+              : []),
+          ]}
+        />
         {error && <p className="field-error">{error}</p>}
-        <p className="field-hint">注意：壓縮後每頁為 JPG 影像，文字不可搜尋／複製，且可能有損畫質</p>
-        <label className="stack">
-          <span className="label">JPG 品質 {Math.round(quality * 100)}%</span>
-          <input
-            type="range"
-            min={30}
-            max={92}
-            disabled={busy}
-            value={Math.round(quality * 100)}
-            onChange={(e) => setQuality(clamp(Number(e.target.value) / 100, 0.3, 0.92))}
-          />
-        </label>
-        <label className="stack">
-          <span className="label">渲染倍率 {scale.toFixed(1)}x</span>
-          <input
-            type="range"
-            min={5}
-            max={20}
-            disabled={busy}
-            value={Math.round(scale * 10)}
-            onChange={(e) => setScale(clamp(Number(e.target.value) / 10, 0.5, 2))}
-          />
-        </label>
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          {busy && (
-            <ActionButton className="btn sm ghost" onClick={abort}>取消</ActionButton>
-          )}
-          <button type="button" className="btn accent" disabled={!file || busy} onClick={() => void run()}>
-            {busy ? progress || '壓縮中…' : '壓縮並下載'}
-          </button>
-        </div>
+        {!file && <p className="muted">上傳 PDF 後調整品質與倍率，再從工具列下載壓縮結果。</p>}
+        {file && (
+          <FtSection title="壓縮設定" hint="壓縮後每頁為 JPG 影像，文字不可搜尋／複製。">
+            <div className="stack">
+              <label className="stack">
+                <span className="label">JPG 品質 {Math.round(quality * 100)}%</span>
+                <input
+                  type="range"
+                  min={30}
+                  max={92}
+                  disabled={busy}
+                  value={Math.round(quality * 100)}
+                  onChange={(e) => setQuality(clamp(Number(e.target.value) / 100, 0.3, 0.92))}
+                />
+              </label>
+              <label className="stack">
+                <span className="label">渲染倍率 {scale.toFixed(1)}x</span>
+                <input
+                  type="range"
+                  min={5}
+                  max={20}
+                  disabled={busy}
+                  value={Math.round(scale * 10)}
+                  onChange={(e) => setScale(clamp(Number(e.target.value) / 10, 0.5, 2))}
+                />
+              </label>
+              {busy && (
+                <ActionButton className="btn sm ghost" onClick={abort}>
+                  取消
+                </ActionButton>
+              )}
+            </div>
+          </FtSection>
+        )}
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

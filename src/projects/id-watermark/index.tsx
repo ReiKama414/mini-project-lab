@@ -1,16 +1,25 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { FileDrop } from '../../components/FileDrop'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, formatBytes, isNonEmpty, limitText } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import { FtSection, FtToolRoot } from '../../components/FeatureToolUI'
+import {
+  FtAsidePreview,
+  FtCanvasAside,
+  FtImageHero,
+  FtImageMetrics,
+  ftImageLocalFaq,
+} from '../../components/FtImageToolUI'
+import { IMAGE_ACCEPT, IMAGE_MAX_BYTES } from '../../lib/imageCanvas'
 
 const meta = getProject('id-watermark')!
 
 const TEXT_MAX = 80
-const FILE_MAX_BYTES = 8 * 1024 * 1024
-const ACCEPT = 'image/jpeg,image/png,image/webp'
+const FILE_MAX_BYTES = IMAGE_MAX_BYTES
+const ACCEPT = IMAGE_ACCEPT
 
 type Mode = 'tile' | 'center' | 'diagonal'
 
@@ -30,7 +39,9 @@ export default function Page() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [src, setSrc] = useState<string | null>(null)
   const [fileName, setFileName] = useState('')
-  const [fileInfo, setFileInfo] = useState('')
+  const [fileSize, setFileSize] = useState(0)
+  const [imgW, setImgW] = useState(0)
+  const [imgH, setImgH] = useState(0)
   const [error, setError] = useState('')
   const [ready, setReady] = useState(0)
   const [text, setText] = useLocalStorage('lab:id-watermark:text', `僅供辦理業務使用 ${todayStamp()}`)
@@ -120,7 +131,9 @@ export default function Page() {
     setSrc(null)
     imgRef.current = null
     setFileName('')
-    setFileInfo('')
+    setFileSize(0)
+    setImgW(0)
+    setImgH(0)
     setError('')
     setReady(0)
     const canvas = canvasRef.current
@@ -147,11 +160,13 @@ export default function Page() {
     const url = URL.createObjectURL(file)
     setSrc(url)
     setFileName(file.name)
-    setFileInfo(`${formatBytes(file.size)} · ${file.type || 'image'}`)
+    setFileSize(file.size)
 
     const img = new Image()
     img.onload = () => {
       imgRef.current = img
+      setImgW(img.naturalWidth)
+      setImgH(img.naturalHeight)
       setReady((n) => n + 1)
     }
     img.onerror = () => {
@@ -160,7 +175,9 @@ export default function Page() {
       setSrc(null)
       imgRef.current = null
       setFileName('')
-      setFileInfo('')
+      setFileSize(0)
+      setImgW(0)
+      setImgH(0)
       setReady(0)
     }
     img.src = url
@@ -184,40 +201,70 @@ export default function Page() {
     )
   }
 
+  const imageMeta = useMemo(
+    () => ({ fileName, fileSize, width: imgW, height: imgH }),
+    [fileName, fileSize, imgW, imgH],
+  )
+
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
+      variant="stacked"
+      toolbar={
+        <FileDrop
+          accept={ACCEPT}
+          maxBytes={FILE_MAX_BYTES}
+          label="拖放證件圖片到此，或點擊選擇"
+          hint={`上限 ${formatBytes(FILE_MAX_BYTES)} · 僅本機處理`}
+          onFiles={(files) => onFile(files[0] ?? null)}
+        />
+      }
       actions={
         <div className="row">
-          <ActionButton className="btn sm ghost" onClick={clearImage} disabled={!src}>清除圖片
-     </ActionButton>
-          <ActionButton className="btn sm accent" onClick={download} disabled={!canExport}>下載 PNG
-     </ActionButton>
+          <ActionButton className="btn sm ghost" onClick={clearImage} disabled={!src}>
+            清除圖片
+          </ActionButton>
+          <ActionButton className="btn sm accent" onClick={download} disabled={!canExport} icon="download">
+            下載 PNG
+          </ActionButton>
         </div>
       }
+      infoItems={[
+        { label: '處理方式', value: 'Canvas 本機繪製' },
+        { label: '單檔上限', value: formatBytes(FILE_MAX_BYTES) },
+        { label: '格式', value: 'JPG／PNG／WebP → PNG 下載' },
+      ]}
+      faq={[
+        ftPrivacyLocal,
+        ftImageLocalFaq(`單檔 ≤ ${formatBytes(FILE_MAX_BYTES)}；輸出為 PNG。證件影像請謹慎分享。`),
+        {
+          title: '用途提醒',
+          body: '浮水印可降低證件被挪作他用的風險，但仍請謹慎分享影像。',
+        },
+      ]}
+      aside={
+        <FtAsidePreview
+          title="浮水印預覽"
+          tag={canExport ? <span className="tag mono">{imgW}×{imgH}</span> : null}
+        >
+          <FtCanvasAside canvasRef={canvasRef} hasImage={Boolean(src)} empty="上傳後即時預覽浮水印" />
+          {canExport && <p className="field-hint ft-ui-section-hint">預覽文字：{watermarkLine}</p>}
+        </FtAsidePreview>
+      }
     >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        圖片僅在瀏覽器本機處理，不會上傳浮水印可降低證件被挪作他用的風險，但仍請謹慎分享
-      </p>
+      <FtToolRoot>
+        <FtImageHero
+          emoji="🪪"
+          meta={imageMeta}
+          emptyTitle="尚未上傳證件圖"
+          emptySubtitle="於上方拖放 JPG／PNG／WebP"
+          metaLine={canExport ? `模式：${mode === 'tile' ? '滿版平鋪' : mode === 'diagonal' ? '斜向三行' : '置中單行'}` : undefined}
+          badge={canExport ? <span className="tag">可下載</span> : null}
+        />
+        <FtImageMetrics meta={imageMeta} />
+        {error && <p className="field-error">{error}</p>}
 
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        <div className="panel stack">
-          <FileDrop
-            accept={ACCEPT}
-            maxBytes={FILE_MAX_BYTES}
-            label="拖放證件圖片到此，或點擊選擇"
-            hint={`上限 ${formatBytes(FILE_MAX_BYTES)}`}
-            onFiles={(files) => onFile(files[0] ?? null)}
-          />
-          {(fileName || fileInfo) && (
-            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {fileName}
-              {fileInfo ? ` · ${fileInfo}` : ''}
-            </p>
-          )}
-          {error && <p className="field-error">{error}</p>}
-          <p className="field-hint">支援 JPG／PNG／WebP，單檔上限 {formatBytes(FILE_MAX_BYTES)}</p>
-
+        <FtSection title="浮水印文字" hint="支援常用證件用途範本">
           <div className="field-wrap">
             <label className="label">浮水印文字</label>
             <input
@@ -235,7 +282,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="row" style={{ flexWrap: 'wrap' }}>
+          <div className="ft-samples">
             {PRESETS.map((p) => (
               <button
                 key={p}
@@ -252,10 +299,9 @@ export default function Page() {
             <input type="checkbox" checked={includeDate} onChange={() => setIncludeDate(!includeDate)} />
             自動附加今日日期
           </label>
+        </FtSection>
 
-          <div className="label" style={{ marginBottom: 0 }}>
-            排列方式
-          </div>
+        <FtSection title="排列與樣式">
           <div className="row">
             {(
               [
@@ -335,64 +381,29 @@ export default function Page() {
               />
             </div>
           </label>
+        </FtSection>
 
-          <div className="row">
-            <ActionButton className="btn accent" onClick={download} disabled={!canExport}>下載浮水印圖片
-    </ActionButton>
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => {
-                setText(`僅供辦理業務使用`)
-                setMode('tile')
-                setOpacity(28)
-                setFontSize(28)
-                setAngle(-30)
-                setGap(160)
-                setColor('#1a2e28')
-                setIncludeDate(true)
-              }}
-            >
-              重設設定
-            </button>
-          </div>
+        <div className="row">
+          <ActionButton className="btn accent" onClick={download} disabled={!canExport} icon="download">
+            下載浮水印圖片
+          </ActionButton>
+          <ActionButton
+            className="btn ghost"
+            onClick={() => {
+              setText(`僅供辦理業務使用`)
+              setMode('tile')
+              setOpacity(28)
+              setFontSize(28)
+              setAngle(-30)
+              setGap(160)
+              setColor('#1a2e28')
+              setIncludeDate(true)
+            }}
+          >
+            重設設定
+          </ActionButton>
         </div>
-
-        <div className="panel stack">
-          <div className="label">預覽</div>
-          {src ? (
-            <div
-              style={{
-                border: '1px solid var(--line)',
-                borderRadius: 12,
-                overflow: 'auto',
-                background: 'var(--bg-muted)',
-                maxHeight: 560,
-              }}
-            >
-              <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: 'auto' }} />
-            </div>
-          ) : (
-            <div
-              className="muted"
-              style={{
-                minHeight: 280,
-                display: 'grid',
-                placeItems: 'center',
-                border: '1px dashed var(--line)',
-                borderRadius: 12,
-                padding: 24,
-                textAlign: 'center',
-              }}
-            >
-              上傳圖片後會在此顯示浮水印預覽
-            </div>
-          )}
-          {canExport && (
-            <p className="field-hint">預覽文字：{watermarkLine}</p>
-          )}
-        </div>
-      </div>
-    </ProjectShell>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

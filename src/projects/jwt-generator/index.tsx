@@ -1,5 +1,5 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { ActionButton } from '../../components/ActionButton'
 import { useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
@@ -113,38 +113,23 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
-      actions={
-        <div className="row xc-shell-actions">
-          <ActionButton
-            className="btn sm ghost"
-            disabled={!token}
-            onClick={() => void copyVal(token, 'token')}
-            icon="copy"
-          >
-            {copied === 'token' ? '已複製' : '複製 Token'}
-          </ActionButton>
-          <ActionButton
-            className="btn sm accent"
-            disabled={!token}
-            onClick={() => downloadText('token.jwt', token, 'text/plain')}
-            icon="download"
-          >
-            下載
-          </ActionButton>
-        </div>
-      }
-    >
-      <div className="xc-calc">
-        <div className="panel xc-toolbar">
-          <div className="pw-panel-head">
-            <h3 className="pw-panel-title">工具</h3>
-            <div className="pw-stats">
-              <span className="tag">HS256</span>
-              {token && <span className="tag">已產生</span>}
-              {busy && <span className="tag">產生中…</span>}
-            </div>
+      infoItems={[
+        { label: '演算法', value: '僅支援 HS256（HMAC-SHA256），以 Web Crypto 簽署' },
+        { label: '用途', value: '開發／測試用；正式環境請用後端金鑰管理與正確時鐘' },
+      ]}
+      faq={[
+        { title: 'Secret 與 Token', body: 'Secret 與 Token 不寫入 localStorage、不上傳。' },
+        ftPrivacyLocal,
+        { title: '相關', body: 'JWT Decoder、Hash Generator' },
+      ]}
+      toolbar={
+        <div className="xc-toolbar">
+          <div className="pw-stats">
+            <span className="tag">HS256</span>
+            {token && <span className="tag">已產生</span>}
+            {busy && <span className="tag">產生中…</span>}
           </div>
           <div className="pw-block">
             <div className="label">Payload 範例</div>
@@ -171,7 +156,29 @@ export default function Page() {
             </ActionButton>
           </div>
         </div>
-
+      }
+      actions={
+        <div className="row xc-shell-actions">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!token}
+            onClick={() => void copyVal(token, 'token')}
+            icon="copy"
+          >
+            {copied === 'token' ? '已複製' : '複製 Token'}
+          </ActionButton>
+          <ActionButton
+            className="btn sm accent"
+            disabled={!token}
+            onClick={() => downloadText('token.jwt', token, 'text/plain')}
+            icon="download"
+          >
+            下載
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="xc-calc">
         <div className="xc-main xc-view-split">
           <section className="panel xc-editor">
             <div className="pw-panel-head">
@@ -225,9 +232,9 @@ export default function Page() {
                     onChange={(e) => setSecret(limitText(e.target.value, SECRET_MAX))}
                     style={{ flex: 1 }}
                   />
-                  <button type="button" className="btn sm ghost" onClick={() => setShowSecret((v) => !v)}>
+                  <ActionButton className="btn sm ghost" onClick={() => setShowSecret((v) => !v)} icon="none">
                     {showSecret ? '隱藏' : '顯示'}
-                  </button>
+                  </ActionButton>
                 </div>
                 <div className="field-meta">
                   <span>不寫入 localStorage</span>
@@ -273,28 +280,7 @@ export default function Page() {
           </section>
         </div>
 
-        <section className="panel xc-info">
-          <h3 className="pw-panel-title">更多資訊</h3>
-          <ul className="pw-info-list">
-            <li>
-              <span className="muted">演算法</span>
-              <strong>僅支援 HS256（HMAC-SHA256），以 Web Crypto 簽署</strong>
-            </li>
-            <li>
-              <span className="muted">用途</span>
-              <strong>開發／測試用；正式環境請用後端金鑰管理與正確時鐘</strong>
-            </li>
-            <li>
-              <span className="muted">隱私</span>
-              <strong>Secret 與 Token 不寫入 localStorage、不上傳</strong>
-            </li>
-            <li>
-              <span className="muted">相關</span>
-              <strong>JWT Decoder、Hash Generator</strong>
-            </li>
-          </ul>
-        </section>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }

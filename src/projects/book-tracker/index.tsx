@@ -1,10 +1,17 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
 import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('book-tracker')!
 
@@ -36,6 +43,12 @@ const STATUS_LABEL: Record<Status, string> = {
   reading: '閱讀中',
   done: '已讀',
 }
+
+const BOOK_SAMPLES = [
+  { label: '經典', title: '1984', author: 'George Orwell', pages: 328 },
+  { label: '文學', title: '挪威的森林', author: '村上春樹', pages: 384 },
+  { label: '科普', title: '時間簡史', author: 'Stephen Hawking', pages: 256 },
+]
 
 const MAX_ITEMS = 200
 const MAX_TITLE = 120
@@ -170,41 +183,76 @@ export default function Page() {
     downloadText('book-tracker.csv', `${header}\n${body}`, 'text/csv;charset=utf-8')
   }
 
+  function applyBookSample(s: (typeof BOOK_SAMPLES)[0]) {
+    setTitle(s.title)
+    setAuthor(s.author)
+    setPagesStr(String(s.pages))
+  }
+
   return (
-    <ProjectShell
+    <FeatureLayout
+      variant="unified"
       meta={meta}
       actions={
         <div className="row" style={{ gap: 8 }}>
-          <ActionButton className="btn ghost sm" disabled={!books.length} onClick={exportJson}>匯出 JSON
-    </ActionButton>
-          <ActionButton className="btn ghost sm" disabled={!books.length} onClick={exportCsv}>匯出 CSV
-     </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!books.length} onClick={exportJson} icon="download">
+            匯出 JSON
+          </ActionButton>
+          <ActionButton className="btn sm ghost" disabled={!books.length} onClick={exportCsv} icon="download">
+            匯出 CSV
+          </ActionButton>
         </div>
       }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">書名範例</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {BOOK_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyBookSample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">顯示 {visible.length} 本</span>
+            <span className="tag">共 {books.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '書籍上限', value: `${MAX_ITEMS} 本` },
+        { label: '與閱讀追蹤', value: '本工具重點在狀態／評分／書摘，非頁數進度' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '評分', body: '1–5 星與狀態可隨時調整；Open Library 搜尋為選填。' }]}
     >
-      <div className="panel stack">
-        <div className="grid-3">
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              藏書
-            </div>
-            <div style={{ fontSize: 24 }}>{books.length}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              已讀
-            </div>
-            <div style={{ fontSize: 24 }}>{books.filter((b) => b.status === 'done').length}</div>
-          </div>
-          <div className="metric">
-            <div className="muted" style={{ fontSize: 14, fontWeight: 500 }}>
-              平均評分
-            </div>
-            <div style={{ fontSize: 24 }}>{avgRating || '—'}</div>
-          </div>
-        </div>
+      <FtToolRoot>
+        <FtToolHero
+          emoji="📚"
+          title={books.length}
+          subtitle="藏書總數"
+          meta={
+            <>
+              已讀 {books.filter((b) => b.status === 'done').length} 本
+              {avgRating ? ` · 平均 ${avgRating} 星` : ''}
+              <br />
+              狀態：{filter === 'all' ? '全部' : STATUS_LABEL[filter]}
+            </>
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="想讀" value={books.filter((b) => b.status === 'want').length} />
+          <FtMetric label="閱讀中" value={books.filter((b) => b.status === 'reading').length} />
+          <FtMetric label="已讀" value={books.filter((b) => b.status === 'done').length} />
+          <FtMetric label="平均評分" value={avgRating || '—'} />
+        </FtMetricGrid>
+
+        <FtSection title="新增書籍" hint="Open Library 搜尋為選填">
         <div className="label" style={{ margin: 0 }}>
-          Open Library 搜尋（選填）
+          Open Library 搜尋
         </div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <div className="stack" style={{ flex: 1, minWidth: 160, gap: 0 }}>
@@ -226,9 +274,9 @@ export default function Page() {
               </span>
             </div>
           </div>
-          <button type="button" className="btn ghost" disabled={olLoading || !olQ.trim()} onClick={() => void searchOpenLibrary()}>
+          <ActionButton className="btn ghost" disabled={olLoading || !olQ.trim()} onClick={() => void searchOpenLibrary()} icon="search">
             {olLoading ? '搜尋中…' : '搜尋'}
-          </button>
+          </ActionButton>
         </div>
         {olError && <p className="field-error">{olError}</p>}
         {olResults.length > 0 && (
@@ -302,9 +350,9 @@ export default function Page() {
             新增書籍</AddButton>
         </div>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 本，請先刪除再新增</p>}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="書庫">
         <div className="row">
           <div className="stack" style={{ flex: 1, minWidth: 140, gap: 0 }}>
             <input
@@ -399,7 +447,8 @@ export default function Page() {
           ))}
           {!visible.length && <p className="muted">尚無書籍紀錄</p>}
         </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

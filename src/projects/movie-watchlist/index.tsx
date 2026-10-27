@@ -1,9 +1,18 @@
 import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPrivacyLocal } from '../../components/FeatureLayout'
+import { ActionButton } from '../../components/ActionButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, clamp, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { charCount, clamp, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
+import { AddButton } from '../../components/AddButton'
+import {
+  FtMetric,
+  FtMetricGrid,
+  FtSection,
+  FtToolHero,
+  FtToolRoot,
+} from '../../components/FeatureToolUI'
 
 const meta = getProject('movie-watchlist')!
 
@@ -45,6 +54,12 @@ const MAX_YEAR = 4
 const MAX_NOTES = 1000
 const MAX_SEARCH = 80
 const MAX_ITUNES_Q = 80
+
+const MOVIE_SAMPLES = [
+  { label: '科幻', title: '星際效應', year: '2014', genres: ['科幻'] },
+  { label: '動畫', title: '神隱少女', year: '2001', genres: ['動畫'] },
+  { label: '劇情', title: '肖申克的救贖', year: '1994', genres: ['劇情'] },
+]
 
 function mapItunesGenre(raw?: string): string | null {
   if (!raw) return null
@@ -97,6 +112,16 @@ export default function Page() {
       return true
     })
   }, [movies, filter, genreFilter, search])
+
+  const movieStats = useMemo(() => {
+    const watched = movies.filter((m) => m.status === 'watched').length
+    const watching = movies.filter((m) => m.status === 'watching').length
+    const rated = movies.filter((m) => m.rating > 0)
+    const avgRating = rated.length
+      ? Math.round((rated.reduce((s, m) => s + m.rating, 0) / rated.length) * 10) / 10
+      : 0
+    return { watched, watching, avgRating }
+  }, [movies])
 
   function toggleGenre(g: string) {
     setGenres((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]))
@@ -167,6 +192,20 @@ export default function Page() {
     }
   }
 
+  function exportJson() {
+    downloadText(
+      'movie-watchlist.json',
+      JSON.stringify({ version: 1, movies }, null, 2),
+      'application/json;charset=utf-8',
+    )
+  }
+
+  function applyMovieSample(s: (typeof MOVIE_SAMPLES)[0]) {
+    setTitle(s.title)
+    setYear(s.year)
+    setGenres(s.genres)
+  }
+
   function pickItunes(item: ItunesMovie) {
     const name = item.trackCensoredName || item.trackName || ''
     setTitle(limitText(name, MAX_TITLE))
@@ -178,10 +217,65 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
+    <FeatureLayout
+      variant="unified"
+      meta={meta}
+      actions={
+        <ActionButton className="btn sm ghost" disabled={!movies.length} onClick={exportJson} icon="download">
+          匯出 JSON
+        </ActionButton>
+      }
+      toolbar={
+        <>
+          <div className="pw-panel-head">
+            <h2 className="pw-panel-title">片名範例</h2>
+          </div>
+          <div className="ft-samples">
+            <span className="muted">範例：</span>
+            {MOVIE_SAMPLES.map((s) => (
+              <button key={s.label} type="button" className="btn sm ghost" onClick={() => applyMovieSample(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="ft-stats-row">
+            <span className="tag">顯示 {visible.length} 部</span>
+            <span className="tag">共 {movies.length} / {MAX_ITEMS}</span>
+          </div>
+        </>
+      }
+      infoItems={[
+        { label: '儲存位置', value: '本機 localStorage' },
+        { label: '清單上限', value: `${MAX_ITEMS} 部` },
+        { label: 'iTunes 搜尋', value: '選填，由瀏覽器請求 Apple iTunes API' },
+      ]}
+      faq={[ftPrivacyLocal, { title: '類型', body: '可多選類型標籤；iTunes 帶入的類型會對應到本工具清單。' }]}
+    >
+      <FtToolRoot>
+        <FtToolHero
+          emoji="🎬"
+          title={movies.length}
+          subtitle="片單總數"
+          meta={
+            <>
+              已看 {movieStats.watched} · 觀看中 {movieStats.watching}
+              {movieStats.avgRating ? ` · 平均 ${movieStats.avgRating} 星` : ''}
+              <br />
+              篩選：{filter === 'all' ? '全部狀態' : STATUS_LABEL[filter]}
+              {genreFilter !== 'all' ? ` · ${genreFilter}` : ''}
+            </>
+          }
+        />
+        <FtMetricGrid>
+          <FtMetric label="想看" value={movies.filter((m) => m.status === 'want').length} />
+          <FtMetric label="觀看中" value={movieStats.watching} />
+          <FtMetric label="已看" value={movieStats.watched} />
+          <FtMetric label="平均評分" value={movieStats.avgRating || '—'} />
+        </FtMetricGrid>
+
+        <FtSection title="加入片單" hint="iTunes 搜尋為選填">
         <div className="label" style={{ margin: 0 }}>
-          iTunes 搜尋（選填）
+          iTunes 搜尋
         </div>
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <div className="stack" style={{ flex: 1, minWidth: 160, gap: 0 }}>
@@ -203,9 +297,9 @@ export default function Page() {
               </span>
             </div>
           </div>
-          <button type="button" className="btn ghost" disabled={itunesLoading || !itunesQ.trim()} onClick={() => void searchItunes()}>
+          <ActionButton className="btn ghost" disabled={itunesLoading || !itunesQ.trim()} onClick={() => void searchItunes()} icon="search">
             {itunesLoading ? '搜尋中…' : '搜尋'}
-          </button>
+          </ActionButton>
         </div>
         {itunesError && <p className="field-error">{itunesError}</p>}
         {itunesResults.length > 0 && (
@@ -270,13 +364,13 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <button type="button" className="btn accent" onClick={add} disabled={!canAdd}>
+        <AddButton onClick={add} disabled={!canAdd}>
           加入片單
-        </button>
+        </AddButton>
         {atLimit && <p className="field-error">已達上限 {MAX_ITEMS} 部，請先刪除再新增</p>}
-      </div>
+        </FtSection>
 
-      <div className="panel stack">
+        <FtSection title="片單">
         <div className="row">
           <div className="field-wrap" style={{ flex: 1, minWidth: 140 }}>
             <input
@@ -369,7 +463,8 @@ export default function Page() {
           ))}
           {!visible.length && <p className="muted">沒有符合條件的電影</p>}
         </ul>
-      </div>
-    </ProjectShell>
+        </FtSection>
+      </FtToolRoot>
+    </FeatureLayout>
   )
 }

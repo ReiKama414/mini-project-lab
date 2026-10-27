@@ -1,5 +1,7 @@
 import { getProject, type ProjectMeta } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { FeatureLayout, ftPdfFaq, ftPdfInfoItems } from '../../components/FeatureLayout'
+import { FtPdfFileMetrics } from '../../components/FeatureToolUI'
+import { ActionButton } from '../../components/ActionButton'
 import { FileDrop } from '../../components/FileDrop'
 import { useEffect, useRef, useState } from 'react'
 import { formatBytes } from '../../lib/utils'
@@ -148,19 +150,19 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
+    <FeatureLayout
       meta={meta}
       actions={
-        <button type="button" className="btn sm accent" disabled={files.length < 2 || busy} onClick={() => void merge()}>
+        <ActionButton
+          className="btn sm accent"
+          icon="download"
+          disabled={files.length < 2 || busy}
+          onClick={() => void merge()}
+        >
           {busy ? '合併中…' : '下載'}
-        </button>
+        </ActionButton>
       }
-    >
-      <p className="muted" style={{ marginBottom: 12 }}>
-        本機合併，單檔上限 {formatBytes(PDF_MAX_BYTES)}，最多 {MAX_FILES} 個、合併後最多 {MAX_TOTAL_PAGES}{' '}
-        頁可拖曳列表調整順序
-      </p>
-      <div className="panel stack">
+      toolbar={
         <FileDrop
           accept={PDF_ACCEPT}
           maxBytes={PDF_MAX_BYTES}
@@ -168,8 +170,28 @@ export default function Page() {
           maxFiles={MAX_FILES}
           disabled={busy}
           label="拖放 PDF 到此，或點擊選擇（可多選）"
-          hint={`單檔上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${MAX_FILES} 個`}
+          hint={`單檔上限 ${formatBytes(PDF_MAX_BYTES)} · 最多 ${MAX_FILES} 個 · 合併後最多 ${MAX_TOTAL_PAGES} 頁`}
           onFiles={(picked) => onFiles(picked)}
+        />
+      }
+      infoItems={ftPdfInfoItems([
+        { label: '檔案數量', value: `最多 ${MAX_FILES} 個` },
+        { label: '合併後頁數', value: `最多 ${MAX_TOTAL_PAGES} 頁` },
+      ])}
+      faq={ftPdfFaq}
+      footerHint="可拖曳列表調整合併順序。"
+    >
+      <div className="stack">
+        <FtPdfFileMetrics
+          extra={
+            files.length
+              ? [
+                  { label: '檔案數', value: `${files.length} 個` },
+                  { label: '總大小', value: formatBytes(files.reduce((n, f) => n + f.size, 0)) },
+                  ...(busy && progress ? [{ label: '狀態', value: progress }] : []),
+                ]
+              : []
+          }
         />
         {error && <p className="field-error">{error}</p>}
         {busy && progress && <p className="field-hint">{progress}</p>}
@@ -266,10 +288,7 @@ export default function Page() {
             </div>
           </div>
         ))}
-        <button type="button" className="btn accent" disabled={files.length < 2 || busy} onClick={() => void merge()}>
-          {busy ? progress || '合併中…' : '合併並下載'}
-        </button>
       </div>
-    </ProjectShell>
+    </FeatureLayout>
   )
 }
