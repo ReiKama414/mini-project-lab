@@ -1,8 +1,9 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { ActionButton } from '../../components/ActionButton'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { charCount, limitText } from '../../lib/utils'
+import { charCount, copyText, limitText } from '../../lib/utils'
 
 const meta = getProject('weather-dashboard')!
 
@@ -15,7 +16,24 @@ type Place = {
   longitude: number
 }
 
-type DayForecast = { day: string; high: number; low: number; icon: string; condition: string }
+type DayForecast = {
+  day: string
+  date: string
+  high: number
+  low: number
+  icon: string
+  condition: string
+  precipProb: number
+  uvMax: number
+}
+
+type HourForecast = {
+  time: string
+  label: string
+  temp: number
+  icon: string
+  precipProb: number
+}
 
 type CityWeather = {
   place: Place
@@ -29,8 +47,15 @@ type CityWeather = {
   low: number
   pressure: number
   visibility: number
+  cloud: number
+  precip: number
+  uv: number
+  isDay: boolean
+  sunrise: string
+  sunset: string
   updatedAt: number
   forecast: DayForecast[]
+  hourly: HourForecast[]
 }
 
 const DEFAULT_CITIES: Place[] = [
@@ -92,21 +117,50 @@ function weekdayLabel(isoDate: string) {
   return d.toLocaleDateString('zh-TW', { weekday: 'short' })
 }
 
+function formatClock(iso: string) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function uvLabel(uv: number) {
+  if (uv < 3) return '低'
+  if (uv < 6) return '中'
+  if (uv < 8) return '高'
+  if (uv < 11) return '很高'
+  return '極高'
+}
+
 type ForecastApi = {
   current: {
     time: string
     temperature_2m: number
+    apparent_temperature: number
     relative_humidity_2m: number
     weather_code: number
     wind_speed_10m: number
     surface_pressure: number
     visibility: number
+    cloud_cover: number
+    precipitation: number
+    is_day: number
   }
   daily: {
     time: string[]
     weather_code: number[]
     temperature_2m_max: number[]
     temperature_2m_min: number[]
+    precipitation_probability_max?: number[]
+    uv_index_max?: number[]
+    sunrise?: string[]
+    sunset?: string[]
+  }
+  hourly?: {
+    time: string[]
+    temperature_2m: number[]
+    weather_code: number[]
+    precipitation_probability?: number[]
   }
 }
 
@@ -125,10 +179,13 @@ async function fetchForecast(place: Place, signal?: AbortSignal): Promise<CityWe
     latitude: String(place.latitude),
     longitude: String(place.longitude),
     current:
-      'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility',
-    daily: 'weather_code,temperature_2m_max,temperature_2m_min',
+      'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,visibility,cloud_cover,precipitation,is_day',
+    daily:
+      'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset',
+    hourly: 'temperature_2m,weather_code,precipitation_probability',
     timezone: 'auto',
-    forecast_days: '5',
+    forecast_days: '7',
+    forecast_hours: '24',
   })
   const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { signal })
   if (!res.ok) throw new Error(`預報請求失敗（HTTP ${res.status}）`)
@@ -142,17 +199,39 @@ async function fetchForecast(place: Place, signal?: AbortSignal): Promise<CityWe
     const w = weatherFromCode(daily.weather_code[i] ?? 0)
     return {
       day: weekdayLabel(time),
+      date: time.slice(5),
       high: Math.round(daily.temperature_2m_max[i] ?? 0),
       low: Math.round(daily.temperature_2m_min[i] ?? 0),
       icon: w.icon,
       condition: w.condition,
+      precipProb: Math.round(daily.precipitation_probability_max?.[i] ?? 0),
+      uvMax: Math.round((daily.uv_index_max?.[i] ?? 0) * 10) / 10,
     }
   })
+
+  const now = Date.now()
+  const hourly: HourForecast[] = []
+  if (data.hourly?.time?.length) {
+    for (let i = 0; i < data.hourly.time.length && hourly.length < 12; i++) {
+      const iso = data.hourly.time[i]!
+      const ts = Date.parse(iso)
+      if (Number.isNaN(ts) || ts < now - 30 * 60 * 1000) continue
+      const w = weatherFromCode(data.hourly.weather_code[i] ?? 0)
+      hourly.push({
+        time: iso,
+        label: formatClock(iso),
+        temp: Math.round(data.hourly.temperature_2m[i] ?? 0),
+        icon: w.icon,
+        precipProb: Math.round(data.hourly.precipitation_probability?.[i] ?? 0),
+      })
+    }
+  }
+
   const visibilityKm = Math.round((cur.visibility / 1000) * 10) / 10
   return {
     place,
     temp: Math.round(cur.temperature_2m),
-    feels: Math.round(cur.temperature_2m),
+    feels: Math.round(cur.apparent_temperature),
     humidity: Math.round(cur.relative_humidity_2m),
     wind: Math.round(cur.wind_speed_10m),
     condition,
@@ -161,15 +240,22 @@ async function fetchForecast(place: Place, signal?: AbortSignal): Promise<CityWe
     low,
     pressure: Math.round(cur.surface_pressure),
     visibility: visibilityKm,
+    cloud: Math.round(cur.cloud_cover),
+    precip: Math.round(cur.precipitation * 10) / 10,
+    uv: Math.round((daily.uv_index_max?.[0] ?? 0) * 10) / 10,
+    isDay: cur.is_day === 1,
+    sunrise: daily.sunrise?.[0] ?? '',
+    sunset: daily.sunset?.[0] ?? '',
     updatedAt: Date.parse(cur.time) || Date.now(),
     forecast,
+    hourly,
   }
 }
 
 async function searchPlaces(name: string, signal?: AbortSignal): Promise<Place[]> {
   const params = new URLSearchParams({
     name,
-    count: '5',
+    count: '8',
     language: 'zh',
     format: 'json',
   })
@@ -197,6 +283,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshToken, setRefreshToken] = useState(0)
+  const [copied, setCopied] = useState(false)
   const searchAbort = useRef<AbortController | null>(null)
   const forecastAbort = useRef<AbortController | null>(null)
 
@@ -228,7 +315,6 @@ export default function Page() {
     return () => forecastAbort.current?.abort()
   }, [place, refreshToken, loadSelected])
 
-  // 預先載入預設城市列表溫度（左側列表）
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -248,7 +334,6 @@ export default function Page() {
     }
   }, [refreshToken])
 
-  // 地理編碼搜尋（防抖）
   useEffect(() => {
     const q = query.trim()
     searchAbort.current?.abort()
@@ -284,7 +369,6 @@ export default function Page() {
 
   const listPlaces = useMemo(() => {
     if (query.trim()) return searchResults ?? []
-    // 確保目前選中城市也在列表中（若來自搜尋）
     const selectedInDefaults = DEFAULT_CITIES.some((c) => placesEqual(c, place))
     if (selectedInDefaults) return DEFAULT_CITIES
     return [place, ...DEFAULT_CITIES]
@@ -292,188 +376,327 @@ export default function Page() {
 
   const isSearching = Boolean(query.trim())
 
+  const summary = useMemo(() => {
+    if (!weather) return ''
+    return [
+      `${weather.place.name} · ${weather.place.country}`,
+      `${weather.condition} ${t(weather.temp)}${unitLabel}（體感 ${t(weather.feels)}${unitLabel}）`,
+      `最高 ${t(weather.high)}${unitLabel} / 最低 ${t(weather.low)}${unitLabel}`,
+      `濕度 ${weather.humidity}% · 風速 ${weather.wind} km/h · UV ${weather.uv}（${uvLabel(weather.uv)}）`,
+      `日出 ${formatClock(weather.sunrise)} · 日落 ${formatClock(weather.sunset)}`,
+      `資料：Open-Meteo · ${new Date(weather.updatedAt).toLocaleString('zh-TW')}`,
+    ].join('\n')
+  }, [weather, unit])
+
+  async function copySummary() {
+    if (!summary) return
+    await copyText(summary)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1400)
+  }
+
+  function selectPlace(d: Place) {
+    setPlace(d)
+    setQuery('')
+    setSearchResults(null)
+  }
+
   return (
-    <ProjectShell meta={meta}>
-      <div className="grid-2">
-        <div className="panel stack">
-          <div className="row">
-            <input
-              className="field"
-              style={{ flex: 1 }}
-              placeholder="搜尋城市…"
-              value={query}
-              maxLength={QUERY_MAX}
-              onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
-            />
-            <span className="muted" style={{ fontSize: 12, alignSelf: 'center' }}>
-              {charCount(query)}/{QUERY_MAX}
-            </span>
-            <button
-              type="button"
-              className={`btn sm ${unit === 'C' ? 'accent' : 'ghost'}`}
-              onClick={() => setUnit('C')}
-            >
-              °C
-            </button>
-            <button
-              type="button"
-              className={`btn sm ${unit === 'F' ? 'accent' : 'ghost'}`}
-              onClick={() => setUnit('F')}
-            >
-              °F
-            </button>
-          </div>
-
-          {isSearching && searching && <p className="muted">搜尋中…</p>}
-          {isSearching && searchError && <p className="field-error">{searchError}</p>}
-
-          <ul className="list">
-            {listPlaces.map((d) => {
-              const cached = listCache[placeKey(d)]
-              const selected = placesEqual(d, place)
-              return (
-                <li
-                  key={placeKey(d)}
-                  className="list-item"
-                  style={{
-                    cursor: 'pointer',
-                    outline: selected ? '2px solid var(--accent, #f0734a)' : undefined,
-                  }}
-                  onClick={() => {
-                    setPlace(d)
-                    setQuery('')
-                    setSearchResults(null)
-                  }}
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row wd-shell-actions">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!weather}
+            onClick={() => void copySummary()}
+            icon="copy"
+          >
+            {copied ? '已複製' : '複製摘要'}
+          </ActionButton>
+          <ActionButton
+            className="btn sm accent"
+            disabled={loading}
+            onClick={() => setRefreshToken((n) => n + 1)}
+            icon="reset"
+          >
+            {loading ? '更新中…' : '重新整理'}
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="wd-calc">
+        <div className="wd-main">
+          <section className="panel wd-cities">
+            <div className="pw-panel-head">
+              <h3 className="pw-panel-title">城市</h3>
+              <div className="wd-unit" role="group" aria-label="溫度單位">
+                <button
+                  type="button"
+                  className={`btn sm ${unit === 'C' ? 'accent' : 'ghost'}`}
+                  onClick={() => setUnit('C')}
                 >
-                  <div className="stack" style={{ flex: 1, gap: 2 }}>
-                    <strong>
-                      {d.name}{' '}
-                      <span className="muted" style={{ fontWeight: 400 }}>
-                        {d.country}
+                  °C
+                </button>
+                <button
+                  type="button"
+                  className={`btn sm ${unit === 'F' ? 'accent' : 'ghost'}`}
+                  onClick={() => setUnit('F')}
+                >
+                  °F
+                </button>
+              </div>
+            </div>
+
+            <label className="stack wd-search">
+              <span className="label">搜尋城市</span>
+              <div className="row">
+                <input
+                  className="field"
+                  style={{ flex: 1 }}
+                  placeholder="例如：東京、大阪…"
+                  value={query}
+                  maxLength={QUERY_MAX}
+                  onChange={(e) => setQuery(limitText(e.target.value, QUERY_MAX))}
+                />
+                <span className="muted wd-count">
+                  {charCount(query)}/{QUERY_MAX}
+                </span>
+              </div>
+            </label>
+
+            {isSearching && searching && <p className="muted">搜尋中…</p>}
+            {isSearching && searchError && <p className="field-error">{searchError}</p>}
+
+            <ul className="wd-city-list" role="listbox" aria-label="城市列表">
+              {listPlaces.map((d) => {
+                const cached = listCache[placeKey(d)]
+                const selected = placesEqual(d, place)
+                return (
+                  <li key={placeKey(d)}>
+                    <button
+                      type="button"
+                      className={`wd-city ${selected ? 'is-active' : ''}`}
+                      aria-selected={selected}
+                      onClick={() => selectPlace(d)}
+                    >
+                      <span className="wd-city-text">
+                        <strong>
+                          {d.name}{' '}
+                          <span className="muted" style={{ fontWeight: 400 }}>
+                            {d.country}
+                          </span>
+                        </strong>
+                        <span className="muted">
+                          {cached
+                            ? `${cached.icon} ${cached.condition}`
+                            : isSearching
+                              ? '點選載入天氣'
+                              : '載入中…'}
+                        </span>
                       </span>
-                    </strong>
-                    <span className="muted" style={{ fontSize: 13 }}>
-                      {cached ? cached.condition : isSearching ? '點選載入天氣' : '載入中…'}
-                    </span>
+                      <span className="mono wd-city-temp">
+                        {cached ? (
+                          <>
+                            {t(cached.temp)}
+                            {unitLabel}
+                          </>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+              {isSearching && !searching && listPlaces.length === 0 && (
+                <li className="muted wd-empty">找不到符合的城市</li>
+              )}
+            </ul>
+          </section>
+
+          <section className="panel wd-detail">
+            <div className="pw-panel-head">
+              <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+                <h3 className="pw-panel-title">
+                  {place.name} · {place.country}
+                </h3>
+                <span className="muted" style={{ fontSize: 12 }}>
+                  {loading
+                    ? '更新中…'
+                    : weather
+                      ? `最後更新 ${new Date(weather.updatedAt).toLocaleString('zh-TW')}`
+                      : '尚無資料'}
+                </span>
+              </div>
+              {weather && (
+                <span className={`tag ${weather.isDay ? '' : 'wd-night'}`}>
+                  {weather.isDay ? '日間' : '夜間'}
+                </span>
+              )}
+            </div>
+
+            {error && <p className="field-error">{error}</p>}
+            {loading && !weather && <p className="muted">正在取得天氣資料…</p>}
+
+            {weather && (
+              <div className="wd-detail-body">
+                <div className={`wd-hero ${weather.isDay ? 'is-day' : 'is-night'}`}>
+                  <div className="wd-hero-temp mono">
+                    {t(weather.temp)}
+                    <span>{unitLabel}</span>
                   </div>
-                  <span className="mono" style={{ fontSize: 20, fontWeight: 700 }}>
-                    {cached ? (
-                      <>
-                        {t(cached.temp)}
-                        {unitLabel}
-                      </>
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </span>
-                </li>
-              )
-            })}
-            {isSearching && !searching && listPlaces.length === 0 && (
-              <p className="muted">找不到符合的城市</p>
+                  <div className="wd-hero- Cond">
+                    <div className="wd-hero-cond">
+                      <span className="wd-hero-icon" aria-hidden>
+                        {weather.icon}
+                      </span>
+                      {weather.condition}
+                    </div>
+                    <div className="muted">
+                      體感 {t(weather.feels)}
+                      {unitLabel} · 最高 {t(weather.high)}
+                      {unitLabel} / 最低 {t(weather.low)}
+                      {unitLabel}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="wd-metrics">
+                  <div className="wd-metric">
+                    <span className="muted">濕度</span>
+                    <strong>{weather.humidity}%</strong>
+                    <div className="progress" aria-hidden>
+                      <span style={{ width: `${weather.humidity}%` }} />
+                    </div>
+                  </div>
+                  <div className="wd-metric">
+                    <span className="muted">風速</span>
+                    <strong>{weather.wind} km/h</strong>
+                  </div>
+                  <div className="wd-metric">
+                    <span className="muted">氣壓</span>
+                    <strong>{weather.pressure} hPa</strong>
+                  </div>
+                  <div className="wd-metric">
+                    <span className="muted">能見度</span>
+                    <strong>{weather.visibility} km</strong>
+                  </div>
+                  <div className="wd-metric">
+                    <span className="muted">雲量</span>
+                    <strong>{weather.cloud}%</strong>
+                  </div>
+                  <div className="wd-metric">
+                    <span className="muted">降水</span>
+                    <strong>{weather.precip} mm</strong>
+                  </div>
+                  <div className="wd-metric">
+                    <span className="muted">UV 指數</span>
+                    <strong>
+                      {weather.uv} · {uvLabel(weather.uv)}
+                    </strong>
+                  </div>
+                  <div className="wd-metric">
+                    <span className="muted">日出／日落</span>
+                    <strong>
+                      {formatClock(weather.sunrise)} / {formatClock(weather.sunset)}
+                    </strong>
+                  </div>
+                </div>
+
+                {weather.hourly.length > 0 && (
+                  <div className="wd-section">
+                    <div className="label">未來時段</div>
+                    <div className="wd-hourly" role="list">
+                      {weather.hourly.map((h) => (
+                        <div key={h.time} className="wd-hour" role="listitem">
+                          <span className="muted">{h.label}</span>
+                          <span aria-hidden>{h.icon}</span>
+                          <strong className="mono">
+                            {t(h.temp)}
+                            {unitLabel}
+                          </strong>
+                          <span className="muted wd-hour-rain">{h.precipProb}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="wd-section wd-forecast-wrap">
+                  <div className="label">七日預報</div>
+                  <ul className="wd-forecast">
+                    {weather.forecast.map((f, i) => (
+                      <li key={`${f.date}-${i}`} className="wd-forecast-row">
+                        <span className="wd-forecast-day">
+                          <strong>{f.day}</strong>
+                          <span className="muted">{f.date}</span>
+                        </span>
+                        <span className="wd-forecast-cond">
+                          <span aria-hidden>{f.icon}</span>
+                          {f.condition}
+                        </span>
+                        <span className="muted wd-forecast-meta">
+                          雨 {f.precipProb}% · UV {f.uvMax}
+                        </span>
+                        <span className="mono wd-forecast-temp">
+                          {t(f.high)}
+                          {unitLabel} / {t(f.low)}
+                          {unitLabel}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             )}
-          </ul>
+          </section>
         </div>
 
-        <div className="panel stack">
-          <div className="row">
-            <div className="stack" style={{ flex: 1, gap: 2 }}>
-              <strong style={{ fontSize: 22 }}>
+        <section className="panel wd-info">
+          <h3 className="pw-panel-title">更多資訊</h3>
+          <ul className="pw-info-list">
+            <li>
+              <span className="muted">資料來源</span>
+              <strong>Open-Meteo（免費、免 API Key）</strong>
+            </li>
+            <li>
+              <span className="muted">目前城市</span>
+              <strong>
                 {place.name} · {place.country}
               </strong>
-              <span className="muted">
-                {loading
-                  ? '更新中…'
-                  : weather
-                    ? `最後更新 ${new Date(weather.updatedAt).toLocaleString('zh-TW')}`
-                    : '尚無資料'}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="btn sm ghost"
-              disabled={loading}
-              onClick={() => setRefreshToken((n) => n + 1)}
-            >
-              重新整理
-            </button>
+            </li>
+            <li>
+              <span className="muted">座標</span>
+              <strong className="mono">
+                {place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}
+              </strong>
+            </li>
+            <li>
+              <span className="muted">溫度單位</span>
+              <strong>{unit === 'C' ? '攝氏 °C' : '華氏 °F'}</strong>
+            </li>
+            <li>
+              <span className="muted">預報範圍</span>
+              <strong>未來 12 小時 + 7 日</strong>
+            </li>
+          </ul>
+          <div className="wd-faq">
+            <p>
+              <strong>體感溫度</strong>
+              依風速與濕度推估的 apparent temperature，可能與實測溫度不同。
+            </p>
+            <p>
+              <strong>UV 指數</strong>
+              取當日最高值：0–2 低、3–5 中、6–7 高、8–10 很高、11+ 極高。
+            </p>
+            <p>
+              <strong>隱私與限制</strong>
+              城市與單位會記在本機；天氣由瀏覽器直接向 Open-Meteo 請求，需網路。離線或 CORS／API
+              異常時會顯示錯誤。
+            </p>
           </div>
-
-          {error && <p className="field-error">{error}</p>}
-
-          {loading && !weather && <p className="muted">正在取得天氣資料…</p>}
-
-          {weather && (
-            <>
-              <div className="metric" style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.1 }}>
-                  {t(weather.temp)}
-                  <span style={{ fontSize: 24 }}>{unitLabel}</span>
-                </div>
-                <div>
-                  {weather.icon} {weather.condition}
-                </div>
-                <div className="muted">
-                  目前 {t(weather.feels)}
-                  {unitLabel} · 最高 {t(weather.high)}
-                  {unitLabel} / 最低 {t(weather.low)}
-                  {unitLabel}
-                </div>
-              </div>
-
-              <div className="grid-3">
-                <div className="metric">
-                  <div className="muted">濕度</div>
-                  <div>{weather.humidity}%</div>
-                  <div className="progress" style={{ marginTop: 8 }}>
-                    <span style={{ width: `${weather.humidity}%` }} />
-                  </div>
-                </div>
-                <div className="metric">
-                  <div className="muted">風速</div>
-                  <div>{weather.wind} km/h</div>
-                </div>
-                <div className="metric">
-                  <div className="muted">氣壓</div>
-                  <div>{weather.pressure} hPa</div>
-                </div>
-                <div className="metric">
-                  <div className="muted">能見度</div>
-                  <div>{weather.visibility} km</div>
-                </div>
-                <div className="metric">
-                  <div className="muted">單位</div>
-                  <div>{unit === 'C' ? '攝氏' : '華氏'}</div>
-                </div>
-                <div className="metric">
-                  <div className="muted">資料來源</div>
-                  <div>Open-Meteo</div>
-                </div>
-              </div>
-
-              <div>
-                <div className="label" style={{ marginBottom: 8 }}>
-                  五日預報
-                </div>
-                <div className="stack" style={{ gap: 8 }}>
-                  {weather.forecast.map((f, i) => (
-                    <div key={`${f.day}-${i}`} className="list-item">
-                      <span style={{ minWidth: 48 }}>{f.day}</span>
-                      <span>
-                        {f.icon} {f.condition}
-                      </span>
-                      <span className="mono" style={{ marginLeft: 'auto' }}>
-                        {t(f.high)}
-                        {unitLabel} / {t(f.low)}
-                        {unitLabel}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        </section>
       </div>
     </ProjectShell>
   )

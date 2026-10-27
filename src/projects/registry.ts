@@ -38,7 +38,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'regex-tester', title: 'Regex Tester', description: '即時匹配／取代、高亮與群組檢視', tier: 'quick', effort: '幾小時～1 天', tags: ['dev'] },
 
   // ── 功能型 ──
-  { slug: 'weather-dashboard', title: '天氣 Dashboard', description: 'Open-Meteo 真實天氣儀表板', tier: 'feature', effort: '1～3 天', tags: ['dashboard'] },
+  { slug: 'weather-dashboard', title: '天氣 Dashboard', description: 'Open-Meteo：體感／UV／時段與七日預報', tier: 'feature', effort: '1～3 天', tags: ['dashboard'] },
   { slug: 'github-profile', title: 'GitHub Profile Viewer', description: '輸入帳號查看公開個人檔', tier: 'feature', effort: '1～3 天', tags: ['github'] },
   { slug: 'github-repo-search', title: 'GitHub Repo Search', description: '搜尋公開儲存庫', tier: 'feature', effort: '1～3 天', tags: ['github'] },
   { slug: 'ip-lookup', title: 'IP Address Lookup', description: '查詢 IP／本機網路資訊', tier: 'feature', effort: '1～3 天', tags: ['network'] },

@@ -1,12 +1,20 @@
 import { getProject } from '../registry'
 import { ProjectShell } from '../../components/ProjectShell'
+import { ActionButton } from '../../components/ActionButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
-import { limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
+import {
+  friendlyGithubHttpError,
+  formatRateLimitHint,
+  rateLimitFromHeaders,
+} from '../../lib/githubApi'
+import { charCount, cn, copyText, isNonEmpty, limitText } from '../../lib/utils'
 
 const meta = getProject('github-profile')!
 
 const USER_MAX = 39
+
+const SAMPLES = ['octocat', 'vercel', 'facebook', 'microsoft']
 
 type Profile = {
   login: string
@@ -15,12 +23,15 @@ type Profile = {
   avatar_url: string
   html_url: string
   public_repos: number
+  public_gists: number
   followers: number
   following: number
   location: string | null
   company: string | null
   blog: string | null
+  twitter_username: string | null
   created_at: string
+  updated_at: string
 }
 
 type Repo = {
@@ -33,6 +44,8 @@ type Repo = {
   forks_count: number
   language: string | null
   updated_at: string
+  fork: boolean
+  archived: boolean
 }
 
 type GhEvent = {
@@ -40,48 +53,81 @@ type GhEvent = {
   type: string
   repo: { name: string; url: string }
   created_at: string
-  payload?: { action?: string; ref_type?: string }
 }
 
-function rateLimitFromHeaders(headers: Headers): { remaining: number | null; reset: number | null } {
-  const rem = headers.get('x-ratelimit-remaining')
-  const reset = headers.get('x-ratelimit-reset')
-  return {
-    remaining: rem != null && rem !== '' ? Number(rem) : null,
-    reset: reset != null && reset !== '' ? Number(reset) : null,
+function languageCounts(repos: Repo[]) {
+  const map = new Map<string, number>()
+  for (const r of repos) {
+    if (!r.language) continue
+    map.set(r.language, (map.get(r.language) || 0) + 1)
   }
+  return [...map.entries()].sort((a, b) => b[1] - a[1])
 }
 
-function friendlyHttpError(status: number, remaining: number | null): string {
-  if (status === 404) return '找不到此使用者'
-  if (status === 403 || status === 429) {
-    if (remaining === 0) {
-      return 'GitHub API 速率已用盡（未登入約每小時 60 次），請稍後再試'
-    }
-    return '請求被拒絕（可能觸及速率限制），請稍後再試'
+function eventLabel(ev: GhEvent) {
+  const map: Record<string, string> = {
+    PushEvent: 'Push',
+    WatchEvent: 'Star',
+    ForkEvent: 'Fork',
+    IssuesEvent: 'Issue',
+    PullRequestEvent: 'PR',
+    CreateEvent: '建立',
+    PublicEvent: '公開',
   }
-  return `錯誤 ${status}`
+  return map[ev.type] || ev.type.replace(/Event$/, '')
+}
+
+function blogHref(blog: string) {
+  return blog.startsWith('http') ? blog : `https://${blog}`
 }
 
 export default function Page() {
   const [user, setUser] = useLocalStorage('lab:github-profile:user', 'octocat')
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [repos, setRepos] = useState<Repo[]>([])
+  const [reposTop, setReposTop] = useState<Repo[]>([])
+  const [reposRecent, setReposRecent] = useState<Repo[]>([])
+  const [repoSampleSize, setRepoSampleSize] = useState(0)
   const [events, setEvents] = useState<GhEvent[]>([])
   const [showEvents, setShowEvents] = useLocalStorage('lab:github-profile:events', true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [rateRemaining, setRateRemaining] = useState<number | null>(null)
   const [rateReset, setRateReset] = useState<number | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
 
-  const languages = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const r of repos) {
-      if (!r.language) continue
-      map.set(r.language, (map.get(r.language) || 0) + 1)
+  const allReposForLang = useMemo(() => {
+    const ids = new Set<number>()
+    const merged: Repo[] = []
+    for (const r of [...reposTop, ...reposRecent]) {
+      if (ids.has(r.id)) continue
+      ids.add(r.id)
+      merged.push(r)
     }
-    return [...map.entries()].sort((a, b) => b[1] - a[1])
-  }, [repos])
+    return merged
+  }, [reposTop, reposRecent])
+
+  const languagesFromSample = useMemo(() => languageCounts(allReposForLang), [allReposForLang])
+
+  const summary = useMemo(() => {
+    if (!profile) return ''
+    const lines = [
+      `${profile.name || profile.login} (@${profile.login})`,
+      profile.bio || '',
+      `倉庫 ${profile.public_repos} · Gists ${profile.public_gists} · Followers ${profile.followers} · Following ${profile.following}`,
+      profile.company || profile.location
+        ? [profile.company, profile.location].filter(Boolean).join(' · ')
+        : '',
+      `加入 ${new Date(profile.created_at).toLocaleDateString('zh-TW')}`,
+      profile.html_url,
+    ].filter(Boolean)
+    return lines.join('\n')
+  }, [profile])
+
+  async function copyVal(text: string, key: string) {
+    await copyText(text)
+    setCopied(key)
+    window.setTimeout(() => setCopied(null), 1400)
+  }
 
   async function load() {
     const q = user.trim()
@@ -89,7 +135,9 @@ export default function Page() {
     setLoading(true)
     setError('')
     setProfile(null)
-    setRepos([])
+    setReposTop([])
+    setReposRecent([])
+    setRepoSampleSize(0)
     setEvents([])
     try {
       const [userRes, repoRes] = await Promise.all([
@@ -103,38 +151,44 @@ export default function Page() {
       if (rl.reset != null) setRateReset(rl.reset)
 
       if (!userRes.ok) {
-        throw new Error(friendlyHttpError(userRes.status, rl.remaining))
+        throw new Error(friendlyGithubHttpError(userRes.status, rl.remaining))
       }
       if (!repoRes.ok) {
         const repoRl = rateLimitFromHeaders(repoRes.headers)
         if (repoRl.remaining != null) setRateRemaining(repoRl.remaining)
         throw new Error(
           repoRes.status === 403 || repoRes.status === 429
-            ? friendlyHttpError(repoRes.status, repoRl.remaining)
+            ? friendlyGithubHttpError(repoRes.status, repoRl.remaining)
             : `儲存庫錯誤 ${repoRes.status}`,
         )
       }
 
       const p = (await userRes.json()) as Profile
       const allRepos = (await repoRes.json()) as Repo[]
+      setRepoSampleSize(allRepos.length)
+
       const top = [...allRepos]
         .sort((a, b) => b.stargazers_count - a.stargazers_count)
+        .slice(0, 8)
+      const recent = [...allRepos]
+        .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
         .slice(0, 6)
 
       setProfile(p)
-      setRepos(top)
+      setReposTop(top)
+      setReposRecent(recent)
 
       if (showEvents) {
         try {
           const evRes = await fetch(
-            `https://api.github.com/users/${encodeURIComponent(q)}/events/public?per_page=8`,
+            `https://api.github.com/users/${encodeURIComponent(q)}/events/public?per_page=10`,
           )
           const evRl = rateLimitFromHeaders(evRes.headers)
           if (evRl.remaining != null) setRateRemaining(evRl.remaining)
           if (evRl.reset != null) setRateReset(evRl.reset)
           if (evRes.ok) setEvents((await evRes.json()) as GhEvent[])
         } catch {
-          /* 事件為選用，忽略失敗 */
+          /* 事件為選用 */
         }
       }
     } catch (e) {
@@ -144,174 +198,277 @@ export default function Page() {
     }
   }
 
-  function eventLabel(ev: GhEvent) {
-    const map: Record<string, string> = {
-      PushEvent: 'Push',
-      WatchEvent: 'Star',
-      ForkEvent: 'Fork',
-      IssuesEvent: 'Issue',
-      PullRequestEvent: 'PR',
-      CreateEvent: '建立',
-      PublicEvent: '公開',
-    }
-    return map[ev.type] || ev.type.replace(/Event$/, '')
+  function RepoCard({ r }: { r: Repo }) {
+    return (
+      <li className="gh-repo-card">
+        <div className="gh-repo-head">
+          <a href={r.html_url} target="_blank" rel="noreferrer" className="gh-repo-name">
+            {r.name}
+          </a>
+          <span className="tag mono">★ {r.stargazers_count.toLocaleString()}</span>
+          {r.language && <span className="tag">{r.language}</span>}
+          {r.fork && <span className="tag">fork</span>}
+          {r.archived && <span className="tag">archived</span>}
+        </div>
+        <p className="muted gh-repo-desc">{r.description || '（無描述）'}</p>
+        <div className="gh-repo-meta muted">
+          <span>forks {r.forks_count.toLocaleString()}</span>
+          <span>更新 {new Date(r.updated_at).toLocaleDateString('zh-TW')}</span>
+        </div>
+      </li>
+    )
   }
 
   return (
-    <ProjectShell meta={meta}>
-      <div className="panel stack">
-        <div className="row">
-          <input
-            className={cn('field', !isNonEmpty(user) && 'is-invalid')}
-            style={{ flex: 1 }}
-            placeholder="GitHub 帳號"
-            maxLength={USER_MAX}
-            value={user}
-            onChange={(e) => setUser(limitText(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''), USER_MAX))}
-            onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(user) && load()}
-          />
-          <label className="row" style={{ gap: 6 }}>
-            <input
-              type="checkbox"
-              checked={showEvents}
-              onChange={(e) => setShowEvents(e.target.checked)}
-            />
-            <span className="muted" style={{ fontSize: 13 }}>
-              近期動態
-            </span>
-          </label>
-          <button type="button" className="btn accent" onClick={load} disabled={loading || !isNonEmpty(user)}>
-            {loading ? '查詢中…' : '查詢'}
-          </button>
+    <ProjectShell
+      meta={meta}
+      actions={
+        <div className="row gh-shell-actions">
+          <ActionButton
+            className="btn sm ghost"
+            disabled={!profile}
+            onClick={() => void copyVal(summary, 'sum')}
+            icon="copy"
+          >
+            {copied === 'sum' ? '已複製' : '複製摘要'}
+          </ActionButton>
+          {profile && (
+            <ActionButton
+              className="btn sm accent"
+              onClick={() => window.open(profile.html_url, '_blank', 'noopener,noreferrer')}
+              icon="download"
+            >
+              在 GitHub 開啟
+            </ActionButton>
+          )}
         </div>
-        <div className="field-meta">
-          <span className={!isNonEmpty(user) ? 'warn' : undefined}>{isNonEmpty(user) ? '可查詢' : '請輸入帳號'}</span>
-          <span>{charCount(user)}/{USER_MAX}</span>
-        </div>
-        {rateRemaining != null && (
-          <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            API 剩餘額度：{rateRemaining}
-            {rateReset != null && rateRemaining === 0
-              ? ` · 約於 ${new Date(rateReset * 1000).toLocaleTimeString('zh-TW')} 重置`
-              : ''}
-          </p>
-        )}
-
-        {error && (
-          <p className="tag" style={{ background: '#d6406a', color: '#fff' }}>
-            {error}
-          </p>
-        )}
-        {loading && <p className="muted">正在載入個人資料與儲存庫…</p>}
-
-        {profile && (
-          <div className="stack">
-            <div className="row" style={{ alignItems: 'flex-start' }}>
-              <img
-                src={profile.avatar_url}
-                alt=""
-                width={80}
-                height={80}
-                style={{ borderRadius: '50%' }}
-              />
-              <div className="stack" style={{ flex: 1 }}>
-                <strong style={{ fontSize: 20 }}>{profile.name || profile.login}</strong>
-                <a href={profile.html_url} target="_blank" rel="noreferrer">
-                  @{profile.login}
-                </a>
-                {profile.bio && <p style={{ margin: 0 }}>{profile.bio}</p>}
-                <p className="muted" style={{ margin: 0 }}>
-                  {[profile.company, profile.location].filter(Boolean).join(' · ') || '—'}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid-3">
-              <div className="metric">
-                <div className="muted">倉庫</div>
-                <div style={{ fontSize: 24 }}>{profile.public_repos}</div>
-              </div>
-              <div className="metric">
-                <div className="muted">Followers</div>
-                <div style={{ fontSize: 24 }}>{profile.followers}</div>
-              </div>
-              <div className="metric">
-                <div className="muted">Following</div>
-                <div style={{ fontSize: 24 }}>{profile.following}</div>
-              </div>
-            </div>
-
-            {languages.length > 0 && (
-              <div className="stack" style={{ gap: 8 }}>
-                <span className="label">語言提示（依倉庫數）</span>
-                <div className="row" style={{ flexWrap: 'wrap' }}>
-                  {languages.map(([lang, count]) => (
-                    <span key={lang} className="tag">
-                      {lang} ×{count}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {profile.blog && (
-              <a
-                href={profile.blog.startsWith('http') ? profile.blog : `https://${profile.blog}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {profile.blog}
-              </a>
-            )}
-            <p className="muted">加入於 {new Date(profile.created_at).toLocaleDateString('zh-TW')}</p>
-
-            <div className="stack" style={{ gap: 8 }}>
-              <span className="label">熱門倉庫（依 ★ 取前 6）</span>
-              <ul className="list">
-                {repos.map((r) => (
-                  <li
-                    key={r.id}
-                    className="list-item"
-                    style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}
-                  >
-                    <div className="row">
-                      <a href={r.html_url} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>
-                        {r.name}
-                      </a>
-                      <span className="tag">★ {r.stargazers_count.toLocaleString()}</span>
-                      {r.language && <span className="tag">{r.language}</span>}
-                    </div>
-                    <p className="muted" style={{ margin: 0 }}>
-                      {r.description || '（無描述）'}
-                    </p>
-                    <div className="row muted" style={{ fontSize: 13 }}>
-                      <span>forks {r.forks_count}</span>
-                      <span>更新 {new Date(r.updated_at).toLocaleDateString('zh-TW')}</span>
-                    </div>
-                  </li>
-                ))}
-                {!repos.length && <p className="muted">此帳號沒有公開倉庫</p>}
-              </ul>
-            </div>
-
-            {showEvents && events.length > 0 && (
-              <div className="stack" style={{ gap: 8 }}>
-                <span className="label">近期公開動態</span>
-                <ul className="list">
-                  {events.map((ev) => (
-                    <li key={ev.id} className="list-item">
-                      <span className="tag">{eventLabel(ev)}</span>
-                      <span style={{ flex: 1 }}>{ev.repo.name}</span>
-                      <span className="muted" style={{ fontSize: 12 }}>
-                        {new Date(ev.created_at).toLocaleString('zh-TW')}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+      }
+    >
+      <div className="gh-calc">
+        <section className="panel gh-toolbar">
+          <div className="pw-panel-head">
+            <h3 className="pw-panel-title">查詢</h3>
+            {rateRemaining != null && (
+              <span className="tag gh-rate">{formatRateLimitHint(rateRemaining, rateReset)}</span>
             )}
           </div>
-        )}
+          <div className="row gh-search-row">
+            <input
+              className={cn('field', !isNonEmpty(user) && 'is-invalid')}
+              style={{ flex: 1 }}
+              placeholder="GitHub 帳號（不含 @）"
+              maxLength={USER_MAX}
+              value={user}
+              onChange={(e) =>
+                setUser(limitText(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''), USER_MAX))
+              }
+              onKeyDown={(e) => e.key === 'Enter' && isNonEmpty(user) && load()}
+            />
+            <label className="row gh-check">
+              <input
+                type="checkbox"
+                checked={showEvents}
+                onChange={(e) => setShowEvents(e.target.checked)}
+              />
+              <span className="muted">近期動態</span>
+            </label>
+            <ActionButton
+              className="btn accent"
+              onClick={load}
+              disabled={loading || !isNonEmpty(user)}
+              icon="search"
+            >
+              {loading ? '查詢中…' : '查詢'}
+            </ActionButton>
+          </div>
+          <div className="field-meta">
+            <span className={!isNonEmpty(user) ? 'warn' : undefined}>
+              {isNonEmpty(user) ? '可查詢公開資料' : '請輸入帳號'}
+            </span>
+            <span>{charCount(user)}/{USER_MAX}</span>
+          </div>
+          <div className="gh-samples">
+            <span className="muted">範例：</span>
+            {SAMPLES.map((s) => (
+              <button key={s} type="button" className="btn sm ghost" onClick={() => setUser(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+          {error && <p className="field-error">{error}</p>}
+          {loading && <p className="muted">正在載入個人資料與儲存庫…</p>}
+        </section>
+
+        <div className="gh-main">
+          <section className="panel gh-profile-panel">
+            {!profile && !loading && (
+              <p className="muted gh-empty">輸入帳號後查詢，會顯示公開個人檔與倉庫摘要。</p>
+            )}
+            {profile && (
+              <div className="gh-profile-body">
+                <div className="gh-profile-head">
+                  <img
+                    className="gh-avatar"
+                    src={profile.avatar_url}
+                    alt=""
+                    width={88}
+                    height={88}
+                  />
+                  <div className="gh-profile-text">
+                    <h3 className="pw-panel-title">{profile.name || profile.login}</h3>
+                    <a href={profile.html_url} target="_blank" rel="noreferrer" className="gh-login">
+                      @{profile.login}
+                    </a>
+                    {profile.bio && <p className="gh-bio">{profile.bio}</p>}
+                    <p className="muted gh-meta-line">
+                      {[profile.company, profile.location].filter(Boolean).join(' · ') || '—'}
+                    </p>
+                    {profile.blog && (
+                      <a href={blogHref(profile.blog)} target="_blank" rel="noreferrer">
+                        {profile.blog}
+                      </a>
+                    )}
+                    {profile.twitter_username && (
+                      <a
+                        href={`https://twitter.com/${profile.twitter_username}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        @{profile.twitter_username}
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="gh-stats">
+                  <div className="gh-stat">
+                    <span className="muted">公開倉庫</span>
+                    <strong className="mono">{profile.public_repos}</strong>
+                  </div>
+                  <div className="gh-stat">
+                    <span className="muted">Gists</span>
+                    <strong className="mono">{profile.public_gists}</strong>
+                  </div>
+                  <div className="gh-stat">
+                    <span className="muted">追蹤者</span>
+                    <strong className="mono">{profile.followers}</strong>
+                  </div>
+                  <div className="gh-stat">
+                    <span className="muted">正在追蹤</span>
+                    <strong className="mono">{profile.following}</strong>
+                  </div>
+                </div>
+
+                <ul className="pw-info-list gh-dates">
+                  <li>
+                    <span className="muted">加入 GitHub</span>
+                    <strong>{new Date(profile.created_at).toLocaleDateString('zh-TW')}</strong>
+                  </li>
+                  <li>
+                    <span className="muted">檔案更新</span>
+                    <strong>{new Date(profile.updated_at).toLocaleDateString('zh-TW')}</strong>
+                  </li>
+                  <li>
+                    <span className="muted">倉庫樣本</span>
+                    <strong>
+                      已載入 {repoSampleSize} 筆
+                      {profile.public_repos > repoSampleSize ? `（共 ${profile.public_repos}）` : ''}
+                    </strong>
+                  </li>
+                </ul>
+
+                {languagesFromSample.length > 0 && (
+                  <div className="gh-lang">
+                    <div className="label">
+                      語言分布（依已載入的 {allReposForLang.length} 筆公開倉庫）
+                    </div>
+                    <div className="gh-lang-tags">
+                      {languagesFromSample.slice(0, 12).map(([lang, count]) => (
+                        <span key={lang} className="tag">
+                          {lang} ×{count}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          <section className="panel gh-repos-panel">
+            <h3 className="pw-panel-title">倉庫</h3>
+            {!profile && <p className="muted">—</p>}
+            {profile && (
+              <div className="gh-repos-body">
+                <div className="gh-repo-section">
+                  <div className="label">熱門（依 ★ 前 8）</div>
+                  <ul className="gh-repo-list">
+                    {reposTop.map((r) => <RepoCard key={r.id} r={r} />)}
+                    {!reposTop.length && <li className="muted">沒有公開倉庫</li>}
+                  </ul>
+                </div>
+                <div className="gh-repo-section">
+                  <div className="label">最近更新（前 6）</div>
+                  <ul className="gh-repo-list">
+                    {reposRecent.map((r) => <RepoCard key={`r-${r.id}`} r={r} />)}
+                  </ul>
+                </div>
+                {showEvents && events.length > 0 && (
+                  <div className="gh-repo-section">
+                    <div className="label">近期公開動態</div>
+                    <ul className="gh-event-list">
+                      {events.map((ev) => (
+                        <li key={ev.id} className="gh-event">
+                          <span className="tag">{eventLabel(ev)}</span>
+                          <span className="gh-event-repo">{ev.repo.name}</span>
+                          <span className="muted gh-event-time">
+                            {new Date(ev.created_at).toLocaleString('zh-TW')}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <section className="panel gh-info">
+          <h3 className="pw-panel-title">更多資訊</h3>
+          <ul className="pw-info-list">
+            <li>
+              <span className="muted">資料來源</span>
+              <strong>GitHub REST API（公開資料）</strong>
+            </li>
+            <li>
+              <span className="muted">速率限制</span>
+              <strong>未登入約 60 次／小時／IP</strong>
+            </li>
+            <li>
+              <span className="muted">倉庫列表</span>
+              <strong>單次最多取 100 筆公開倉庫</strong>
+            </li>
+            <li>
+              <span className="muted">語言統計</span>
+              <strong>依本次載入的倉庫計數，非全帳號掃描</strong>
+            </li>
+          </ul>
+          <div className="gh-faq">
+            <p>
+              <strong>私人倉庫</strong>
+              無 Token 時僅能看公開欄位；私人倉庫數量不會出現在列表中。
+            </p>
+            <p>
+              <strong>近期動態</strong>
+              來自 <code>events/public</code>，部分帳號可能為空或延遲。
+            </p>
+            <p>
+              <strong>隱私</strong>
+              帳號與選項記在本機；請求由瀏覽器直接送往 api.github.com。
+            </p>
+          </div>
+        </section>
       </div>
     </ProjectShell>
   )
