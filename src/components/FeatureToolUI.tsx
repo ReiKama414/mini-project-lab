@@ -3,8 +3,8 @@ import { formatBytes } from '../lib/utils'
 
 /** 日常應用共用區塊（對齊 ip-lookup 視覺） */
 
-export function FtToolRoot({ children }: { children: ReactNode }) {
-  return <div className="ft-ui-root">{children}</div>
+export function FtToolRoot({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={className ? `ft-ui-root ${className}` : 'ft-ui-root'}>{children}</div>
 }
 
 export function FtToolSearch({ children }: { children: ReactNode }) {

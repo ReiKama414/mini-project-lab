@@ -1,11 +1,8 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('sql-playground')!
 
 const SQL_MAX = 2000
 
@@ -197,8 +194,7 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout slug="sql-playground"
       actions={
         <ActionButton className="btn sm ghost" disabled={!result || !!result.error} onClick={exportCsv}>匯出 CSV</ActionButton>
       }
@@ -334,6 +330,6 @@ export default function Page() {
           )}
         </div>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

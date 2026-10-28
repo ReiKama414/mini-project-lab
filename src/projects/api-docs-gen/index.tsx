@@ -1,13 +1,10 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn, charCount } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('api-docs-gen')!
 
 const TITLE_MAX = 120
 const VER_MAX = 40
@@ -196,8 +193,7 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout slug="api-docs-gen"
       actions={
         <div className="row">
           <ActionButton className="btn sm ghost" onClick={onCopy} icon="copy">{copied ? '已複製' : '複製 Markdown'}</ActionButton>
@@ -359,6 +355,6 @@ export default function Page() {
           </pre>
         </div>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

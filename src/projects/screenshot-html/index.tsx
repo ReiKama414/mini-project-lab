@@ -1,11 +1,8 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('screenshot-html')!
 
 const TITLE_MAX = 120
 const SECTION_MAX = 2000
@@ -131,8 +128,7 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout slug="screenshot-html"
       actions={
         <div className="row">
           <ActionButton className="btn sm ghost" onClick={() => void copyText(out)} icon="copy" iconOnly tooltip="複製" />
@@ -231,6 +227,6 @@ export default function Page() {
           </pre>
         </div>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

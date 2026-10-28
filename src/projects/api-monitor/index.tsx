@@ -1,13 +1,10 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('api-monitor')!
 
 const URL_MAX = 2048
 const NAME_MAX = 80
@@ -168,8 +165,15 @@ export default function Page() {
   const canAdd = urlOk && isNonEmpty(name)
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout
+      slug="api-monitor"
+      heroSubtitle="直連或 CORS proxy 探測延遲；限制與保存方式見「更多資訊」"
+      metrics={[
+        { label: '端點', value: targets.length },
+        { label: '健康', value: healthy },
+        { label: '異常', value: targets.length - healthy },
+        { label: '自動', value: auto ? '30s' : '關' },
+      ]}
       actions={
         <div className="row">
           <button type="button" className={`btn sm ${auto ? 'teal' : 'ghost'}`} onClick={() => setAuto((v) => !v)}>
@@ -181,16 +185,7 @@ export default function Page() {
         </div>
       }
     >
-      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機示範／proxy 限制：優先直接 CORS 請求；失敗時改經公開 CORS proxy（allorigins）延遲可能含代理往返，非正式 API 監控服務自動探測約 30 秒一次
-      </p>
-      <div className="grid-3" style={{ marginBottom: 12 }}>
-        <div className="metric panel">Targets {targets.length}</div>
-        <div className="metric panel">Healthy {healthy}</div>
-        <div className="metric panel">Down {targets.length - healthy}</div>
-      </div>
-
-      <div className="panel stack" style={{ marginBottom: 12 }}>
+      <div className="panel stack pd-panel">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <input
             className={cn('field', !isNonEmpty(name) && 'is-invalid')}
@@ -331,6 +326,6 @@ export default function Page() {
           </table>
         </div>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

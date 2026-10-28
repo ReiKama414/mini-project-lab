@@ -1,10 +1,8 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
+import { ActionButton } from '../../components/ActionButton'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { uid, limitText, charCount, isNonEmpty, isValidHttpUrl, normalizeHttpUrl, cn } from '../../lib/utils'
-
-const meta = getProject('uptime-monitor')!
 
 const URL_MAX = 2048
 
@@ -108,27 +106,28 @@ export default function Page() {
   const down = sites.filter((s) => s.status === 'down').length
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout
+      slug="uptime-monitor"
+      heroTitle="網站可用性"
+      heroSubtitle="透過公開 CORS proxy 探測 HTTP 狀態；詳細限制見頁底「更多資訊」"
+      heroBadge={auto ? <span className="tag">自動輪詢</span> : <span className="tag muted">手動</span>}
+      metrics={[
+        { label: '監控站點', value: sites.length },
+        { label: '在線', value: up },
+        { label: '異常', value: down },
+        { label: '狀態', value: checking ? '檢查中…' : '待命' },
+      ]}
       actions={
-        <button className="btn ghost sm" onClick={() => void checkAll()} disabled={checking}>
+        <ActionButton className="btn ghost sm" onClick={() => void checkAll()} disabled={checking}>
           {checking ? '檢查中…' : '全部檢查'}
-        </button>
+        </ActionButton>
       }
     >
-      <p className="muted panel" style={{ marginBottom: 12, fontSize: 13 }}>
-        本機示範／proxy 限制：經公開 CORS proxy（allorigins）探測，非正式監控服務；延遲含 proxy 往返，結果可能受代理可用性影響可每分鐘自動檢查
-      </p>
-      <div className="grid-3" style={{ marginBottom: 12 }}>
-        <div className="metric panel">站點 {sites.length}</div>
-        <div className="metric panel">在線 {up}</div>
-        <div className="metric panel">異常 {down}</div>
-      </div>
-      <label className="row" style={{ marginBottom: 12 }}>
+      <label className="row pd-row">
         <input type="checkbox" checked={auto} onChange={() => setAuto(!auto)} />
         自動輪詢（60 秒）
       </label>
-      <div className="panel stack" style={{ marginBottom: 12 }}>
+      <div className="panel stack pd-panel">
         <div className="row">
           <input
             className={cn('field', !canAdd && 'is-invalid')}
@@ -173,7 +172,7 @@ export default function Page() {
         </div>
         {urlErr && <p className="field-error">{urlErr}</p>}
       </div>
-      <ul className="list panel">
+      <ul className="list panel pd-site-list">
         {sites.map((s) => {
           const uptime =
             s.history.length === 0
@@ -227,6 +226,6 @@ export default function Page() {
           )
         })}
       </ul>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

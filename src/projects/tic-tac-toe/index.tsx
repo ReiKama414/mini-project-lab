@@ -1,11 +1,8 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, pick, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('tic-tac-toe')!
 
 type Cell = 'X' | 'O' | null
 type Mode = 'cpu' | '2p'
@@ -141,8 +138,7 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout slug="tic-tac-toe"
       actions={
         <div className="row">
           <button type="button" className="btn sm ghost" onClick={reset}>
@@ -285,6 +281,6 @@ export default function Page() {
           </ul>
         </div>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

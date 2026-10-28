@@ -1,12 +1,9 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, clamp, copyText, downloadText, isNonEmpty, limitText, parseNumber, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('db-schema-viz')!
 
 const NAME_MAX = 64
 const FK_MAX = 80
@@ -194,8 +191,7 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout slug="db-schema-viz"
       actions={
         <div className="row">
           <ActionButton className="btn sm ghost" onClick={copyMermaid} icon="copy">{copied ? '已複製' : '複製 Mermaid'}</ActionButton>
@@ -440,6 +436,6 @@ export default function Page() {
           {mermaid}
         </pre>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

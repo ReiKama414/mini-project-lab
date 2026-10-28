@@ -90,7 +90,7 @@ export const projects: ProjectMeta[] = [
   { slug: 'dependency-dashboard', title: 'Dependency Update Dashboard', description: '套件版本與更新狀態', tier: 'portfolio', effort: '1～2 週', tags: ['ops'] },
   { slug: 'log-viewer', title: 'Log Viewer', description: '日誌篩選著色，可匯入樣本與下載篩選結果', tier: 'portfolio', effort: '1～2 週', tags: ['ops'] },
   { slug: 'feature-flags', title: 'Feature Flag Dashboard', description: '功能開關面板，支援 flags JSON 匯入匯出', tier: 'portfolio', effort: '1～2 週', tags: ['ops'] },
-  { slug: 'whiteboard', title: '本機塗鴉白板', description: '本機塗鴉白板（非多人協作）', tier: 'portfolio', effort: '1～2 週', tags: ['realtime'] },
+  { slug: 'whiteboard', title: '塗鴉白板', description: '筆／擦布、模板、草稿與 PNG 匯出，支援全螢幕', tier: 'portfolio', effort: '1～2 週', tags: ['realtime'] },
   { slug: 'tic-tac-toe', title: '本機 Tic-Tac-Toe', description: '本機雙人／人機（非網路聯機）', tier: 'portfolio', effort: '1～2 週', tags: ['game'] },
   { slug: 'code-editor', title: 'Browser-based Code Editor', description: '瀏覽器簡易程式編輯器', tier: 'portfolio', effort: '1～2 週', tags: ['dev'] },
   // ── Local-first 102～200 ──
@@ -199,7 +199,7 @@ export const tiers: { id: Tier; label: string; blurb: string; color: string }[] 
   { id: 'quick', label: '實用小工具', blurb: '轉換、計時、產生器', color: '#2a9d8f' },
   { id: 'feature', label: '日常應用', blurb: '筆記、追蹤、清單', color: '#e9a319' },
   { id: 'product', label: '產品原型', blurb: 'AI、儀表板、建構器', color: '#f0734a' },
-  { id: 'portfolio', label: '進階 Demo', blurb: '監控、分析、即時互動', color: '#d6406a' },
+  { id: 'portfolio', label: '進階 Demo', blurb: '13 個示範專案：含 API／本機工具與頁底說明', color: '#d6406a' },
 ]
 
 export const tagLabels: Record<string, string> = {

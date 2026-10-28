@@ -1,13 +1,10 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { AddButton } from '../../components/AddButton'
 import { DeleteButton } from '../../components/DeleteButton'
 import { useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, uid, limitText, isNonEmpty, charCount, cn } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('feature-flags')!
 
 const KEY_MAX = 64
 const USER_MAX = 80
@@ -135,8 +132,15 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout
+      slug="feature-flags"
+      heroSubtitle="本機 flag 開關、百分比與環境篩選；評估邏輯見「更多資訊」"
+      metrics={[
+        { label: 'Flags', value: flags.length },
+        { label: '目前環境', value: envFilter === 'all' ? '全部' : envFilter },
+        { label: '稽核', value: audit.length },
+        { label: '評估環境', value: evalEnv },
+      ]}
       actions={
         <div className="row">
           <input
@@ -316,6 +320,6 @@ export default function Page() {
           </ul>
         </div>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

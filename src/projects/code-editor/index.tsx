@@ -1,10 +1,7 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, limitText } from '../../lib/utils'
-
-const meta = getProject('code-editor')!
 
 const CODE_MAX = 50_000
 
@@ -82,8 +79,7 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout slug="code-editor"
       actions={
         <div className="row">
           <button type="button" className="btn sm ghost" onClick={() => void copyText(code[tab])}>
@@ -156,6 +152,6 @@ export default function Page() {
       <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
         HTML／CSS／JS 分頁編輯，範例可一鍵載入，內容與分頁狀態會存到本機
       </p>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

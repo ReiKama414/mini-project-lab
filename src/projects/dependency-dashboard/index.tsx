@@ -1,12 +1,9 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { AddButton } from '../../components/AddButton'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, downloadText, isNonEmpty, limitText, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('dependency-dashboard')!
 
 const NAME_MAX = 80
 const VER_MAX = 40
@@ -182,8 +179,7 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout slug="dependency-dashboard"
       actions={
         <div className="row" style={{ gap: 8 }}>
           <button type="button" className="btn ghost sm" disabled={bulkFetching || !deps.length} onClick={() => void checkAllLatest()}>
@@ -396,6 +392,6 @@ export default function Page() {
           可離線手動維護清單；「查最新」會向 npm registry 查詢版本狀態依 semver 比對，可標記忽略、寫備註，並匯出 CSV
         </p>
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }

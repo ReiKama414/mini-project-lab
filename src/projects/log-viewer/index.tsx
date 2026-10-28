@@ -1,11 +1,8 @@
-import { getProject } from '../registry'
-import { ProjectShell } from '../../components/ProjectShell'
+import { PortfolioLayout } from '../../components/PortfolioLayout'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { charCount, copyText, downloadText, limitText, pick, uid } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
-
-const meta = getProject('log-viewer')!
 
 const QUERY_MAX = 120
 
@@ -182,8 +179,15 @@ export default function Page() {
   }
 
   return (
-    <ProjectShell
-      meta={meta}
+    <PortfolioLayout
+      slug="log-viewer"
+      heroSubtitle="匯入、篩選與著色日誌；非 live tail 串流"
+      metrics={[
+        { label: '緩衝', value: list.length },
+        { label: '顯示', value: shown.length },
+        { label: 'error', value: levelCounts.error },
+        { label: '串流', value: paused ? '暫停' : 'ON' },
+      ]}
       actions={
         <div className="row">
           <input
@@ -269,6 +273,6 @@ export default function Page() {
         ))}
         {!shown.length && <p className="muted">尚無日誌（可按「產生樣本」或關閉暫停）</p>}
       </div>
-    </ProjectShell>
+    </PortfolioLayout>
   )
 }
