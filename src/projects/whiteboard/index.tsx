@@ -362,7 +362,7 @@ export default function Page() {
   return (
     <PortfolioLayout
       slug="whiteboard"
-      heroSubtitle="Canvas 塗鴉、模板、PNG 與本機草稿；操作說明見頁底「更多資訊」"
+      heroSubtitle="Canvas 塗鴉、模板、PNG 與本機草稿"
       footerHint="快捷：Ctrl+Z（⌘Z）復原 · Esc 退出全螢幕 · 工具列過長可橫向捲動"
       extraInfo={[{ label: '復原（本頁）', value: `${undoSteps} 步可用` }]}
       metrics={[
@@ -395,83 +395,92 @@ export default function Page() {
         ref={boardRef}
         className={`wb-board${fullscreen ? ' wb-board--fs' : ''}`}
       >
-        <div className="panel wb-toolbar" style={{ marginBottom: 8 }}>
+        <div className="panel wb-toolbar">
           <div className="wb-toolbar-row">
             <span className="wb-toolbar-label">顏色</span>
-            {PALETTE.map((c) => (
-              <button
-                key={c}
-                type="button"
-                title={c}
-                aria-label={`筆色 ${c}`}
-                onClick={() => {
-                  setColor(c)
-                  setTool('pen')
-                }}
-                className="wb-swatch"
-                style={{
-                  border: color === c && tool === 'pen' ? '2px solid var(--ink)' : '1px solid var(--line)',
-                  background: c,
-                }}
-              />
-            ))}
-            <input type="color" value={color} aria-label="自訂筆色" onChange={(e) => setColor(e.target.value)} />
+            <div className="wb-toolbar-controls">
+              {PALETTE.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  title={c}
+                  aria-label={`筆色 ${c}`}
+                  onClick={() => {
+                    setColor(c)
+                    setTool('pen')
+                  }}
+                  className="wb-swatch"
+                  style={{
+                    border: color === c && tool === 'pen' ? '2px solid var(--ink)' : '1px solid var(--line)',
+                    background: c,
+                  }}
+                />
+              ))}
+              <input type="color" value={color} aria-label="自訂筆色" onChange={(e) => setColor(e.target.value)} />
+            </div>
           </div>
           <div className="wb-toolbar-row">
             <span className="wb-toolbar-label">筆刷</span>
-            <label className="label wb-toolbar-size-label">
-              粗細 {size}
-            </label>
-            <input
-              type="range"
-              min={SIZE_MIN}
-              max={SIZE_MAX}
-              value={clamp(size, SIZE_MIN, SIZE_MAX)}
-              aria-label="筆刷粗細"
-              onChange={(e) => setSize(clamp(parseNumber(e.target.value, 4), SIZE_MIN, SIZE_MAX))}
-            />
-            {SIZE_PRESETS.map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                className={`btn sm ${size === p.size ? 'accent' : 'ghost'}`}
-                onClick={() => setSize(p.size)}
-              >
-                {p.label}
+            <div className="wb-toolbar-controls">
+              <label className="label wb-toolbar-size-label">
+                粗細 {size}
+              </label>
+              <input
+                className="wb-toolbar-range"
+                type="range"
+                min={SIZE_MIN}
+                max={SIZE_MAX}
+                value={clamp(size, SIZE_MIN, SIZE_MAX)}
+                aria-label="筆刷粗細"
+                onChange={(e) => setSize(clamp(parseNumber(e.target.value, 4), SIZE_MIN, SIZE_MAX))}
+              />
+              {SIZE_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  className={`btn sm ${size === p.size ? 'accent' : 'ghost'}`}
+                  onClick={() => setSize(p.size)}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button type="button" className={`btn sm ${tool === 'pen' ? 'accent' : 'ghost'}`} onClick={() => setTool('pen')}>
+                筆
               </button>
-            ))}
-            <button type="button" className={`btn sm ${tool === 'pen' ? 'accent' : 'ghost'}`} onClick={() => setTool('pen')}>
-              筆
-            </button>
-            <button
-              type="button"
-              className={`btn sm ${tool === 'eraser' ? 'accent' : 'ghost'}`}
-              onClick={() => setTool('eraser')}
-            >
-              擦布
-            </button>
+              <button
+                type="button"
+                className={`btn sm ${tool === 'eraser' ? 'accent' : 'ghost'}`}
+                onClick={() => setTool('eraser')}
+              >
+                擦布
+              </button>
+            </div>
           </div>
           <div className="wb-toolbar-row">
             <span className="wb-toolbar-label">模板</span>
-            <button type="button" className="btn sm ghost" onClick={() => drawTemplate('grid')}>
-              格線
-            </button>
-            <button type="button" className="btn sm ghost" onClick={() => drawTemplate('dot')}>
-              點紙
-            </button>
-            <button type="button" className="btn sm ghost" onClick={() => drawTemplate('lines')}>
-              橫線
-            </button>
+            <div className="wb-toolbar-controls">
+              <button type="button" className="btn sm ghost" onClick={() => drawTemplate('grid')}>
+                格線
+              </button>
+              <button type="button" className="btn sm ghost" onClick={() => drawTemplate('dot')}>
+                點紙
+              </button>
+              <button type="button" className="btn sm ghost" onClick={() => drawTemplate('lines')}>
+                橫線
+              </button>
+            </div>
           </div>
           <div className="wb-toolbar-row">
             <span className="wb-toolbar-label">操作</span>
-            <ActionButton className="btn sm danger" onClick={clear}>
-              清空
-            </ActionButton>
-            <button type="button" className="btn sm accent wb-fs-btn" onClick={() => void toggleFullscreen()}>
-              {fullscreen ? <IconMinimize size={15} /> : <IconMaximize size={15} />}
-              {fullscreen ? '退出' : '全螢幕'}
-            </button>
+            <div className="wb-toolbar-controls">
+              <ActionButton className="btn sm danger" onClick={clear}>
+                清空
+              </ActionButton>
+              <button type="button" className="btn sm accent wb-fs-btn" onClick={() => void toggleFullscreen()}>
+                {fullscreen ? <IconMinimize size={15} /> : <IconMaximize size={15} />}
+                {fullscreen ? '退出' : '全螢幕'}
+              </button>
+            </div>
           </div>
         </div>
 

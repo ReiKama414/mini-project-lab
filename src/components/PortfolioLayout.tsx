@@ -66,6 +66,7 @@ export function PortfolioLayout({
       aside={aside}
       infoItems={infoItems}
       faq={faq}
+      labFaq={false}
       footerHint={footerHint}
       variant="unified"
     >

@@ -1,4 +1,5 @@
 import { PortfolioLayout } from '../../components/PortfolioLayout'
+import { FtSection } from '../../components/FeatureToolUI'
 import { useMemo, useState } from 'react'
 import { useLocalStorage } from '../../lib/storage'
 import { downloadText, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
@@ -194,140 +195,206 @@ export default function Page() {
   }
 
   return (
-    <PortfolioLayout slug="sql-playground"
+    <PortfolioLayout
+      slug="sql-playground"
+      heroSubtitle="記憶體 users 表 · 僅 SELECT · 結果可匯出 CSV"
+      footerHint="Ctrl/⌘+Enter 執行 · 範例按鈕可帶入查詢"
+      metrics={[
+        { label: '資料列', value: TABLE.length },
+        { label: '歷史', value: history.length },
+        { label: '結果', value: result && !result.error ? `${result.rows.length} rows` : '—' },
+        { label: 'Schema', value: showSchema ? '顯示' : '隱藏' },
+      ]}
       actions={
-        <ActionButton className="btn sm ghost" disabled={!result || !!result.error} onClick={exportCsv}>匯出 CSV</ActionButton>
+        <ActionButton className="btn sm ghost" disabled={!result || !!result.error} onClick={exportCsv}>
+          匯出 CSV
+        </ActionButton>
       }
     >
-      <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        {EXAMPLES.map((ex) => (
-          <button key={ex} type="button" className="btn sm ghost" onClick={() => setSql(ex)} title={ex}>
-            {ex.length > 36 ? `${ex.slice(0, 36)}…` : ex}
-          </button>
-        ))}
-      </div>
-      <div className="grid-2">
-        <div className="panel stack">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <div className="label" style={{ margin: 0 }}>
-              記憶體資料表 users
-            </div>
-            <button type="button" className={`btn sm ${showSchema ? 'teal' : 'ghost'}`} onClick={() => setShowSchema((v) => !v)}>
-              {showSchema ? '隱藏 Schema' : '顯示 Schema'}
-            </button>
-          </div>
-          {showSchema && (
-            <table style={{ width: '100%', fontSize: 12 }}>
-              <thead>
-                <tr>
-                  {['欄位', '型別', 'PK', '說明'].map((h) => (
-                    <th key={h} className="mono">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {SCHEMA.map((c) => (
-                  <tr key={c.name}>
-                    <td className="mono">{c.name}</td>
-                    <td className="mono muted">{c.type}</td>
-                    <td>{c.pk ? '✓' : ''}</td>
-                    <td className="muted">{c.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <table style={{ width: '100%', fontSize: 13 }}>
-            <thead>
-              <tr>
-                {['id', 'name', 'role', 'score'].map((c) => (
-                  <th key={c} className="mono">
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {preview.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.id}</td>
-                  <td>{r.name}</td>
-                  <td>{r.role}</td>
-                  <td>{r.score}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="muted" style={{ fontSize: 12 }}>
-            支援 COUNT(*)、WHERE（= / 比較 / LIKE / AND）、ORDER BY、LIMIT
-          </p>
-          {history.length > 0 && (
-            <div className="stack" style={{ gap: 4 }}>
-              <div className="row" style={{ justifyContent: 'space-between' }}>
-                <div className="label" style={{ margin: 0 }}>
-                  查詢歷史
-                </div>
-                <ActionButton className="btn sm ghost" onClick={() => setHistory([])}>
-                  清空
-                </ActionButton>
-              </div>
-              {history.map((h) => (
-                <button key={h} type="button" className="btn sm ghost" style={{ textAlign: 'left' }} onClick={() => setSql(h)}>
-                  <span className="mono" style={{ fontSize: 11 }}>
-                    {h}
-                  </span>
+      <div className="sql-layout">
+        <FtSection title="範例查詢" hint="點擊帶入編輯器；過長文字以 hover 看完整內容。">
+          <div className="panel sql-examples">
+            <div className="chip-scroll">
+              {EXAMPLES.map((ex) => (
+                <button key={ex} type="button" className="btn sm ghost" onClick={() => setSql(ex)} title={ex}>
+                  {ex.length > 42 ? `${ex.slice(0, 42)}…` : ex}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-        <div className="panel stack">
-          <textarea
-            className={cn('field mono', (!isNonEmpty(sql) || charCount(sql) > SQL_MAX) && 'is-invalid')}
-            rows={5}
-            maxLength={SQL_MAX}
-            value={sql}
-            onChange={(e) => setSql(limitText(e.target.value, SQL_MAX))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canRun) run()
-            }}
-          />
-          <div className="field-meta">
-            <span className={!canRun ? 'warn' : undefined}>{canRun ? '可執行' : '請輸入有效 SELECT（有長度上限）'}</span>
-            <span>{charCount(sql)}/{SQL_MAX}</span>
           </div>
-          {!isNonEmpty(sql) && <p className="field-error">SQL 不可空白</p>}
-          <div className="row">
-            <ActionButton className="btn accent" onClick={run} disabled={!canRun}>執行（Ctrl/⌘+Enter）</ActionButton>
-            <ActionButton className="btn ghost sm" onClick={exportCsv} disabled={!result || !!result.error}>匯出結果 CSV</ActionButton>
-          </div>
-          {result?.error && <p className="field-error">SQL 錯誤：{result.error}</p>}
-          {result && !result.error && (
-            <>
-              <div className="muted">{result.rows.length} rows</div>
-              <table style={{ width: '100%', fontSize: 13 }}>
-                <thead>
-                  <tr>
-                    {result.cols.map((c) => (
-                      <th key={c}>{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.rows.map((r, i) => (
-                    <tr key={i}>
-                      {result.cols.map((c) => (
-                        <td key={c}>{r[c]}</td>
+        </FtSection>
+
+        <div className="grid-2 sql-split">
+          <div className="panel stack">
+            <div className="panel-head">
+              <span className="label" style={{ margin: 0 }}>
+                記憶體資料表 users
+              </span>
+              <button
+                type="button"
+                className={`btn sm ${showSchema ? 'teal' : 'ghost'}`}
+                onClick={() => setShowSchema((v) => !v)}
+              >
+                {showSchema ? '隱藏 Schema' : '顯示 Schema'}
+              </button>
+            </div>
+            <div className="panel-body">
+              {showSchema && (
+                <div className="table-scroll">
+                  <table className="sql-table sql-table--schema">
+                    <colgroup>
+                      <col className="sql-col-field" />
+                      <col className="sql-col-type" />
+                      <col className="sql-col-pk" />
+                      <col className="sql-col-note" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        {['欄位', '型別', 'PK', '說明'].map((h) => (
+                          <th key={h} className="mono">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {SCHEMA.map((c) => (
+                        <tr key={c.name}>
+                          <td className="mono">{c.name}</td>
+                          <td className="mono muted">{c.type}</td>
+                          <td>{c.pk ? '✓' : ''}</td>
+                          <td className="muted">{c.note}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="table-scroll">
+                <table className="sql-table">
+                  <colgroup>
+                    <col className="sql-col-id" />
+                    <col className="sql-col-name" />
+                    <col className="sql-col-role" />
+                    <col className="sql-col-score" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      {['id', 'name', 'role', 'score'].map((c) => (
+                        <th key={c} className="mono">
+                          {c}
+                        </th>
                       ))}
                     </tr>
+                  </thead>
+                  <tbody>
+                    {preview.map((r) => (
+                      <tr key={r.id}>
+                        <td className="mono">{r.id}</td>
+                        <td>{r.name}</td>
+                        <td>{r.role}</td>
+                        <td className="mono">{r.score}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="muted sql-hint">支援 COUNT(*)、WHERE（= / 比較 / LIKE / AND）、ORDER BY、LIMIT</p>
+              {history.length > 0 && (
+                <div className="stack sql-history">
+                  <div className="row" style={{ justifyContent: 'space-between' }}>
+                    <div className="label" style={{ margin: 0 }}>
+                      查詢歷史
+                    </div>
+                    <ActionButton className="btn sm ghost" onClick={() => setHistory([])}>
+                      清空
+                    </ActionButton>
+                  </div>
+                  {history.map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      className="btn sm ghost sql-history-btn"
+                      onClick={() => setSql(h)}
+                    >
+                      <span className="mono">{h}</span>
+                    </button>
                   ))}
-                </tbody>
-              </table>
-              {!result.rows.length && <p className="muted">查無資料</p>}
-            </>
-          )}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="panel stack">
+            <div className="panel-head">
+              <span className="label" style={{ margin: 0 }}>
+                SQL 查詢
+              </span>
+              <span className="muted sql-kbd-hint">Ctrl/⌘+Enter</span>
+            </div>
+            <div className="sql-editor-body">
+              <textarea
+                className={cn('field mono sql-textarea', (!isNonEmpty(sql) || charCount(sql) > SQL_MAX) && 'is-invalid')}
+                rows={6}
+                maxLength={SQL_MAX}
+                value={sql}
+                onChange={(e) => setSql(limitText(e.target.value, SQL_MAX))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canRun) run()
+                }}
+              />
+              <div className="field-meta">
+                <span className={!canRun ? 'warn' : undefined}>
+                  {canRun ? '可執行' : '請輸入有效 SELECT（有長度上限）'}
+                </span>
+                <span>
+                  {charCount(sql)}/{SQL_MAX}
+                </span>
+              </div>
+              {!isNonEmpty(sql) && <p className="field-error">SQL 不可空白</p>}
+              <div className="row">
+                <ActionButton className="btn accent" onClick={run} disabled={!canRun}>
+                  執行（Ctrl/⌘+Enter）
+                </ActionButton>
+                <ActionButton className="btn ghost sm" onClick={exportCsv} disabled={!result || !!result.error}>
+                  匯出結果 CSV
+                </ActionButton>
+              </div>
+              {result?.error && <p className="field-error">SQL 錯誤：{result.error}</p>}
+              {result && !result.error && (
+                <>
+                  <div className="muted">{result.rows.length} rows</div>
+                  <div className="table-scroll">
+                    <table className="sql-table">
+                      <colgroup>
+                        {result.cols.map((c) => (
+                          <col key={c} />
+                        ))}
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          {result.cols.map((c) => (
+                            <th key={c} className="mono">
+                              {c}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.rows.map((r, i) => (
+                          <tr key={i}>
+                            {result.cols.map((c) => (
+                              <td key={c}>{r[c]}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {!result.rows.length && <p className="muted">查無資料</p>}
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </PortfolioLayout>

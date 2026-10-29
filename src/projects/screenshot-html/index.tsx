@@ -1,111 +1,29 @@
 import { PortfolioLayout } from '../../components/PortfolioLayout'
-import { useMemo, useState } from 'react'
+import { FtSection } from '../../components/FeatureToolUI'
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from 'react'
 import { useLocalStorage } from '../../lib/storage'
+import {
+  KIND_META,
+  PRESETS,
+  SECTION_KINDS,
+  SECTION_MAX,
+  TITLE_MAX,
+  layoutForPreset,
+  toHtml,
+  truncate,
+  type Preset,
+  type PresetId,
+  type Section,
+  type SectionKind,
+} from '../../lib/screenshotHtml'
 import { copyText, downloadText, uid, limitText, charCount, isNonEmpty, cn } from '../../lib/utils'
 import { ActionButton } from '../../components/ActionButton'
 
-const TITLE_MAX = 120
-const SECTION_MAX = 2000
+type Workspace = 'build' | 'code'
+type UndoSnap = { title: string; sections: Section[] }
 
-type PresetId = 'landing' | 'dashboard' | 'docs'
-type Section = { id: string; kind: string; text: string }
-
-type Preset = { id: PresetId; label: string; title: string; sections: Omit<Section, 'id'>[] }
-
-const PRESETS: Preset[] = [
-  {
-    id: 'landing',
-    label: 'Landing',
-    title: '產品首頁',
-    sections: [
-      { kind: 'nav', text: '產品 · 定價 · 登入' },
-      { kind: 'hero', text: '更快打造可上線的小工具' },
-      { kind: 'cards', text: '功能重點' },
-      { kind: 'footer', text: '© 2026 Mini Lab' },
-    ],
-  },
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    title: '營運儀表板',
-    sections: [
-      { kind: 'nav', text: '總覽 · 報表 · 設定' },
-      { kind: 'metrics', text: 'MRR / 活躍用戶 / 轉換率' },
-      { kind: 'chart', text: '近 7 日趨勢圖' },
-      { kind: 'table', text: '近期訂單表格' },
-    ],
-  },
-  {
-    id: 'docs',
-    label: 'Docs',
-    title: '文件站',
-    sections: [
-      { kind: 'sidebar', text: '快速開始 · API · 範例' },
-      { kind: 'hero', text: '歡迎使用文件' },
-      { kind: 'code', text: 'npm install mini-lab' },
-      { kind: 'footer', text: '改進建議歡迎 PR' },
-    ],
-  },
-]
-
-function escapeHtml(s: string) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
-
-function sectionHtml(s: Section, title: string) {
-  const t = escapeHtml(s.text)
-  switch (s.kind) {
-    case 'nav':
-      return `  <nav class="nav">${t}</nav>`
-    case 'sidebar':
-      return `  <aside class="sidebar">${t}</aside>`
-    case 'hero':
-      return `  <header class="hero"><h1>${escapeHtml(title)}</h1><p>${t}</p><a class="btn" href="#">開始使用</a></header>`
-    case 'cards':
-    case 'metrics':
-      return `  <section class="grid"><article class="card">${t}</article><article class="card">項目 B</article><article class="card">項目 C</article></section>`
-    case 'chart':
-    case 'table':
-      return `  <section class="section panel">${t}</section>`
-    case 'code':
-      return `  <pre class="code">${t}</pre>`
-    case 'footer':
-      return `  <footer>${t}</footer>`
-    default:
-      return `  <section class="section"><p>${t}</p></section>`
-  }
-}
-
-function toHtml(title: string, sections: Section[]) {
-  const body = sections.map((s) => sectionHtml(s, title)).join('\n')
-  return `<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(title || 'Generated')}</title>
-  <style>
-    :root { --ink:#1a2e28; --accent:#f0734a; --bg:#f3f0e8; }
-    body{font-family:"Segoe UI",system-ui,sans-serif;margin:0;background:var(--bg);color:var(--ink);line-height:1.5}
-    .nav,.sidebar{padding:14px 24px;background:#fffdf8;border-bottom:1px solid #d4cfc0}
-    .sidebar{min-height:120px;border-right:1px solid #d4cfc0}
-    .hero{padding:72px 24px;background:linear-gradient(135deg,#ffe0d4,#d4f0eb)}
-    .hero h1{margin:0 0 8px;font-size:2.4rem}
-    .btn{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none}
-    .grid{display:grid;gap:12px;padding:24px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
-    .card,.panel{background:#fffdf8;padding:16px;border-radius:14px;border:1px solid #d4cfc0}
-    .section{padding:24px}
-    .code{margin:16px 24px;padding:16px;background:#1a2e28;color:#d4f0eb;border-radius:12px;overflow:auto}
-    footer{padding:24px;opacity:.75;border-top:1px solid #d4cfc0}
-  </style>
-</head>
-<body>
-${body || '  <p>請新增區塊</p>'}
-</body>
-</html>`
-}
-
-const KIND_OPTS = ['nav', 'sidebar', 'hero', 'cards', 'metrics', 'chart', 'table', 'code', 'footer', 'section']
+const DRAG_THRESHOLD = 5
+const UNDO_MAX = 28
 
 export default function Page() {
   const [title, setTitle] = useLocalStorage('lab:screenshot-html:title', PRESETS[0]!.title)
@@ -114,119 +32,552 @@ export default function Page() {
     'lab:screenshot-html:sections',
     PRESETS[0]!.sections.map((s) => ({ ...s, id: uid('s') })),
   )
-  const [auto, setAuto] = useLocalStorage('lab:screenshot-html:auto', true)
-  const [manualHtml, setManualHtml] = useState('')
+  const [manualHtml, setManualHtml] = useLocalStorage('lab:screenshot-html:manual', '')
+  const [codeMode, setCodeMode] = useLocalStorage('lab:screenshot-html:code-mode', false)
 
-  const html = useMemo(() => toHtml(title, sections), [title, sections])
-  const out = auto ? html : manualHtml || html
+  const [workspace, setWorkspace] = useState<Workspace>('build')
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [addKind, setAddKind] = useState<SectionKind>('section')
+  const [copied, setCopied] = useState(false)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const [ghost, setGhost] = useState<{ x: number; y: number; kind: string; text: string } | null>(null)
+  const [undoStack, setUndoStack] = useState<UndoSnap[]>([])
 
-  function applyPreset(p: Preset) {
-    setPreset(p.id)
-    setTitle(p.title)
-    setSections(p.sections.map((s) => ({ ...s, id: uid('s') })))
-    setManualHtml('')
+  const listRef = useRef<HTMLUListElement>(null)
+  const dropIndexRef = useRef<number | null>(null)
+  const dragRef = useRef<{
+    id: string
+    pointerId: number
+    moved: boolean
+    kind: SectionKind
+    text: string
+  } | null>(null)
+
+  const activePreset = PRESETS.find((p) => p.id === preset) ?? PRESETS[0]!
+  const layout = layoutForPreset(preset)
+
+  const html = useMemo(() => toHtml(title, sections, layout), [title, sections, layout])
+  const out = codeMode && manualHtml ? manualHtml : html
+
+  const sectionChars = useMemo(() => sections.reduce((n, s) => n + s.text.length, 0), [sections])
+
+  const pushUndo = useCallback(() => {
+    setUndoStack((stack) => [
+      ...stack.slice(-UNDO_MAX),
+      { title, sections: sections.map((s) => ({ ...s })) },
+    ])
+  }, [title, sections])
+
+  const undo = useCallback(() => {
+    setUndoStack((stack) => {
+      if (!stack.length) return stack
+      const prev = stack[stack.length - 1]!
+      setTitle(prev.title)
+      setSections(prev.sections.map((s) => ({ ...s })))
+      return stack.slice(0, -1)
+    })
+  }, [setTitle, setSections])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== 'z' || e.shiftKey) return
+      const t = e.target as HTMLElement | null
+      if (t?.closest('textarea, input, select, [contenteditable="true"]')) return
+      e.preventDefault()
+      undo()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo])
+
+  const titleUndoArmed = useRef(false)
+
+  const setDrop = useCallback((i: number | null) => {
+    dropIndexRef.current = i
+    setDropIndex(i)
+  }, [])
+
+  const applyPreset = useCallback(
+    (p: Preset) => {
+      if (p.id === preset) return
+      if (
+        sections.length > 0 &&
+        !window.confirm(`套用「${p.label}」範本？目前的區塊會被取代。`)
+      ) {
+        return
+      }
+      pushUndo()
+      setPreset(p.id)
+      setTitle(p.title)
+      setSections(p.sections.map((s) => ({ ...s, id: uid('s') })))
+      setManualHtml('')
+      setCodeMode(false)
+      setWorkspace('build')
+      setOpenId(null)
+    },
+    [preset, sections.length, pushUndo, setPreset, setTitle, setSections, setManualHtml, setCodeMode],
+  )
+
+  const updateSection = useCallback(
+    (id: string, patch: Partial<Section>, recordUndo = true) => {
+      if (recordUndo) pushUndo()
+      setSections((xs) => xs.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+    },
+    [pushUndo, setSections],
+  )
+
+  const sectionEditUndo = useRef(new Set<string>())
+
+  const removeSection = useCallback(
+    (id: string) => {
+      pushUndo()
+      setSections((xs) => xs.filter((x) => x.id !== id))
+      setOpenId((cur) => (cur === id ? null : cur))
+    },
+    [pushUndo, setSections],
+  )
+
+  const addSection = useCallback(
+    (kind: SectionKind, afterId?: string) => {
+      pushUndo()
+      const block: Section = { id: uid('s'), kind, text: KIND_META[kind].hint }
+      setSections((xs) => {
+        if (!afterId) return [...xs, block]
+        const i = xs.findIndex((x) => x.id === afterId)
+        if (i < 0) return [...xs, block]
+        const next = xs.slice()
+        next.splice(i + 1, 0, block)
+        return next
+      })
+      setOpenId(block.id)
+    },
+    [pushUndo, setSections],
+  )
+
+  const reorder = useCallback(
+    (fromId: string, toIndex: number) => {
+      setSections((xs) => {
+        const from = xs.findIndex((x) => x.id === fromId)
+        if (from < 0) return xs
+        const next = xs.slice()
+        const [item] = next.splice(from, 1)
+        let to = Math.min(toIndex, next.length)
+        if (from < to) to -= 1
+        to = Math.max(0, Math.min(to, next.length))
+        if (from === to || !item) return xs
+        next.splice(to, 0, item)
+        return next
+      })
+    },
+    [setSections],
+  )
+
+  const indexAtPointer = useCallback((clientY: number) => {
+    const list = listRef.current
+    if (!list) return null
+    const items = list.querySelectorAll<HTMLElement>('[data-block-id]')
+    for (let i = 0; i < items.length; i++) {
+      const el = items[i]!
+      const r = el.getBoundingClientRect()
+      const mid = r.top + r.height / 2
+      if (clientY < mid) return i
+    }
+    return items.length
+  }, [])
+
+  const finishDrag = useCallback(
+    (el: HTMLElement, pointerId: number) => {
+      const d = dragRef.current
+      const idx = dropIndexRef.current
+      if (d?.moved && idx != null) {
+        pushUndo()
+        reorder(d.id, idx)
+      }
+      if (el.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId)
+      dragRef.current = null
+      setDraggingId(null)
+      setDrop(null)
+      setGhost(null)
+    },
+    [pushUndo, reorder, setDrop],
+  )
+
+  const onGripMove = useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      const d = dragRef.current
+      if (!d || d.pointerId !== e.pointerId) return
+      e.preventDefault()
+      if (!d.moved && Math.abs(e.movementY) + Math.abs(e.movementX) >= DRAG_THRESHOLD) d.moved = true
+      if (!d.moved) return
+      setGhost({
+        x: e.clientX + 14,
+        y: e.clientY + 10,
+        kind: KIND_META[d.kind].label,
+        text: truncate(d.text, 42),
+      })
+      const idx = indexAtPointer(e.clientY)
+      if (idx != null) setDrop(idx)
+    },
+    [indexAtPointer, setDrop],
+  )
+
+  const onGripUp = useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      finishDrag(e.currentTarget, e.pointerId)
+    },
+    [finishDrag],
+  )
+
+  function startGrip(e: React.PointerEvent<HTMLElement>, s: Section) {
+    if (codeMode) return
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = {
+      id: s.id,
+      pointerId: e.pointerId,
+      moved: false,
+      kind: s.kind,
+      text: s.text,
+    }
+    setDraggingId(s.id)
+  }
+
+  async function copyOut() {
+    await copyText(out)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  function openPreviewTab() {
+    const blob = new Blob([out], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener,noreferrer')
+    window.setTimeout(() => URL.revokeObjectURL(url), 120_000)
+  }
+
+  function enterCodeMode() {
+    setManualHtml(html)
+    setCodeMode(true)
+    setWorkspace('code')
+  }
+
+  function exitCodeMode(resync: boolean) {
+    if (resync) {
+      setManualHtml('')
+      setCodeMode(false)
+    } else {
+      setCodeMode(true)
+    }
+    setWorkspace('build')
   }
 
   return (
-    <PortfolioLayout slug="screenshot-html"
+    <PortfolioLayout
+      slug="screenshot-html"
+      heroSubtitle="描述頁面有哪些區塊（不是 AI 辨識截圖）→ 即時預覽 → 匯出單檔 HTML。適合 wireframe、作業起稿。"
+      metrics={[
+        { label: '範本', value: activePreset.label },
+        { label: '區塊', value: `${sections.length} 個` },
+        { label: '字數', value: `${sectionChars}` },
+        { label: '工作區', value: workspace === 'build' ? '結構' : '原始碼' },
+      ]}
+      footerHint="預覽為示意樣式；上線前請依設計系統調整 CSS。Docs 範本會將 sidebar 與內文並排。"
       actions={
         <div className="row">
-          <ActionButton className="btn sm ghost" onClick={() => void copyText(out)} icon="copy" iconOnly tooltip="複製" />
+          <ActionButton className="btn sm ghost" onClick={() => void copyOut()} icon="copy">
+            {copied ? '已複製' : '複製 HTML'}
+          </ActionButton>
+          <button type="button" className="btn sm ghost" onClick={openPreviewTab}>
+            新分頁預覽
+          </button>
           <button
             type="button"
             className="btn sm teal"
             onClick={() => downloadText(`${title || 'page'}.html`, out, 'text/html;charset=utf-8')}
           >
-            下載 HTML
+            下載 .html
           </button>
         </div>
       }
     >
-      <div className="panel row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        {PRESETS.map((p) => (
-          <button key={p.id} type="button" className={`btn sm ${preset === p.id ? 'accent' : 'ghost'}`} onClick={() => applyPreset(p)}>
-            {p.label}
+      <FtSection title="版面範本" hint="由左至右選一種起點；套用後仍可調整區塊與順序。">
+        <div className="sh-tmpl-grid" role="list">
+          {PRESETS.map((p) => {
+            const active = preset === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="listitem"
+                className={cn('sh-tmpl-card panel', active && 'is-active')}
+                onClick={() => applyPreset(p)}
+              >
+                <span className="sh-tmpl-emoji" aria-hidden>
+                  {p.emoji}
+                </span>
+                <span className="sh-tmpl-label">{p.label}</span>
+                <span className="muted sh-tmpl-hint">{p.hint}</span>
+                <span className="muted sh-tmpl-meta">{p.sections.length} 區塊</span>
+              </button>
+            )
+          })}
+        </div>
+      </FtSection>
+
+      <div className="panel sh-workspace-bar">
+        <div className="panel-body row sh-workspace-tabs">
+          <button
+            type="button"
+            className={cn('btn sm', workspace === 'build' && !codeMode ? 'teal' : 'ghost')}
+            onClick={() => {
+              setCodeMode(false)
+              setWorkspace('build')
+            }}
+          >
+            結構編輯
           </button>
-        ))}
-        <button type="button" className={`btn sm ${auto ? 'teal' : 'ghost'}`} onClick={() => setAuto((v) => !v)}>
-          {auto ? '即時產生' : '手動產生'}
-        </button>
-        {!auto && (
-          <button type="button" className="btn sm accent" onClick={() => setManualHtml(toHtml(title, sections))} disabled={!isNonEmpty(title)}>
-            產生 HTML
+          <button type="button" className={cn('btn sm', workspace === 'code' || codeMode ? 'teal' : 'ghost')} onClick={enterCodeMode}>
+            HTML 原始碼
           </button>
-        )}
+          {codeMode && workspace === 'build' && (
+            <span className="muted sh-code-badge">原始碼已鎖定結構 · 返回原始碼分頁可繼續改</span>
+          )}
+        </div>
       </div>
 
-      <div className="grid-2">
-        <div className="panel stack">
-          <input
-            className={cn('field', !isNonEmpty(title) && 'is-invalid')}
-            maxLength={TITLE_MAX}
-            value={title}
-            onChange={(e) => setTitle(limitText(e.target.value, TITLE_MAX))}
-            placeholder="頁面標題"
-          />
-          <div className="field-meta">
-            <span className={!isNonEmpty(title) ? 'warn' : undefined}>{isNonEmpty(title) ? '標題 OK' : '請填頁面標題'}</span>
-            <span>{charCount(title)}/{TITLE_MAX}</span>
-          </div>
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <div className="label" style={{ margin: 0 }}>
-              區塊（可編輯）
+      {workspace === 'code' ? (
+        <div className="panel stack sh-code-panel">
+          <div className="panel-head">
+            <span className="pw-panel-title">編輯 HTML</span>
+            <div className="row">
+              <button type="button" className="btn sm ghost" onClick={() => exitCodeMode(false)}>
+                返回結構（保留 HTML）
+              </button>
+              <button type="button" className="btn sm accent" onClick={() => exitCodeMode(true)}>
+                放棄 HTML、同步區塊
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn sm ghost"
-              onClick={() => setSections((xs) => [...xs, { id: uid('s'), kind: 'section', text: '新區塊內容' }])}
-            >
-              + 區塊
-            </button>
           </div>
-          {sections.map((s, i) => (
-            <div key={s.id} className="list-item stack">
-              <div className="row">
-                <span className="mono muted">{i + 1}</span>
+          <div className="panel-body sh-code-body">
+            <textarea
+              className="field mono sh-code-textarea"
+              value={manualHtml || html}
+              onChange={(e) => setManualHtml(e.target.value)}
+              spellCheck={false}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="panel stack sh-build-panel">
+            <div className="panel-head">
+              <span className="pw-panel-title">頁面大綱</span>
+              <div className="row sh-add-row">
+                <button type="button" className="btn sm ghost" disabled={!undoStack.length || codeMode} onClick={undo}>
+                  還原上一步
+                </button>
                 <select
-                  className="field"
-                  style={{ width: 120 }}
-                  value={s.kind}
-                  onChange={(e) => setSections((xs) => xs.map((x) => (x.id === s.id ? { ...x, kind: e.target.value } : x)))}
+                  className="field sh-add-kind"
+                  value={addKind}
+                  disabled={codeMode}
+                  onChange={(e) => setAddKind(e.target.value as SectionKind)}
                 >
-                  {KIND_OPTS.map((k) => (
+                  {SECTION_KINDS.map((k) => (
                     <option key={k} value={k}>
-                      {k}
+                      {KIND_META[k].label}
                     </option>
                   ))}
                 </select>
-                <button type="button" className="btn sm danger" onClick={() => setSections((xs) => xs.filter((x) => x.id !== s.id))}>
-                  刪
+                <button type="button" className="btn sm teal" disabled={codeMode} onClick={() => addSection(addKind)}>
+                  新增區塊
                 </button>
               </div>
-              <textarea
-                className="field"
-                rows={2}
-                maxLength={SECTION_MAX}
-                value={s.text}
-                onChange={(e) =>
-                  setSections((xs) => xs.map((x) => (x.id === s.id ? { ...x, text: limitText(e.target.value, SECTION_MAX) } : x)))
-                }
-              />
-              <div className="field-meta">
-                <span className="field-hint">區塊文字</span>
-                <span>{charCount(s.text)}/{SECTION_MAX}</span>
-              </div>
             </div>
-          ))}
-          <iframe title="preview" className="panel" style={{ minHeight: 280, width: '100%', border: 0, background: '#fff' }} srcDoc={out} />
+            <div className="panel-body stack sh-build-body">
+              <label className="sh-title-field">
+                <span className="label">頁面標題</span>
+                <input
+                  className={cn('field', !isNonEmpty(title) && 'is-invalid')}
+                  maxLength={TITLE_MAX}
+                  value={title}
+                  disabled={codeMode}
+                  onFocus={() => {
+                    titleUndoArmed.current = false
+                  }}
+                  onChange={(e) => {
+                    if (!titleUndoArmed.current) {
+                      pushUndo()
+                      titleUndoArmed.current = true
+                    }
+                    setTitle(limitText(e.target.value, TITLE_MAX))
+                  }}
+                  placeholder="寫入 &lt;title&gt; 與 hero 主標"
+                />
+                <div className="field-meta">
+                  <span className={!isNonEmpty(title) ? 'warn' : undefined}>
+                    {isNonEmpty(title) ? 'OK' : '請填標題'}
+                  </span>
+                  <span>
+                    {charCount(title)}/{TITLE_MAX}
+                  </span>
+                </div>
+              </label>
+
+              <ul ref={listRef} className={cn('sh-outline', draggingId && 'is-dnd-active')}>
+                {sections.map((s, i) => {
+                  const open = openId === s.id
+                  const dragging = draggingId === s.id
+                  const showSlot = draggingId && dropIndex === i && draggingId !== s.id
+                  return (
+                    <Fragment key={s.id}>
+                      {showSlot && <li className="sh-drop-slot" aria-hidden />}
+                      <li
+                        data-block-id={s.id}
+                        className={cn('sh-block', open && 'is-open', dragging && 'is-dragging')}
+                      >
+                      <div className="sh-block-summary">
+                        <button
+                          type="button"
+                          className="sh-grip"
+                          aria-label="拖曳排序"
+                          disabled={codeMode}
+                          onPointerDown={(e) => startGrip(e, s)}
+                          onPointerMove={onGripMove}
+                          onPointerUp={onGripUp}
+                          onPointerCancel={onGripUp}
+                        >
+                          ⋮⋮
+                        </button>
+                        <button
+                          type="button"
+                          className="sh-block-toggle"
+                          disabled={codeMode}
+                          onClick={() => setOpenId(open ? null : s.id)}
+                        >
+                          <span className={cn('tag sh-kind-tag', `sh-kind-${s.kind}`)}>{KIND_META[s.kind].label}</span>
+                          <span className="sh-block-preview">{truncate(s.text)}</span>
+                        </button>
+                        <span className="mono muted sh-block-idx">{i + 1}</span>
+                        <button
+                          type="button"
+                          className="btn sm ghost"
+                          disabled={codeMode}
+                          aria-label="刪除區塊"
+                          onClick={() => removeSection(s.id)}
+                        >
+                          刪
+                        </button>
+                      </div>
+                      {open && !codeMode && (
+                        <div className="sh-block-edit stack">
+                          <div className="sh-kind-pills" role="group" aria-label="區塊類型">
+                            {SECTION_KINDS.map((k) => (
+                              <button
+                                key={k}
+                                type="button"
+                                className={cn('btn sm', s.kind === k ? 'teal' : 'ghost')}
+                                onClick={() => {
+                                  if (s.kind === k) return
+                                  updateSection(s.id, { kind: k })
+                                }}
+                              >
+                                {KIND_META[k].label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="muted sh-kind-hint">{KIND_META[s.kind].hint}</p>
+                          <textarea
+                            className="field sh-block-text"
+                            rows={3}
+                            maxLength={SECTION_MAX}
+                            value={s.text}
+                            onFocus={() => {
+                              if (!sectionEditUndo.current.has(s.id)) {
+                                pushUndo()
+                                sectionEditUndo.current.add(s.id)
+                              }
+                            }}
+                            onBlur={() => sectionEditUndo.current.delete(s.id)}
+                            onChange={(e) =>
+                              updateSection(s.id, { text: limitText(e.target.value, SECTION_MAX) }, false)
+                            }
+                          />
+                          <div className="field-meta">
+                            <button type="button" className="btn sm ghost" onClick={() => addSection(s.kind, s.id)}>
+                              下方插入區塊
+                            </button>
+                            <span>
+                              {charCount(s.text)}/{SECTION_MAX}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                    </Fragment>
+                  )
+                })}
+                {draggingId && dropIndex === sections.length && (
+                  <li className="sh-drop-slot" aria-hidden />
+                )}
+                {!sections.length && (
+                  <li className="sh-outline-empty muted">尚無區塊 — 選範本或按「新增區塊」</li>
+                )}
+              </ul>
+            </div>
+          </div>
+
+          <div className="panel stack sh-stage">
+            <div className="panel-head">
+              <span className="pw-panel-title">即時預覽</span>
+              <span className="muted">全寬 · 由大綱由上而下組版</span>
+            </div>
+            <div className="panel-body sh-stage-body">
+              <iframe title="頁面預覽" className="sh-preview" srcDoc={out} sandbox="allow-same-origin" />
+            </div>
+          </div>
+
+          <details className="panel sh-source-details">
+            <summary className="sh-source-summary panel-head">
+              <span className="pw-panel-title">HTML 原始碼（唯讀）</span>
+              <ActionButton
+                className="btn sm ghost"
+                icon="copy"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  void copyOut()
+                }}
+              >
+                {copied ? '已複製' : '複製'}
+              </ActionButton>
+            </summary>
+            <pre className="panel-body mono sh-source-read">{html}</pre>
+          </details>
+        </>
+      )}
+
+      {workspace === 'code' && (
+        <div className="panel stack sh-stage">
+          <div className="panel-head">
+            <span className="pw-panel-title">預覽（依目前 HTML）</span>
+          </div>
+          <div className="panel-body sh-stage-body">
+            <iframe title="頁面預覽" className="sh-preview" srcDoc={out} sandbox="allow-same-origin" />
+          </div>
         </div>
-        <div className="panel stack">
-          <div className="label">HTML 輸出</div>
-          <pre className="mono" style={{ whiteSpace: 'pre-wrap', maxHeight: 560, overflow: 'auto', margin: 0, fontSize: 12 }}>
-            {out}
-          </pre>
+      )}
+      {ghost && (
+        <div
+          className="sh-drag-ghost"
+          style={{ transform: `translate(${ghost.x}px, ${ghost.y}px)` }}
+          aria-hidden
+        >
+          <span className="tag sh-kind-tag">{ghost.kind}</span>
+          <span className="sh-drag-ghost-text">{ghost.text}</span>
         </div>
-      </div>
+      )}
     </PortfolioLayout>
   )
 }

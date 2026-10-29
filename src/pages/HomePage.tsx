@@ -88,14 +88,7 @@ export function HomePage() {
     <div>
       <section className="home-hero">
         <h1>Mini Project Lab</h1>
-        <p>
-          用搜尋、分類或標籤快速找到你要的工具目前已收錄 {projects.length}{' '}
-          個獨立小專案，之後還能持續新增
-        </p>
-        <div className="home-stats">
-          <span className="home-stat">{filtered.length} / {projects.length} 個專案</span>
-          <span className="home-stat">上方搜尋 · 左側導覽</span>
-        </div>
+        <p className="home-hero-lead">可重用的小工具與示範專案</p>
       </section>
 
       <section className="browse-bar panel">

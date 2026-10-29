@@ -32,7 +32,7 @@ export function ProjectShell({
         {actions ? <div className="project-shell-actions">{actions}</div> : null}
       </div>
       {children}
-      {meta.tier !== 'feature' ? <LabTrustNotice /> : null}
+      {meta.tier !== 'feature' && meta.tier !== 'portfolio' ? <LabTrustNotice /> : null}
     </div>
   )
 }

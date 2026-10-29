@@ -42,17 +42,33 @@ const guides: Record<PortfolioSlug, PortfolioGuide> = {
   'screenshot-html': {
     info: [
       ...baseInfo,
-      { label: '輸出', value: '依結構描述產生 HTML 草稿' },
-      { label: '限制', value: '非視覺截圖辨識，不連 AI 後端' },
+      { label: '輸入', value: '頁面標題 + 區塊類型（nav／hero／metrics…）與文字' },
+      { label: '輸出', value: '單檔 HTML（內嵌 CSS）· 複製／下載／新分頁預覽' },
+      { label: '範本', value: 'Landing · Dashboard · Docs（側欄版型）· 空白' },
+      { label: '模式', value: '即時產生 或 手動編輯 HTML（localStorage 保留）' },
+      { label: '限制', value: '非 OCR／非 AI 看圖；不還原像素級設計' },
+      { label: '儲存', value: 'lab:screenshot-html:*（標題、區塊、模式）' },
     ],
     faq: [
       {
         title: '可以從真實截圖自動轉 HTML 嗎？',
-        body: '目前僅依你填的版面描述與區塊清單組版，不會分析圖片像素。',
+        body: '不能。名稱中的 Screenshot 指「依畫面結構描述產出可預覽的 HTML」，不會上傳或分析圖片。請用區塊清單描述 nav、hero、表格等區域。',
       },
       {
-        title: '適合什麼情境？',
-        body: '快速起稿 landing、wireframe 轉成可貼進專案的 HTML 骨架。',
+        title: '和 Figma／設計稿匯出有何不同？',
+        body: '這裡產生的是語意化骨架與示意樣式，方便教學、PR 草稿或先寫再改。精準 spacing、字體與元件狀態仍需在你的設計系統或框架中實作。',
+      },
+      {
+        title: 'Docs 範本為什麼有側欄？',
+        body: '套用 Docs 時 sidebar 類型區塊會與其餘內容以 flex 並排；其他範本則依區塊順序垂直堆疊。',
+      },
+      {
+        title: '手動 HTML 模式會覆蓋區塊嗎？',
+        body: '手動模式下右側可編輯完整 HTML，左側結構暫時鎖定以免被覆寫。切回「即時產生」會依目前區塊重新產生（手動內容不會自動合併回區塊）。',
+      },
+      {
+        title: '預覽 iframe 和「新分頁預覽」差在哪？',
+        body: 'iframe 方便同頁對照編輯；新分頁使用 blob URL，適合全螢幕檢視或用瀏覽器截圖工具存成圖片。',
       },
     ],
   },
@@ -114,17 +130,32 @@ const guides: Record<PortfolioSlug, PortfolioGuide> = {
   'db-schema-viz': {
     info: [
       ...baseInfo,
-      { label: '資料來源', value: '本機表格／欄位／關聯定義' },
-      { label: '視覺', value: 'ER 關聯示意（非 live DB）' },
+      { label: '資料來源', value: '本機編輯的資料表、欄位型別、PK／FK（非 live DB）' },
+      { label: '畫布', value: '拖曳表頭 ⋮⋮ 移動 · 自動排列 · 選取時高亮相關表' },
+      { label: '輸出', value: 'Mermaid erDiagram（複製或下載 .mmd）' },
+      { label: '儲存', value: 'localStorage · lab:db-schema-viz:v2' },
+      { label: '型別', value: 'uuid / text / int / numeric / bool / timestamptz' },
     ],
     faq: [
       {
-        title: '能連線 PostgreSQL 嗎？',
-        body: '不能。僅視覺化你編輯的 schema 描述，不執行 SQL 或讀取遠端資料庫。',
+        title: '能連線 PostgreSQL 或匯入 DDL 嗎？',
+        body: '不能。本工具不連線、不解析 SQL 檔；請手動建表或在欄位填 fk table.col。適合課堂 ER 圖、RFC 草稿或對照 migration 前的示意。',
       },
       {
-        title: '匯出格式？',
-        body: '可複製／下載示意用結構，供文件或教學使用。',
+        title: '為什麼拖曳時像在做文字複製／選取？',
+        body: '請用表頭左側 ⋮⋮ 區拖曳，不要在欄位名稱輸入框上從頭滑鼠拖曳。畫布已關閉整頁選取；編輯欄位時仍可在輸入框內正常選字。',
+      },
+      {
+        title: 'Mermaid 可以直接貼到 GitHub 嗎？',
+        body: '多數 Markdown 編輯器支援 ```mermaid 程式塊。實際語法以你使用的渲染器為準；匯出前可在 README 或 Notion 試貼一次。',
+      },
+      {
+        title: '刪表或還原範例會影響其他分頁嗎？',
+        body: '不會上傳伺服器。還原範例只覆寫本機儲存的 schema；清除瀏覽器網站資料也會一併清掉。',
+      },
+      {
+        title: 'FK 線為什麼沒連到欄位正中央？',
+        body: '連線為表框左右緣的示意虛線，方便閱讀整體拓樸；精確 cardinalities 請以 Mermaid 或正式 ER 工具為準。',
       },
     ],
   },
@@ -148,17 +179,27 @@ const guides: Record<PortfolioSlug, PortfolioGuide> = {
   'readme-generator': {
     info: [
       ...baseInfo,
-      { label: '輸出', value: 'GitHub 風格 README Markdown' },
-      { label: '區塊', value: '徽章、安裝、功能、API、授權等可勾選' },
+      { label: '輸出', value: 'Markdown（README.md）· 複製或下載' },
+      { label: '區塊', value: '徽章、技術棧、功能、安裝、API、授權可開關' },
+      { label: '預覽', value: 'GFM 渲染 + 原始碼對照' },
+      { label: '範本', value: '函式庫／App／API／空白一鍵帶入' },
     ],
     faq: [
       {
-        title: '會自動讀取我的 repo 嗎？',
-        body: '不會。內容由表單產生，可複製到 GitHub 新檔或下載 .md。',
+        title: '會自動讀取我的 GitHub repo 嗎？',
+        body: '不會。所有內容來自本頁表單與本機儲存；請自行貼到 GitHub 新檔或下載 README.md 上傳。',
       },
       {
         title: '徽章連結正確嗎？',
-        body: '依專案名稱產生 shields.io 範本，上線前請改成真實 repo 路徑。',
+        body: 'shields.io 依授權與技術棧文字產生示意徽章，並非你的 repo 真實 build 狀態。上線前請改成專案實際的 CI、npm 版本等連結。',
+      },
+      {
+        title: '章節標題為什麼有中英文？',
+        body: '徽章與 API 等慣用英文；「功能」「快速開始」「授權」等段落使用中文標題，方便本地 README。你可於原始 Markdown 自行修改。',
+      },
+      {
+        title: '表單資料存在哪？',
+        body: '瀏覽器 localStorage（lab:readme:*）。清除網站資料或換裝置後需重新填寫；範本按鈕可快速重建結構。',
       },
     ],
   },
@@ -251,17 +292,26 @@ const guides: Record<PortfolioSlug, PortfolioGuide> = {
   'tic-tac-toe': {
     info: [
       ...baseInfo,
-      { label: '模式', value: '雙人同機或簡易人機' },
-      { label: '連線', value: '無網路對戰' },
+      { label: '模式', value: '人機（玩家 X）或雙人同機' },
+      { label: '戰績', value: '比分與歷史存 localStorage（最多 40 局）' },
+      { label: '匯出', value: 'CSV 下載對局列表' },
     ],
     faq: [
       {
+        title: '怎麼玩？',
+        body: '輪流在 3×3 棋盤落子，先連成橫、直、斜三子者勝；棋盤下滿無勝者為平手。「新局」只清棋盤；「重置戰績」會清比分與歷史。',
+      },
+      {
         title: '人機難度？',
-        body: '示範用 minimax 或 heuristics，非競賽級 AI。',
+        body: '電腦使用簡單 heuristics：能贏則贏、能擋則擋、偏好中心，非完整 minimax，適合示範而非競賽級 AI。',
       },
       {
         title: '戰績會保存嗎？',
-        body: '可選本機紀錄勝負；清除資料即消失。',
+        body: '比分與對局時間、模式、步數寫在本機；清除網站資料或換裝置即消失。人機模式下 O 的勝場代表電腦贏。',
+      },
+      {
+        title: '有線上對戰嗎？',
+        body: '沒有。此 Demo 僅同機操作，無 WebSocket 或房間配對。',
       },
     ],
   },
